@@ -7,24 +7,9 @@
 ##
 ## The following limitations are currently present:
 ##    - If there is more than one result for the same result code on a single 
-##      date, only the first result will be recorded.
+##      date, only the first result will be recorded
 ##    - Codes that resolve to the same description will be collated regardless 
-##      of their id.
-##
-## Intended to be run from the extracted folder of the extracted health data from 
-## Apple Health app.
-##
-## Usage:
-##
-##    $ mv apple_health_data_parser.py apple_health_export
-##    $ python apple_health_export/apple_health_data_parser ${args}
-##
-##    --start_year=${year} 
-##        Exclude results from before a certain year
-##
-##    -v, --verbose
-##        Run in verbose mode
-
+##      of their codings
 
 import csv
 import json
@@ -32,8 +17,42 @@ import os
 import re
 import sys
 
+from labtest import LabTest
 
-COMMANDS = sys.argv[1:]
+help_text = """
+Usage:
+
+   $ python apple_health_data_parser.py path/to/apple_health_export ${args}
+
+    --start_year=${year} 
+        Exclude results from before a certain year
+
+    -v, --verbose
+        Run in verbose mode
+"""
+
+if len(sys.argv) < 2:
+    print(help_text)
+    exit()
+
+base_dir = sys.argv[1]
+
+if not os.path.exists(base_dir) or not os.path.isdir(base_dir):
+    print("Apple Health data export directory path provided is invalid.")
+    print(help_text)
+    exit(1)
+
+all_data_output_file = base_dir + "/observations.csv"
+abnormal_results_output_csv = base_dir + "/abnormal_results.csv"
+abnormal_results_output_text = base_dir + "/abnormal_results_by_code.txt"
+base_dir = base_dir + "/clinical-records"
+
+if not os.path.exists(base_dir) or len(os.listdir(base_dir)) == 0:
+    print("Clinical records not found in export folder provided.")
+    print("Ensure data has been connected to Apple Health before export.")
+    exit(1)
+
+COMMANDS = sys.argv[2:]
 start_year = None
 verbose = False
 
@@ -49,29 +68,19 @@ if len(COMMANDS) > 0:
             except Exception:
                 print("\"" + year + "\" is not a valid year")
 
-base_dir = "clinical-records"
 health_files = os.listdir(base_dir)
-all_data_output_file = "observations.csv"
-abnormal_results_output_csv = "abnormal_results.csv"
-abnormal_results_output_text = "abnormal_results_by_code.txt"
-
 disallowed_categories = ["Vital Signs", "Height", "Weight", "Pulse", "SpO2"]
 disallowed_codes = ["Narrative"]
 observations = {}
 observation_dates = []
 observation_codes = {}
 observation_code_ids = {}
+tests = []
 codes = {}
 date_codes = {}
 abnormal_results = {}
+abnormal_result_dates = []
 
-
-def get_key(_dict, _value):
-    for key, value in _dict.entries():
-        if value == _value:
-            return key
-
-    raise Exception("Value " + _value + " not found in dict")
 
 def verbose_print(text):
     if verbose:
@@ -90,6 +99,16 @@ def get_result_interpretation_text(interpretation_id):
         return "Non-negative result"
     else:
         return ""
+
+def coding_saved(test):
+    i = 0
+
+    for _test in tests:
+        if test.matches(_test):
+            return i
+        i += 1
+
+    return -1
 
 def gather_observation_data(data, obs_id):
     try:
@@ -117,33 +136,34 @@ def gather_observation_data(data, obs_id):
         
         if "text" in code_dict:
             code = code_dict["text"]
+            
+            if code in disallowed_codes:
+                return
         else:
             code = None
 
-        code_id = None
+        primary_code_id = None
 
-        if "coding" in code_dict:
-            for coding in code_dict["coding"]:
-                if coding["system"] == "http://loinc.org":
-                    if code == None and "display" in coding:
-                        code = coding["display"]
-                    code_id = coding["system"] + coding["code"]
+        test = LabTest(code, code_dict)
+        code = test.test_desc
+        primary_code_id = test.primary_id
+        coding_index = coding_saved(test)
+        
+        if coding_index > -1:
+            saved_test = tests[coding_index]
+            saved_test.add_coding(code_dict)
+            tests[coding_index] = saved_test
+            test = saved_test
+            code = test.test_desc
+            primary_code_id = test.primary_id
 
-            if code_id == None or code_id == "SOLOINC":
-                coding = code_dict["coding"][0]
-                if code == None and "display" in coding:
-                    code = coding["display"]
-                code_id = coding["system"] + coding["code"]
-        else:
-            code_id = code
-
-        if code_id not in observation_codes:
+        if primary_code_id not in observation_codes:
             if code not in observation_code_ids:
                 observation_code_ids[code] = []
             code_ids = observation_code_ids[code]
-            code_ids.append(code_id)
+            code_ids.append(primary_code_id)
             observation_code_ids[code] = code_ids
-            observation_codes[code_id] = code
+            observation_codes[primary_code_id] = code
 
         if date not in observation_dates:
             observation_dates.append(date)
@@ -152,12 +172,13 @@ def gather_observation_data(data, obs_id):
         obs["date"] = date
         obs["category"] = category
         obs["code"] = code
-        obs["code_id"] = code_id
+        obs["code_id"] = primary_code_id
 
-        datecode = date + code_id
+        datecode = date + primary_code_id
 
         if datecode in date_codes:
-            raise Exception("Datecode " + datecode + " for code " + code + " already recorded")
+            verbose_print("Datecode " + datecode + " for code " + code + " already recorded")
+            return
         else:
             date_codes[datecode] = obs_id
 
@@ -203,9 +224,9 @@ def gather_observation_data(data, obs_id):
                         high_end_of_range = not high_out_of_range and (range_upper - value) / range_span < 0.15
                     
                     if low_out_of_range or high_out_of_range or low_end_of_range or high_end_of_range:
-                        if code_id not in abnormal_results:
-                            abnormal_results[code_id] = {}
-                        results = abnormal_results[code_id]
+                        if primary_code_id not in abnormal_results:
+                            abnormal_results[primary_code_id] = {}
+                        results = abnormal_results[primary_code_id]
                         result = {}
                         result["value"] = value_string
                         _range = str(range_lower) + " - " + str(range_upper)
@@ -222,7 +243,9 @@ def gather_observation_data(data, obs_id):
                         
                         obs["abnormal_result"] = result["interpretation"]
                         results[date] = result
-                        abnormal_results[code_id] = results
+                        abnormal_results[primary_code_id] = results
+                        if date not in abnormal_result_dates:
+                            abnormal_result_dates.append(date)
 
             elif value == None and value_string != None and isinstance(value_string, str):
                 is_abnormal_binary_test_result = False
@@ -236,15 +259,17 @@ def gather_observation_data(data, obs_id):
                     is_abnormal_binary_test_result = True
                 
                 if is_abnormal_binary_test_result:
-                    if code_id not in abnormal_results:
-                        abnormal_results[code_id] = {}
-                    results = abnormal_results[code_id]
+                    if primary_code_id not in abnormal_results:
+                        abnormal_results[primary_code_id] = {}
+                    results = abnormal_results[primary_code_id]
                     result = {}
                     result["value"] = value_string
                     result["interpretation"] = "++++"
                     results[date] = result
-                    abnormal_results[code_id] = results
+                    abnormal_results[primary_code_id] = results
                     obs["abnormal_result"] = "++++"
+                    if date not in abnormal_result_dates:
+                        abnormal_result_dates.append(date)
 
         if "comments" in data:
             obs["comment"] = data["comments"]
@@ -253,6 +278,9 @@ def gather_observation_data(data, obs_id):
         observations[obs_id] = obs
 
     except Exception as e:
+        verbose_print("Exception encountered in gathering data from observation:")
+        verbose_print(obs_id)
+        verbose_print(obs)
         verbose_print(e)
 
 
@@ -289,6 +317,8 @@ for f in health_files:
 
 observation_dates.sort()
 observation_dates.reverse()
+abnormal_result_dates.sort()
+abnormal_result_dates.reverse()
 
 
 if len(observations) > 0:
@@ -337,7 +367,7 @@ if len(observations) > 0:
 
             header = ["Apple Health Data Laboratory Abnormal Results"]
 
-            for date in observation_dates:
+            for date in abnormal_result_dates:
                 header.append(date)
 
             filewriter.writerow(header)
@@ -346,7 +376,7 @@ if len(observations) > 0:
                 row = [code]
                 abnormal_result_found = False
                 
-                for date in observation_dates:
+                for date in abnormal_result_dates:
                     date_found = False
                     
                     for code_id in observation_code_ids[code]:
@@ -416,8 +446,10 @@ if len(observations) > 0:
     except Exception as e:
         verbose_print(e)
         print("An error occurred in writing observations data to csv")
+        exit(1)
 
 else:
-    print("No relevant laboratory records found")
+    print("No relevant laboratory records found in exported Apple Health data")
+    exit(1)
 
 
