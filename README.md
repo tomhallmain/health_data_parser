@@ -25,9 +25,13 @@ Depending on the filters set and data found in the export directory, one or more
 
 - Test codes that resolve to the same description will be collated regardless of their codings.
 
-## Disclaimer
+- Abnormal results can usually only be classified as such if there is a value range for comparison. If this program finds none, it does not mean no abnormal results exist in the data, just that the results cannot be interpreted.
+
+## Disclaimers
 
 The only form of advice expressed in this project is to ensure you are checking your lab test results thoroughly. Abnormality of results is determined by the observed value relative to the data ranges given by licensed laboratories.
+
+Even if all results are within allowable ranges, laboratory tests are only a partial picture of a person's health state. Always consult with a physician for full health evaluations.
 
 This script has only been tested with data from a few medical institutions in eastern US. It likely will need to be updated for other medical institutions if they have minor structural differences in their data.
 

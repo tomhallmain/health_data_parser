@@ -93,8 +93,6 @@ def process_observation(data, obs_id):
         raise e
 
     if obs == None or not obs.observation_complete:
-        if not obs == None:
-            print(obs.code)
         return
 
     observations[obs_id] = obs
@@ -226,7 +224,7 @@ if len(observations) > 0:
 
         except Exception as e:
             verbose_print(e)
-            print ("An error occurred in writing abnormal results data")
+            print("An error occurred in writing abnormal results data")
 
 
         ## Write abnormal results by datecode to spreadsheet
@@ -255,10 +253,15 @@ if len(observations) > 0:
                                 abnormal_result_found = True
                                 results = abnormal_results[code_id]
 
-                                if observation in results:
-                                    date_found = True
-                                    row.append(observation.value + " " + observation.result.interpretation)
-                                    break
+                                for observation in results:
+                                    if observation.date == date and date + code_id in date_codes:
+                                        date_found = True
+                                        row.append(observation.value + " " + observation.result.interpretation)
+                                        break
+                                else:
+                                    continue
+
+                                break
                         
                         if not date_found:
                             row.append("")
@@ -273,7 +276,7 @@ if len(observations) > 0:
             print("An error occurred in writing abnormal results data to csv")
 
     else:
-        print("No abnormal results found!")
+        print("No abnormal results found from current data")
 
     ## Write all data by datecode to spreadsheet
 

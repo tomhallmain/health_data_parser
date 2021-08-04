@@ -55,3 +55,4 @@ class LabTest:
     def get_code_ids(self):
         return set(self.coding.values())
 
+
