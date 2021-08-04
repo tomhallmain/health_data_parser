@@ -23,6 +23,9 @@ class LabTest:
         else:
             code_id = code_desc
 
+        if code_desc == None or code_id == None:
+            raise Exception("Code description or ID is None")
+
         self.test_desc = code_desc
         self.primary_id = code_id
 
