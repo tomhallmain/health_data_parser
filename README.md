@@ -1,23 +1,46 @@
 
 # Apple Health Data Parser
 
-Simple parser to extract laboratory test results from Apple Health. In the current iteration only CSV and text file output are supported.
+Simple parser to extract laboratory test results from Apple Health. In the current iteration only JSON, CSV and text file output are supported.
 
 ## Usage
 
 Clone this repository and ensure python is installed. Provide the location of the Apple Health exported data directory to the script at runtime.
 
+Various filtering options are available:
+
 ```bash
-$ python parse_data.py path/to/apple_health_export ${args}
+$ python parse_data.py path/to/apple_health_export -h
+
+--start_year=[int] 
+    Exclude results from before a certain year
+
+--skip_long_values
+    Full diagnostic report data may be mixed in as a single observation with 
+    health data integrated to Apple Health. Exclude these observations with
+    excessively long result output using this flag.
+
+--filter_abnormal_in_range
+    By default abnormal results are collected when a range result is within 15% 
+    of the higher or lower ends of a range. Exclude these types of results with
+    this flag.
+
+--in_range_abnormal_boundary=[float]
+    By default abnormal results are collected when a range result is within 15%
+    of the higher or lower ends of a range. Change that percentage with this flag.
 ```
 
 Depending on the filters set and data found in the export directory, one or more files will be created with the extracted data.
 
+- `observations.json` contains all data collected along with a few statistics
+
 - `observations.csv` contains a matrix with all laboratory test results and ranges
 
-- `abnormal_results.csv` contains with only abnormal results of laboratory tests if any found
+- `abnormal_results.csv` contains a matrix with only abnormal results of laboratory tests if any found
 
 - `abnormal_results_by_code.txt` contains a list of abnormal results by code if any found
+
+- `abnormal_results_by_interpretation` contains a table of all lab codes against abnormal results categories found ("LOW OUT OF RANGE", "Low in range", "Non-negative result", "High in range", "HIGH OUT OF RANGE")
 
 ## Limitations
 
@@ -33,5 +56,5 @@ The only form of advice expressed in this project is to ensure you are checking 
 
 Even if all results are within allowable ranges, laboratory tests are only a partial picture of a person's health state. Always consult with a physician for full health evaluations.
 
-This script has only been tested with data from a few medical institutions in eastern US. It likely will need to be updated for other medical institutions if they have minor structural differences in their data.
+This script has only been tested with data from a few medical institutions in eastern US. It likely will need to be updated for other medical institutions if they have minor structural differences in their data, including language differences.
 

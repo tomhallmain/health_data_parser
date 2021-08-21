@@ -1,9 +1,11 @@
+import re
+
 from labtest import LabTest
 from result import Result
 
 class Observation:
-    def __init__(self, data, obs_id, tests, date_codes,
-                 start_year, disallowed_categories, disallowed_codes):
+    def __init__(self, data, obs_id, tests, date_codes, start_year, skip_long_values,
+                 skip_in_range_abnormal_results, abnormal_boundary, disallowed_categories, disallowed_codes):
         self.obs_id = obs_id
         self.observation_complete = False
 
@@ -39,7 +41,6 @@ class Observation:
         
         self.primary_code_id = self.test.primary_id
         self.test_index = -1
-
         i = 0
 
         for _test in tests:
@@ -70,24 +71,56 @@ class Observation:
             self.value = None
         elif "valueQuantity" in data:
             value_quantity = data["valueQuantity"]
-            self.value = value_quantity["value"]
-            self.value = None if self.value == None else float(self.value)
-            self.value_string = str(value_quantity["value"])
+            value = value_quantity["value"]
+            numbervalue = None
+            if value != None:
+                if isinstance(value, str):
+                    value_matcher = re.search("(\d+\.\d+|\d+)", value)
+                    if value_matcher:
+                        numbervalue = value_matcher.group(1)
+                else:
+                    numbervalue = value
+            self.value = None if numbervalue == None else float(numbervalue)
+            self.value_string = str(value)
             if "unit" in value_quantity:
-                self.value_string = self.value_string + " " + value_quantity["unit"]
+                self.unit = value_quantity["unit"]
+                self.value_string = self.value_string + " " + self.unit
+
+        if self.value_string == None or self.value_string == "" or not re.search("[A-z0-9]", self.value_string):
+            raise ValueError("Skipping observation with unparseable value for [date / code] " + self.date + " / " + self.code)
+        elif skip_long_values and len(self.value_string) > 200:
+            raise ValueError("Skipping observation with excessively long value for [date / code] " + self.date + " / " + self.code)
 
         self.result = None
-        self.has_result = False
+        self.has_reference = False
 
         if "referenceRange" in data:
-            self.result = Result(data["referenceRange"], self.value, self.value_string)
-            self.has_result = True
-            if self.result.is_abnormal_result:
-                self.value = self.value_string
+            self.has_reference = True
+            try:
+                self.result = Result(skip_in_range_abnormal_results, abnormal_boundary, data["referenceRange"], self.value, self.value_string)
+            except ValueError as e:
+                self.result = None
+                self.has_reference = False
 
-        if "comments" in data:
-            self.comment = data["comments"]
-
+        self.comment = data["comments"] if "comments" in data else None
         self.observation_complete = True
+
+    def to_dict(self, _id, tests):
+        out = {}
+        out["observationId"] = _id
+        out["date"] = self.date
+        out["category"] = self.category
+        out["testMeta"] = tests[self.test_index].to_dict()
+        result = {}
+        result["valueString"] = self.value_string
+        if self.value != None:
+            result["value"] = self.value
+        if self.has_reference:
+            result["referenceRange"] = self.result.to_dict()
+        if self.comment != None:
+            result["comment"] = self.comment
+        out["observedResult"] = result
+        return out
+
 
 

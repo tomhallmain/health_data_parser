@@ -1,35 +1,46 @@
 import re
 
 class Result:
-    def __init__(self, range_data, value, value_string):
+    def __init__(self, skip_in_range_abnormal_results, abnormal_boundary, range_data, value, value_string):
         self.range_text = range_data[0]["text"]
+
+        if self.range_text == None or self.range_text == "" or not re.search("[A-z0-9]", self.range_text):
+            raise ValueError("Unparsable reference range")
+
         self.is_abnormal_result = False
         self.is_range_type = False
         self.is_binary_type = False
 
         if value != None and not isinstance(value, str):
-            val_range_matcher = re.search("(\d+\.\d+|\d+) *(-|–) *(\d+\.\d+|\d+)", self.range_text)
+            value_range_matcher = re.search("(\d+\.\d+|\d+) *(-|–) *(\d+\.\d+|\d+)", self.range_text)
 
-            if val_range_matcher:
+            if value_range_matcher:
                 self.is_range_type = True
-                self.range_lower = float(val_range_matcher.group(1))
-                self.range_upper = float(val_range_matcher.group(3))
-                
+                self.range_lower = float(value_range_matcher.group(1))
+                self.range_upper = float(value_range_matcher.group(3))
+
                 if self.range_lower > self.range_upper:
                     temp = self.range_upper
                     self.range_upper = self.range_lower
                     self.range_lower = temp
                     temp = None
-                
+
                 low_out_of_range = value < self.range_lower
                 high_out_of_range = value > self.range_upper
                 self.range_span = self.range_upper - self.range_lower
                 low_end_of_range = high_end_of_range = False
-                
+
                 if self.range_span > 0:
-                    low_end_of_range = not low_out_of_range and (value - self.range_lower) / self.range_span < 0.15
-                    high_end_of_range = not high_out_of_range and (self.range_upper - value) / self.range_span < 0.15
-                
+                    # If negative abnormal boundary, considering values higher out of range 
+                    # than simply immediately outside range boundary
+                    if abnormal_boundary < 0:
+                        skip_in_range_abnormal_results = False
+                        low_out_of_range = False
+                        high_out_of_range = False
+                    if not skip_in_range_abnormal_results:
+                        low_end_of_range = not low_out_of_range and (value - self.range_lower) / self.range_span < abnormal_boundary
+                        high_end_of_range = not high_out_of_range and (self.range_upper - value) / self.range_span < abnormal_boundary
+
                 if low_out_of_range or high_out_of_range or low_end_of_range or high_end_of_range:
                     self.is_abnormal_result = True
                     self.range = str(self.range_lower) + " - " + str(self.range_upper)
@@ -43,18 +54,32 @@ class Result:
                     elif high_out_of_range:
                         self.interpretation = "++++"
 
-            val_range_matcher = None
+            else:
+                none_matcher = re.search("^none$", self.range_text, flags=re.IGNORECASE)
+
+                if none_matcher:
+                    self.is_binary_type = True
+                    self.is_range_type = True
+                    self.range_upper = float(0)
+                    self.range_lower = float(0)
+                    if value > self.range_upper:
+                        self.is_abnormal_result = True
+                        self.range = str(self.range_lower) + " - " + str(self.range_upper)
+                        self.interpretation = "++"
 
         elif value == None and value_string != None and isinstance(value_string, str):
             self.is_binary_type = True
 
-            if self.range_text == "NEG" or re.match("negative", self.range_text, flags=re.IGNORECASE):
-                if not value_string == "NEG" and not re.match("negative", value_string, flags=re.IGNORECASE):
+            if self.range_text == "NEG" or re.match("^negative$", self.range_text, flags=re.IGNORECASE):
+                if not value_string == "NEG" and not re.match("^negative$", value_string, flags=re.IGNORECASE):
                     self.is_abnormal_result = True
-            elif re.match("clear", self.range_text, flags=re.IGNORECASE) and not re.match("clear", value_string, flags=re.IGNORECASE):
+            elif re.match("^clear$", self.range_text, flags=re.IGNORECASE) and not re.match("^clear$", value_string, flags=re.IGNORECASE):
                 self.is_abnormal_result = True
-            elif re.match("positive", value_string, flags=re.IGNORECASE):
+            elif re.match("^positive$", value_string, flags=re.IGNORECASE):
                 self.is_abnormal_result = True
+
+            if skip_in_range_abnormal_results and re.match("^(trace|small)$", value_string, flags=re.IGNORECASE):
+                self.is_abnormal_result = False
 
             if self.is_abnormal_result:
                 self.interpretation = "++"
@@ -64,17 +89,42 @@ class Result:
 
 
     def get_result_interpretation_text(self):
-        if self.interpretation == "---":
-            return "LOW OUT OF RANGE"
-        elif self.interpretation == "--":
-            return "Low in range"
-        elif self.interpretation == "++":
-            return "Non-negative result"
-        elif self.interpretation == "+++":
-            return "High in range"
-        elif self.interpretation == "++++":
-            return "HIGH OUT OF RANGE"
-        else:
-            return ""
+        return get_interpretation_text(self.interpretation)
+
+    def to_dict(self):
+        out = {}
+        out["expectedValue"] = self.range_text
+        out["isAbnormal"] = self.is_abnormal_result
+        out["isRangeType"] = self.is_range_type
+        if self.is_range_type:
+            _range = {}
+            _range["rangeHigh"] = self.range_upper
+            _range["rangeLow"] = self.range_lower
+            out["range"] = _range
+        out["isBinaryType"] = self.is_binary_type
+        if self.is_abnormal_result:
+            out["interpretation"] = self.get_result_interpretation_text()
+        return out
+
+
+def get_interpretation_text(interpretation_key):
+    if interpretation_key == "---":
+        return "LOW OUT OF RANGE"
+    elif interpretation_key == "--":
+        return "Low in range"
+    elif interpretation_key == "++":
+        return "Non-negative result"
+    elif interpretation_key == "+++":
+        return "High in range"
+    elif interpretation_key == "++++":
+        return "HIGH OUT OF RANGE"
+    else:
+        return ""
+
+def get_interpretation_keys(skip_in_range):
+    if skip_in_range:
+        return ["---", "++", "++++"]
+    else:
+        return ["---", "--", "++", "+++", "++++"]
 
 

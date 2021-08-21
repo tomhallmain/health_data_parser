@@ -33,7 +33,7 @@ class LabTest:
     def add_coding(self, new_code_dict):
         if not "coding" in new_code_dict:
             return
-        
+
         for coding in new_code_dict["coding"]:
             if not "system" in coding or not "code" in coding:
                 continue
@@ -55,4 +55,9 @@ class LabTest:
     def get_code_ids(self):
         return set(self.coding.values())
 
+    def to_dict(self):
+        out = {}
+        out["testDescription"] = self.test_desc
+        out["codings"] = self.codings
+        return out
 
