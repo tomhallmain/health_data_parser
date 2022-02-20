@@ -23,7 +23,7 @@ class Observation:
         self.date = data["effectiveDateTime"][0:10]
 
         if start_year != None:
-            year = int(date[0:4])
+            year = int(self.date[0:4])
             if year < start_year:
                 raise AssertionError("Observation year is before start year")
 

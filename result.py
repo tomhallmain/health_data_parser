@@ -12,12 +12,17 @@ class Result:
         self.is_binary_type = False
 
         if value != None and not isinstance(value, str):
-            value_range_matcher = re.search("(\d+\.\d+|\d+) *(-|–) *(\d+\.\d+|\d+)", self.range_text)
+            # NOTE "high" and "low" objects seem to be less consistent than
+            # this "range_text" field, so use "range_text" to set the range
+            
+            value_range_matcher = re.search("(\d[\d,]+\\.\d+|\d[\d,]+) *(-|–) *(\d[\d,]*\.\d+|\d[\d,]*)", self.range_text)
 
             if value_range_matcher:
                 self.is_range_type = True
-                self.range_lower = float(value_range_matcher.group(1))
-                self.range_upper = float(value_range_matcher.group(3))
+                value1 = value_range_matcher.group(1).replace(",", "")
+                value2 = value_range_matcher.group(3).replace(",", "")
+                self.range_lower = float(value1)
+                self.range_upper = float(value2)
 
                 if self.range_lower > self.range_upper:
                     temp = self.range_upper
