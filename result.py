@@ -1,7 +1,7 @@
 import re
 
 class Result:
-    def __init__(self, skip_in_range_abnormal_results, abnormal_boundary, range_data, value, value_string):
+    def __init__(self, skip_in_range_abnormal_results: bool, abnormal_boundary: float, range_data: list, value, value_string: str):
         self.range_text = range_data[0]["text"]
 
         if self.range_text == None or self.range_text == "" or not re.search("[A-z0-9]", self.range_text):
@@ -12,10 +12,9 @@ class Result:
         self.is_binary_type = False
 
         if value != None and not isinstance(value, str):
-            # NOTE "high" and "low" objects seem to be less consistent than
-            # this "range_text" field, so use "range_text" to set the range
+            # NOTE "high" and "low" objects seem to be less consistent than "range_text" field, so use "range_text" to set the range
             
-            value_range_matcher = re.search("(\d[\d,]+\\.\d+|\d[\d,]+) *(-|–) *(\d[\d,]*\.\d+|\d[\d,]*)", self.range_text)
+            value_range_matcher = re.search("(\d[\d,]*\\.\d+|\d[\d,]+) *(-|–) *(\d[\d,]*\.\d+|\d[\d,]*)", self.range_text)
 
             if value_range_matcher:
                 self.is_range_type = True
@@ -35,7 +34,7 @@ class Result:
                 self.range_span = self.range_upper - self.range_lower
                 low_end_of_range = high_end_of_range = False
 
-                if self.range_span > 0:
+                if self.range_span > 0.5:
                     # If negative abnormal boundary, considering values higher out of range 
                     # than simply immediately outside range boundary
                     if abnormal_boundary < 0:
@@ -77,9 +76,17 @@ class Result:
 
             if self.range_text == "NEG" or re.match("^negative$", self.range_text, flags=re.IGNORECASE):
                 if not value_string == "NEG" and not re.match("^negative$", value_string, flags=re.IGNORECASE):
-                    self.is_abnormal_result = True
+                    if abnormal_boundary <= 0.1:
+                        if not re.match("^trace$", value_string, flags=re.IGNORECASE):
+                            self.is_abnormal_result = True
+                    else:
+                        self.is_abnormal_result = True
             elif re.match("^clear$", self.range_text, flags=re.IGNORECASE) and not re.match("^clear$", value_string, flags=re.IGNORECASE):
-                self.is_abnormal_result = True
+                if abnormal_boundary <= 0.1:
+                    if not re.match("^trace$", value_string, flags=re.IGNORECASE):
+                        self.is_abnormal_result = True
+                else:
+                    self.is_abnormal_result = True
             elif re.match("^positive$", value_string, flags=re.IGNORECASE):
                 self.is_abnormal_result = True
 
@@ -112,7 +119,7 @@ class Result:
         return out
 
 
-def get_interpretation_text(interpretation_key):
+def get_interpretation_text(interpretation_key: str):
     if interpretation_key == "---":
         return "LOW OUT OF RANGE"
     elif interpretation_key == "--":
@@ -126,7 +133,7 @@ def get_interpretation_text(interpretation_key):
     else:
         return ""
 
-def get_interpretation_keys(skip_in_range):
+def get_interpretation_keys(skip_in_range: bool):
     if skip_in_range:
         return ["---", "++", "++++"]
     else:

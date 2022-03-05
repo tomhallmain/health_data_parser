@@ -8,8 +8,8 @@ import traceback
 
 from labtest import LabTest
 from observation import Observation
+from report import Report
 from result import get_interpretation_keys, get_interpretation_text
-
 
 help_text = """
 Usage:
@@ -24,6 +24,9 @@ Usage:
         health data integrated to Apple Health. Exclude these observations with
         excessively long result output using this flag.
 
+    --skip_dates
+        Skip dates using a comma-separated list of format YYYY-MM-DD,YYYY-MM-DD
+
     --filter_abnormal_in_range
         By default abnormal results are collected when a range result is within 15% 
         of the higher or lower ends of a range. Exclude these types of results with
@@ -33,6 +36,10 @@ Usage:
         By default abnormal results are collected when a range result is within 15%
         of the higher or lower ends of a range. Change that percentage with this flag.
 
+    --report_highlight_abnormal_results=[bool]
+        By default abnormal results are highlighted in observations tables on the 
+        report. To turn this off, set this value to False.
+
     -h, --help
         Print this help text
 
@@ -41,26 +48,33 @@ Usage:
 """
 
 
+### TODO apply ranges found in other observation dates to same codes if not already verified
+### TODO get weighted severity of abnormality by code
+
 if len(sys.argv) < 2:
     print(help_text)
     exit()
 
-base_dir = sys.argv[1]
+data_export_dir = sys.argv[1]
 
-if not os.path.exists(base_dir) or not os.path.isdir(base_dir):
-    print("Apple Health data export directory path provided is invalid.")
+if data_export_dir == None or data_export_dir == "":
+    print("Missing Apple Health data export directory path.")
+    print(help_text)
+    exit(1)
+elif not os.path.exists(data_export_dir) or not os.path.isdir(data_export_dir):
+    print("Apple Health data export directory path \"" + data_export_dir+ "\" is invalid.")
     print(help_text)
     exit(1)
 
-all_data_csv = base_dir + "/observations.csv"
-all_data_json = base_dir + "/observations.json"
-abnormal_results_output_csv = base_dir + "/abnormal_results.csv"
-abnormal_results_by_interp_csv = base_dir + "/abnormal_results_by_interpretation.csv"
-abnormal_results_by_code_text = base_dir + "/abnormal_results_by_code.txt"
-base_dir = base_dir + "/clinical-records"
+all_data_csv = data_export_dir + "/observations.csv"
+all_data_json = data_export_dir + "/observations.json"
+abnormal_results_output_csv = data_export_dir + "/abnormal_results.csv"
+abnormal_results_by_interp_csv = data_export_dir + "/abnormal_results_by_interpretation.csv"
+abnormal_results_by_code_text = data_export_dir + "/abnormal_results_by_code.txt"
+base_dir = data_export_dir + "/clinical-records"
 
 if not os.path.exists(base_dir) or len(os.listdir(base_dir)) == 0:
-    print("Clinical records not found in export folder provided.")
+    print("Folder \"clinical-records\" not found in export folder \"" + data_export_dir + "\".")
     print("Ensure data has been connected to Apple Health before export.")
     exit(1)
 
@@ -70,7 +84,8 @@ verbose = False
 skip_long_values = False
 skip_in_range_abnormal_results = False
 in_range_abnormal_boundary = 0.15
-
+skip_dates = []
+report_highlight_abnormal_results = True
 
 if len(COMMANDS) > 0:
     for command in COMMANDS:
@@ -79,21 +94,40 @@ if len(COMMANDS) > 0:
             exit()
         elif command == "-v" or command == "--verbose":
             verbose = True
-        elif command[0:13] == "--start_year=":
+        elif command[:13] == "--start_year=":
             try:
                 year = command[13:]
                 start_year = int(year)
                 print("Excluding results from before start year " + year)
             except Exception:
-                print("\"" + year + "\" is not a valid year")
+                print("\"" + year + "\" is not a valid year.")
                 exit(1)
         elif command == "--skip_long_values":
             skip_long_values = True
             print("Skipping observations with result values over 150 characters long")
+        elif command[:13] == "--skip_dates=":
+            try:
+                skip_dates = command[13:].split(",")
+                
+                for date in skip_dates:
+                    ymd = date.split("-")
+                    if len(ymd) != 3 or len(ymd[0]) != 4 or len(ymd[1]) != 2 or len(ymd[2]) != 2:
+                        raise Exception
+            except Exception as e:
+                print("\"" + command[13:] + "\" is not a valid list of dates in format YYYY-MM-DD.")
+                exit(1)
+            if len(skip_dates) > 0:
+                print("Skipping dates: " + str(skip_dates))
+        elif command[:36] == "--report_highlight_abnormal_results=":
+            highlight_string = command[36:]
+            if highlight_string == "FALSE" or highlight_string == "False" or highlight_string == "false":
+                report_highlight_abnormal_results = False
+            elif not highlight_string == "TRUE" and not highlight_string == "True" and not highlight_string == "true":
+                print("Found report_highlight_abnormal_results \"" + highlight_string + "\" was not a boolean value.")
         elif command == "--filter_abnormal_in_range":
             skip_in_range_abnormal_results = True
             print("Excluding abnormal results within allowed quantitative ranges")
-        elif command[0:29] == "--in_range_abnormal_boundary=":
+        elif command[:29] == "--in_range_abnormal_boundary=":
             try:
                 abnormal_boundary = command[29:]
                 in_range_abnormal_boundary = float(abnormal_boundary)
@@ -118,13 +152,14 @@ tests = []
 date_codes = {}
 abnormal_results = {}
 abnormal_result_dates = []
+subject = None
 
 
-def verbose_print(text):
+def verbose_print(text: str):
     if verbose:
         print(text)
 
-def process_observation(data, obs_id):
+def process_observation(data: dict, obs_id: str):
     obs = None
 
     try:
@@ -145,6 +180,9 @@ def process_observation(data, obs_id):
 
     if obs == None or not obs.observation_complete:
         return
+
+    if obs.date != None and obs.date in skip_dates:
+        raise Exception("Skipping observation on date " + obs.date)
 
     observations[obs_id] = obs
 
@@ -195,6 +233,13 @@ for f in health_files:
 
     if file_category == "Observation":
         file_data = json.load(open(f_addr))
+
+        if subject == None and "subject" in file_data:
+            subject_data = file_data["subject"]
+            if subject_data != None and "display" in subject_data and subject_data["display"] != None:
+                subject = subject_data["display"]
+                verbose_print("Identified subject: " + subject)
+
         try:
             process_observation(file_data, f)
         except Exception as e:
@@ -270,9 +315,9 @@ if len(observations) > 0:
                                 interpretation = observation.result.get_result_interpretation_text()
                                 value_string = observation.value_string
                                 if observation.result.is_range_type:
-                                    line = observation.date + ": " + interpretation + " - actual value " + value_string + " - range " + observation.result.range
+                                    line = observation.date + ": " + interpretation + " - observed " + value_string + " - range " + observation.result.range
                                 else:
-                                    line = observation.date + ": " + interpretation + " - actual value " + value_string
+                                    line = observation.date + ": " + interpretation + " - observed " + value_string
                                 verbose_print(line)
                                 textfile.write(line)
                                 textfile.write("\n")
@@ -283,7 +328,7 @@ if len(observations) > 0:
             print("Abnormal laboratory results data from Apple Health saved to " + abnormal_results_by_code_text)
 
         except Exception as e:
-            print("An error occurred in writing abnormal results data")
+            print("An error occurred in writing abnormal results data.")
             if verbose:
                 traceback.print_exc()
             verbose_print(e)
@@ -329,7 +374,7 @@ if len(observations) > 0:
             print("Abnormal laboratory results data from Apple Health sorted by interpretation saved to " + abnormal_results_by_interp_csv)
 
         except Exception as e:
-            print("An error occurred in writing abnormal results data")
+            print("An error occurred in writing abnormal results data.")
             if verbose:
                 traceback.print_exc()
             verbose_print(e)
@@ -379,7 +424,7 @@ if len(observations) > 0:
             print("Abnormal laboratory results data from Apple Health saved to " + abnormal_results_output_csv)
 
         except Exception as e:
-            print("An error occurred in writing abnormal results data to csv")
+            print("An error occurred in writing abnormal results data to CSV.")
             if verbose:
                 traceback.print_exc()
             verbose_print(e)
@@ -433,18 +478,18 @@ if len(observations) > 0:
         print("Laboratory records data from Apple Health saved to " + all_data_csv)
 
     except Exception as e:
-        print("An error occurred in writing observations data to CSV")
+        print("An error occurred in writing observations data to CSV.")
         if verbose:
             traceback.print_exc()
         verbose_print(e)
         exit(1)
 
 
+    data = {}
+
     ## Write simplified observations data to JSON
 
     try:
-
-        data = {}
         meta = {}
         meta["description"] = "Laboratory Observations from Apple Health Data"
         meta["processTime"] = str(datetime.datetime.now())
@@ -479,7 +524,27 @@ if len(observations) > 0:
         print("Laboratory records data from Apple Health saved to " + all_data_json)
 
     except Exception as e:
-        print("An error occurred in writing observations data to JSON")
+        print("An error occurred in writing observations data to JSON.")
+        if verbose:
+            traceback.print_exc()
+        verbose_print(e)
+        exit(1)
+
+    ## Write observations data to PDF report
+
+    try:
+        report = Report(data_export_dir, subject, data, verbose, report_highlight_abnormal_results)
+        report.create_pdf(data,
+                          observations,
+                          observation_dates,
+                          observation_code_ids,
+                          date_codes,
+                          reference_dates,
+                          abnormal_results,
+                          abnormal_result_dates)
+        print("Results report saved to " + report.filename)
+    except Exception as e:
+        print("An error occurred in writing observations data to PDF report.")
         if verbose:
             traceback.print_exc()
         verbose_print(e)

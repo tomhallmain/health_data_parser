@@ -20,6 +20,9 @@ $ python parse_data.py path/to/apple_health_export -h
     health data integrated to Apple Health. Exclude these observations with
     excessively long result output using this flag.
 
+--skip_dates
+    Skip dates using a comma-separated list of format YYYY-MM-DD,YYYY-MM-DD
+
 --filter_abnormal_in_range
     By default abnormal results are collected when a range result is within 15% 
     of the higher or lower ends of a range. Exclude these types of results with
@@ -28,9 +31,15 @@ $ python parse_data.py path/to/apple_health_export -h
 --in_range_abnormal_boundary=[float]
     By default abnormal results are collected when a range result is within 15%
     of the higher or lower ends of a range. Change that percentage with this flag.
+
+--report_highlight_abnormal_results=[bool]
+    By default abnormal results are highlighted in observations tables on the 
+    report. To turn this off, set this value to False.
 ```
 
 Depending on the filters set and data found in the export directory, one or more files will be created with the extracted data.
+
+- `LaboratoryResultsReport{processDate}.pdf` is a report including summaries and all results
 
 - `observations.json` contains all data collected along with a few statistics
 
@@ -40,7 +49,7 @@ Depending on the filters set and data found in the export directory, one or more
 
 - `abnormal_results_by_code.txt` contains a list of abnormal results by code if any found
 
-- `abnormal_results_by_interpretation` contains a table of all lab codes against abnormal results categories found ("LOW OUT OF RANGE", "Low in range", "Non-negative result", "High in range", "HIGH OUT OF RANGE")
+- `abnormal_results_by_interpretation.csv` contains a table of all lab codes against abnormal results categories found ("LOW OUT OF RANGE", "Low in range", "Non-negative result", "High in range", "HIGH OUT OF RANGE")
 
 ## Limitations
 

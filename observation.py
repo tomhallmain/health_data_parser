@@ -4,8 +4,8 @@ from labtest import LabTest
 from result import Result
 
 class Observation:
-    def __init__(self, data, obs_id, tests, date_codes, start_year, skip_long_values,
-                 skip_in_range_abnormal_results, abnormal_boundary, disallowed_categories, disallowed_codes):
+    def __init__(self, data: dict, obs_id: str, tests: list, date_codes: dict, start_year: int, skip_long_values: bool,
+                 skip_in_range_abnormal_results: bool, abnormal_boundary: float, disallowed_categories: list, disallowed_codes: list):
         self.obs_id = obs_id
         self.observation_complete = False
 
@@ -105,7 +105,7 @@ class Observation:
         self.comment = data["comments"] if "comments" in data else None
         self.observation_complete = True
 
-    def to_dict(self, _id, tests):
+    def to_dict(self, _id: str, tests: list):
         out = {}
         out["observationId"] = _id
         out["date"] = self.date

@@ -1,5 +1,5 @@
 class LabTest:
-    def __init__(self, code_desc, code_dict):
+    def __init__(self, code_desc: str, code_dict: dict):
         self.codings = {}
         code_id = None
 
