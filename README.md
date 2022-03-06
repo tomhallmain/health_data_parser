@@ -32,6 +32,10 @@ $ python parse_data.py path/to/apple_health_export -h
     By default abnormal results are collected when a range result is within 15%
     of the higher or lower ends of a range. Change that percentage with this flag.
 
+--extra_observations=path/to/observations_data.csv
+    Fill out the sample CSV with data and pass the location at runtime to
+    include data not hooked up to your Apple Health in the output
+
 --report_highlight_abnormal_results=[bool]
     By default abnormal results are highlighted in observations tables on the 
     report. To turn this off, set this value to False.

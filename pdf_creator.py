@@ -5,9 +5,6 @@ from reportlab.pdfbase import ttfonts, pdfmetrics
 class pdf_creator:
 
     def __init__(self, start_height: int, start_x: int, path: str, verbose: bool):
-        """
-        :param path: to create file
-        """
         self.file = Canvas(path)
         self.start_height = start_height
         self.height = start_height
@@ -18,16 +15,14 @@ class pdf_creator:
         self.set_leading(16)
 
     def text(self, string: str, x: int, y: int):
-        """"
-        :param string: your text
-        :param x: string-coordinate
-        :param y: string-coordinate
-        """
-        self.handle_height_change()
         self.file.drawString(x, y, string)
 
+    def text(self, string: str, x: int):
+        self.handle_height_change()
+        self.file.drawString(x, self.height, string)
+
     def show_text(self, string: str):
-        self.text(string, self.start_x, self.height)
+        self.text(string, self.start_x)
 
     def set_font(self, font: str, size: int):
         self.font = font
@@ -106,13 +101,13 @@ class pdf_creator:
     def _get_table_style(self, extra_style_commands: list):
         style = [("GRID", (0, 1), (-1, -1), 1, "Black"),
                  #("TEXTCOLOR", (0, 0), (0, -1), "White"),
-                 #("TEXTCOLOR", (0, 0), (-1, 0), "White"),
+                 ("TEXTCOLOR", (0, 0), (-1, 0), "White"),
                  ("FONT", (0, 0), (0, -1), "MesloLGS NF Bold", self.leading),
                  ("FONT", (0, 0), (-1, 0), "MesloLGS NF Bold", self.leading),
                  ("FONT", (1, 1), (-1, -1), "MesloLGS NF", self.leading),
                  ("BOX", (0, 0), (-1, -1), 1, "Black"),
                  #("BACKGROUND", (0, 0), (0, -1), "Lightgrey"),
-                 ("BACKGROUND", (0, 0), (-1, 0), "Lightgrey")]
+                 ("BACKGROUND", (0, 0), (-1, 0), "Darkslategray")]
 
         if extra_style_commands == None or len(extra_style_commands) == 0:
             return style

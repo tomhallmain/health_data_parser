@@ -2,7 +2,7 @@ class LabTest:
     def __init__(self, code_desc: str, code_dict: dict):
         self.codings = {}
         code_id = None
-
+        
         if "coding" in code_dict:
             for coding in code_dict["coding"]:
                 if "system" in coding and "code" in coding:

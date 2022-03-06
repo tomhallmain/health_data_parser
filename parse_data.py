@@ -10,6 +10,7 @@ from labtest import LabTest
 from observation import Observation
 from report import Report
 from result import get_interpretation_keys, get_interpretation_text
+from generate_diagnostic_report_files import generate_diagnostic_report_files
 
 help_text = """
 Usage:
@@ -35,6 +36,10 @@ Usage:
     --in_range_abnormal_boundary=[float]
         By default abnormal results are collected when a range result is within 15%
         of the higher or lower ends of a range. Change that percentage with this flag.
+
+    --extra_observations=path/to/observations_data.csv
+        Fill out the sample CSV with data and pass the location at runtime to
+        include data not hooked up to your Apple Health in the output
 
     --report_highlight_abnormal_results=[bool]
         By default abnormal results are highlighted in observations tables on the 
@@ -86,6 +91,7 @@ skip_in_range_abnormal_results = False
 in_range_abnormal_boundary = 0.15
 skip_dates = []
 report_highlight_abnormal_results = True
+extra_observations_csv = None
 
 if len(COMMANDS) > 0:
     for command in COMMANDS:
@@ -94,6 +100,7 @@ if len(COMMANDS) > 0:
             exit()
         elif command == "-v" or command == "--verbose":
             verbose = True
+        
         elif command[:13] == "--start_year=":
             try:
                 year = command[13:]
@@ -102,9 +109,11 @@ if len(COMMANDS) > 0:
             except Exception:
                 print("\"" + year + "\" is not a valid year.")
                 exit(1)
+        
         elif command == "--skip_long_values":
             skip_long_values = True
             print("Skipping observations with result values over 150 characters long")
+        
         elif command[:13] == "--skip_dates=":
             try:
                 skip_dates = command[13:].split(",")
@@ -118,15 +127,18 @@ if len(COMMANDS) > 0:
                 exit(1)
             if len(skip_dates) > 0:
                 print("Skipping dates: " + str(skip_dates))
+        
         elif command[:36] == "--report_highlight_abnormal_results=":
             highlight_string = command[36:]
             if highlight_string == "FALSE" or highlight_string == "False" or highlight_string == "false":
                 report_highlight_abnormal_results = False
             elif not highlight_string == "TRUE" and not highlight_string == "True" and not highlight_string == "true":
                 print("Found report_highlight_abnormal_results \"" + highlight_string + "\" was not a boolean value.")
+        
         elif command == "--filter_abnormal_in_range":
             skip_in_range_abnormal_results = True
             print("Excluding abnormal results within allowed quantitative ranges")
+        
         elif command[:29] == "--in_range_abnormal_boundary=":
             try:
                 abnormal_boundary = command[29:]
@@ -138,7 +150,16 @@ if len(COMMANDS) > 0:
                 print("\"" + abnormal_boundary + "\" is not a valid decimal-formatted percentage")
                 exit(1)
 
+        elif command[:21] == "--extra_observations=":
+            extra_observations_csv = command[21:]
 
+
+use_custom_data = extra_observations_csv != None
+custom_data_files = []
+
+if use_custom_data:
+    if not generate_diagnostic_report_files(extra_observations_csv, base_dir, verbose, False):
+        exit(1)
 
 health_files = os.listdir(base_dir)
 disallowed_categories = ["Vital Signs", "Height", "Weight", "Pulse", "SpO2"]
@@ -249,6 +270,10 @@ for f in health_files:
     ## Get data from Diagnostic Report type files
 
     elif file_category == "DiagnosticReport":
+        if "-CUSTOM" in f_addr:
+            use_custom_data = True
+            custom_data_files.append(f_addr)
+
         file_data = json.load(open(f_addr))
         data_category = file_data["category"]["coding"][0]["code"]
 
@@ -287,6 +312,11 @@ total_abnormal_results = 0
 abnormal_result_interpretations_by_code = {}
 
 if len(observations) > 0:
+    if use_custom_data:
+        print("The compiled information includes some custom data not exported from Apple Health:")
+        for filename in custom_data_files:
+            print(filename)
+    
     if len(abnormal_results) > 0:
 
         ## Log abnormal results by code then date
@@ -549,6 +579,11 @@ if len(observations) > 0:
             traceback.print_exc()
         verbose_print(e)
         exit(1)
+
+    if verbose and use_custom_data:
+        print("The compiled information includes some custom data not exported from Apple Health:")
+        for filename in custom_data_files:
+            print(filename)
 
 else:
     print("No relevant laboratory records found in exported Apple Health data")

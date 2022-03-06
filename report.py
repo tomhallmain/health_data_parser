@@ -40,22 +40,60 @@ def _wrap_text_to_fit_length(text: str, fit_length: int):
 
 
 
-def _get_conditional_format_styles_for_abnormal_results(table: list):
+def _get_conditional_format_styles(table: list, highlight_abnormal: bool):
     conditional_formats = []
     for r in range(len(table)):
         row = table[r]
         for c in range(len(row)):
+            if c < 2:
+                continue
             cell_value = row[c]
-            if "++" in cell_value or "---" in cell_value:
+            if highlight_abnormal and ("++" in cell_value or "---" in cell_value):
                 conditional_formats.append(("BACKGROUND", (c,r), (c,r), "Pink"))
+            elif cell_value == "":
+                conditional_formats.append(("BACKGROUND", (c,r), (c,r), "Lightgrey"))
     return conditional_formats
 
+
+def _find_columns_to_skip(table: list):
+    if table == None or len(table) == 0:
+        return []
+    
+    columns_to_skip = list(range(len(table[0])))
+    columns_to_print = []
+    
+    for row in table:
+        if len(columns_to_skip) == 0:
+            return columns_to_skip
+
+        for col_index in range(len(row)):
+            if col_index in columns_to_print:
+                continue
+            cell_value = row[col_index]
+            if not cell_value == "" and re.search("[A-z0-9]", cell_value):
+                columns_to_print.append(col_index)
+                columns_to_skip.remove(col_index)
+
+    return columns_to_skip
+
+def _filter_table_columns(table: list, columns_to_skip: list):
+    filtered_table = []
+    
+    for row in table:
+        filtered_row = []
+        for col_index in range(len(row)):
+            if not col_index in columns_to_skip:
+                filtered_row.append(row[col_index])
+        filtered_table.append(filtered_row)
+    
+    return filtered_table
+
 class Report:
-    def __init__(self, output_path: str, subject: str, metadata: dict, verbose: bool, conditional_format: bool):
+    def __init__(self, output_path: str, subject: str, metadata: dict, verbose: bool, highlight_abnormal: bool):
         self.output_path = output_path
         self.subject = subject
         self.verbose = verbose
-        self.conditional_format = conditional_format
+        self.highlight_abnormal = highlight_abnormal
         self.filename = "LaboratoryResultsReport" + metadata["meta"]["processTime"][:10] + ".pdf"
         self.filepath = self.output_path + "/" + self.filename
         
@@ -115,6 +153,7 @@ class Report:
             creator.set_leading(20)
             creator.show_text("Abnormal Results By Code Summary")
             creator.set_leading(10)
+            creator.newline()
 
             abnormal_result_interpretations_by_code = metadata["abnormalResults"]["codesWithAbnormalResults"]
 
@@ -154,8 +193,10 @@ class Report:
             creator.add_page()
             creator.set_font("MesloLGS NF Bold", 15)
             creator.set_leading(16)
+            creator.newline()
             creator.show_text("Abnormal Results By Code")
             creator.set_leading(12)
+            creator.newline()
             
             for code in sorted(observation_code_ids):
                 for code_id in observation_code_ids[code]:
@@ -183,7 +224,7 @@ class Report:
                         creator.newline()
 
             ranges = {}
-            n_dates_in_table_per_page = 8
+            n_dates_in_table_per_page = 9
 
             if len(reference_dates) > 0:
                 header = ["Observation Codes", "Range"]
@@ -307,7 +348,10 @@ class Report:
                 while len(observations_table) > 0:
                     table_to_show = observations_table[:max_observations_per_page]
                     observations_table = observations_table[max_observations_per_page:]
+                    columns_to_skip = _find_columns_to_skip(table_to_show)
                     table_to_show.insert(0, header_row)
+                    if len(columns_to_skip) > 0:
+                        table_to_show = _filter_table_columns(table_to_show, columns_to_skip)
                     creator.add_page()
                     creator.set_font("MesloLGS NF Bold", 15)
                     creator.set_leading(16)
@@ -317,11 +361,17 @@ class Report:
                         creator.show_text("All Observations")
                         has_shown_first_page = True
                     creator.set_leading(7)
+                    creator.newline()
                     creator.set_font("MesloLGS NF", 6)
-                    extra_style_commands = [("BACKGROUND", (1, 1), (1, -1), "oldlace")]
+                    extra_style_commands = [
+                        ("BACKGROUND", (1, 1), (1, -1), "oldlace"),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 2),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                        ("TOPPADDING", (0, 0), (-1, -1), 2)
+                        ]
 
-                    if self.conditional_format:
-                        extra_style_commands.extend(_get_conditional_format_styles_for_abnormal_results(table_to_show))
+                    extra_style_commands.extend(_get_conditional_format_styles(table_to_show, self.highlight_abnormal))
 
                     creator.show_table(table_to_show, extra_style_commands, 20)
 

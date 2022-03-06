@@ -88,6 +88,14 @@ class Observation:
 
         if self.value_string == None or self.value_string == "" or not re.search("[A-z0-9]", self.value_string):
             raise ValueError("Skipping observation with unparseable value for [date / code] " + self.date + " / " + self.code)
+        elif "SEE BELOW" in self.value_string or "See Below" in self.value_string:
+            self.value_string = self.value_string.replace("SEE BELOW\n\n", "").replace("SEE BELOW\n", "").replace("SEE BELOW", "")
+            if not re.search("[A-z0-9]", self.value_string):
+                raise ValueError("Skipping observation with unparseable value for [date / code] " + self.date + " / " + self.code)
+        elif "See Below" in self.value_string:
+            self.value_string = self.value_string.replace("See Below\n\n", "").replace("See Below\n", "").replace("See Below", "")
+            if not re.search("[A-z0-9]", self.value_string):
+                raise ValueError("Skipping observation with unparseable value for [date / code] " + self.date + " / " + self.code)
         elif skip_long_values and len(self.value_string) > 200:
             raise ValueError("Skipping observation with excessively long value for [date / code] " + self.date + " / " + self.code)
 
