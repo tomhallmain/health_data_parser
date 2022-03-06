@@ -1,3 +1,4 @@
+from datetime import datetime
 import operator
 import re
 
@@ -120,9 +121,42 @@ class Report:
             creator.show_text("Subject:            " + self.subject)
         
         creator.show_text("Observation count:  " + str(meta["observationCount"]))
-        creator.show_text("Earliest result:    " + meta["earliestResult"])
-        creator.show_text("Most recent result: " + str(meta["mostRecentResult"]))
-        creator.show_text("Report assembled:   " + meta["processTime"][:10])
+        creator.show_text("Earliest result:    " + datetime.fromisoformat(meta["earliestResult"]).strftime("%B %d %Y"))
+        creator.show_text("Most recent result: " + datetime.fromisoformat(meta["mostRecentResult"]).strftime("%B %d %Y"))
+        creator.show_text("Report assembled:   " + datetime.fromisoformat(meta["processTime"][:10]).strftime("%B %d %Y"))
+        
+        if meta["vitalSignsObservationCount"] > 0:
+            creator.newline()
+            creator.newline()
+            creator.newline()
+
+            creator.set_font("MesloLGS NF Bold", 12)
+            creator.show_text("Summary of Vitals")
+            creator.set_font("MesloLGS NF", 12)
+
+            creator.newline()
+            creator.show_text("Vital sign observation dates count:  " + str(meta["vitalSignsObservationCount"]))
+            creator.newline()
+
+            creator.set_font("MesloLGS NF", 8)
+            creator.set_leading(8)
+
+            # TODO add Trend column and/or graph of these vitals
+            vital_signs_table = [["Vital", "Unit", "Most Recent", "Date Most Recent", "Average", "Standard Dev"]]
+            for vital in metadata["vitalSigns"]:
+                row = [vital["vital"], vital["unit"]]
+                if vital["count"] > 0:
+                    most_recent_obs = vital["list"][-1]
+                    row.append(str(round(most_recent_obs["value"], 3)))
+                    row.append(most_recent_obs["date"])
+                    row.append(round(vital["avg"], 4))
+                    row.append(round(vital["stDev"], 4))
+                    vital_signs_table.append(row)
+            
+            creator.show_table(vital_signs_table, None, 100)
+        
+        creator.set_font("MesloLGS NF", 12)
+        creator.set_leading(14)
         creator.newline()
         creator.newline()
         creator.newline()

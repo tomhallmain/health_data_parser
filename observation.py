@@ -3,9 +3,18 @@ import re
 from labtest import LabTest
 from result import Result
 
+class CategoryError(AssertionError):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+'''
+When constructed directly used to handle observations not belonging to vital sign categories.
+'''
+
 class Observation:
     def __init__(self, data: dict, obs_id: str, tests: list, date_codes: dict, start_year: int, skip_long_values: bool,
-                 skip_in_range_abnormal_results: bool, abnormal_boundary: float, disallowed_categories: list, disallowed_codes: list):
+                 skip_in_range_abnormal_results: bool, abnormal_boundary: float, vital_sign_categories: list, disallowed_codes: list):
         self.obs_id = obs_id
         self.observation_complete = False
 
@@ -17,8 +26,8 @@ class Observation:
         else:
             self.category = data["category"]["coding"][0]["code"]
 
-        if self.category in disallowed_categories:
-            raise AssertionError("Skipping observation for category " + self.category)
+        if self.category in vital_sign_categories:
+            raise CategoryError("Observation for category " + self.category + " to be handled separately")
 
         self.date = data["effectiveDateTime"][0:10]
 
@@ -35,10 +44,10 @@ class Observation:
         self.primary_code_id = None
         self.test = LabTest(self.code, data["code"])
         self.code = self.test.test_desc
-        
+
         if self.code.upper() in disallowed_codes:
             raise AssertionError("Skipping observation for code " + self.code)
-        
+
         self.primary_code_id = self.test.primary_id
         self.test_index = -1
         i = 0
@@ -65,6 +74,8 @@ class Observation:
 
         if self.datecode in date_codes:
             raise AssertionError("Datecode " + self.datecode + " for code " + self.code + " already recorded")
+
+        self.unit = None
 
         if "valueString" in data:
             self.value_string = data["valueString"]
@@ -113,6 +124,8 @@ class Observation:
         self.comment = data["comments"] if "comments" in data else None
         self.observation_complete = True
 
+    
+
     def to_dict(self, _id: str, tests: list):
         out = {}
         out["observationId"] = _id
@@ -132,3 +145,21 @@ class Observation:
 
 
 
+
+'''
+Used to handle observations belonging to these categories/codes:
+    - "Vital Signs"
+    - "Height"
+    - "Pulse"
+    - "Respiration"
+    - "SpO2"
+    - "Temperature"
+    - "Weight"
+'''
+
+class ObservationVital(Observation):
+    def __init__(self, data: dict, obs_id: str, tests: list, date_codes: dict, start_year: int, skip_long_values: bool,
+                 skip_in_range_abnormal_results: bool, abnormal_boundary: float):
+        super().__init__(data, obs_id, tests, date_codes, start_year, skip_long_values, 
+            skip_in_range_abnormal_results, abnormal_boundary, [], [])
+        self.vital_sign_category = None

@@ -1,5 +1,6 @@
 import csv
 import datetime
+from enum import Enum
 import json
 import operator
 import os
@@ -7,7 +8,7 @@ import sys
 import traceback
 
 from labtest import LabTest
-from observation import Observation
+from observation import Observation, ObservationVital, CategoryError
 from report import Report
 from result import get_interpretation_keys, get_interpretation_text
 from generate_diagnostic_report_files import generate_diagnostic_report_files
@@ -93,6 +94,94 @@ skip_dates = []
 report_highlight_abnormal_results = True
 extra_observations_csv = None
 
+
+class HeightUnit(Enum):
+    CM = 100
+    M = 1
+    FT = 3.28084
+    IN = 39.37008
+
+    def from_value(value: str):
+        value = value.upper()
+        
+        for name, unit in HeightUnit.__members__.items():
+            if name == value:
+                return unit
+
+        try:
+            if value in "INCHES" and "INCHES".index(value) == 0:
+                return HeightUnit.IN
+            elif value in "FEET" and "FEET".index(value) == 0:
+                return HeightUnit.FT
+            elif value in "METERS" and "METERS".index(value) == 0:
+                return HeightUnit.M
+            elif value in "CENTIMETERS" and "CENTIMETERS".index(value) == 0:
+                return HeightUnit.CM
+        except Exception as e:
+            print(e)
+            return None
+
+class WeightUnit(Enum):
+    G = 1000
+    KG = 1
+    LB = 2.204623
+
+    def from_value(value: str):
+        value = value.upper()
+        
+        for name, unit in WeightUnit.__members__.items():
+            if name == value:
+                return unit
+
+        try:
+            if value in "POUNDS" and "POUNDS".index(value) == 0:
+                return WeightUnit.LB
+            elif value == "KILOS":
+                return WeightUnit.KG
+            elif value in "KILOGRAMS" and "KILOGRAMS".index(value) == 0:
+                return WeightUnit.KG
+            elif value in "GRAMS" and "GRAMS".index(value) == 0:
+                return WeightUnit.G
+        except Exception as e:
+            print(e)
+            return None
+
+class TemperatureUnit(Enum):
+    C = 0
+    F = 32
+
+    def from_value(value: str):
+        value = value.upper()
+        value.replace("DEGREES", "").replace("°", "").replace(" ", "")
+        
+        for name, unit in WeightUnit.__members__.items():
+            if name == value:
+                return unit
+
+        try:
+            if value in "FAHRENHEIT" and "FAHRENHEIT".index(value) == 0:
+                return TemperatureUnit.F
+            elif value in "CELCIUS" and "CELCIUS".index(value) == 0:
+                return TemperatureUnit.C
+        except Exception as e:
+            print(e)
+            return None
+    
+    def convertTo(self, temperatureUnit, value):
+        if self is temperatureUnit:
+            return value
+        elif self is TemperatureUnit.F:
+            return (value - 32) * 5/9
+        else:
+            return value * 9/5 + 32
+
+def convert(to_unit, from_unit, value: float):
+    return value / from_unit.value * to_unit.value
+
+normal_height_unit = HeightUnit.CM
+normal_weight_unit = WeightUnit.LB
+normal_temperature_unit = TemperatureUnit.C
+
 if len(COMMANDS) > 0:
     for command in COMMANDS:
         if command == "-h" or command == "--help":
@@ -162,8 +251,6 @@ if use_custom_data:
         exit(1)
 
 health_files = os.listdir(base_dir)
-disallowed_categories = ["Vital Signs", "Height", "Weight", "Pulse", "SpO2"]
-disallowed_codes = ["NARRATIVE", "REQUEST PROBLEM"]
 observations = {}
 observation_dates = []
 reference_dates = []
@@ -175,10 +262,92 @@ abnormal_results = {}
 abnormal_result_dates = []
 subject = None
 
+class VitalSignCategory(Enum):
+    HEIGHT = "Height"
+    PULSE = "Pulse"
+    RESPIRATION = "Respiration"
+    SPO2 = "SpO2"
+    TEMPERATURE = "Temperature"
+    WEIGHT = "Weight"
+
+    def matches(self, string: str):
+        return self.value in string or self.name in string or self.name.lower() in string
+
+category_vital_signs = "Vital Signs"
+category_height = "Height"
+category_pulse = "Pulse"
+category_respiration = "Respiration"
+category_spo2 = "SpO2"
+category_temperature = "Temperature"
+category_weight = "Weight"
+observations_vital_signs = {}
+vital_sign_dates = []
+vital_sign_categories = [category_vital_signs, category_height, category_respiration, category_pulse, category_spo2, category_temperature, category_weight]
+disallowed_codes = ["NARRATIVE", "REQUEST PROBLEM"]
+
 
 def verbose_print(text: str):
     if verbose:
         print(text)
+
+def handle_disallowed_category_observation(data: dict, obs_id: str, tests: list, start_year: int,
+        skip_long_values: bool, skip_in_range_abnormal_results: bool, in_range_abnormal_boundary: float):
+    obs_v = None
+
+    try:
+        obs_v = ObservationVital(data, obs_id, tests, date_codes,
+            start_year, skip_long_values, skip_in_range_abnormal_results, 
+            in_range_abnormal_boundary)
+    except ValueError as e:
+        verbose_print(e)
+        pass
+    except AssertionError as e:
+        verbose_print(e)
+    except Exception as e:
+        verbose_print("Exception encountered in gathering data from observation:")
+        verbose_print(obs_id)
+        if obs_v != None and obs_v.datecode != None:
+            verbose_print(obs_v.datecode)
+        verbose_print(traceback.print_exc())
+        raise e
+    
+    if obs_v != None:
+        force_presence = str(obs_v.observation_complete)
+
+    if obs_v == None or not obs_v.observation_complete:
+        return
+    
+    if obs_v.date != None and obs_v.date in skip_dates:
+        raise Exception("Skipping observation on date " + obs_v.date)
+
+    if obs_v.category == category_vital_signs:
+        for category in list(VitalSignCategory):
+            if category.matches(obs_v.code):
+                obs_v.vital_sign_category = category
+                break
+
+        if obs_v.vital_sign_category == None:
+            raise AssertionError("Vital sign observation category not identified: " + obs_v.category)
+    else:
+        for category in list(VitalSignCategory):
+            if category.matches(obs_v.category):
+                obs_v.vital_sign_category = category
+                break
+
+        if obs_v.vital_sign_category == None:
+            raise AssertionError("Vital sign observation category not identified: " + obs_v.category)
+
+    if obs_v.date in observations_vital_signs:
+        this_date_observations = observations_vital_signs[obs_v.date]
+    else:
+        this_date_observations = []
+
+    this_date_observations.append(obs_v)
+    observations_vital_signs[obs_v.date] = this_date_observations
+    
+    verbose_print("Observation recorded for " + obs_v.code + " on " + obs_v.date)
+
+
 
 def process_observation(data: dict, obs_id: str):
     obs = None
@@ -186,9 +355,14 @@ def process_observation(data: dict, obs_id: str):
     try:
         obs = Observation(data, obs_id, tests, date_codes,
             start_year, skip_long_values, skip_in_range_abnormal_results, 
-            in_range_abnormal_boundary, disallowed_categories, disallowed_codes)
+            in_range_abnormal_boundary, vital_sign_categories, disallowed_codes)
     except ValueError as e:
         pass
+    except CategoryError as e:
+        verbose_print(e)
+        handle_disallowed_category_observation(data, obs_id, tests, start_year,
+            skip_long_values, skip_in_range_abnormal_results, in_range_abnormal_boundary)
+        return
     except AssertionError as e:
         verbose_print(e)
     except Exception as e:
@@ -304,6 +478,109 @@ observation_dates.reverse()
 abnormal_result_dates.sort()
 abnormal_result_dates.reverse()
 reference_dates.sort()
+
+
+## Vital Signs
+
+verbose_print("\nCompiling vital signs data if present...\n")
+
+respiration_stats = {"vital": VitalSignCategory.RESPIRATION.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": None, "list": []}
+pulse_stats = {"vital": VitalSignCategory.PULSE.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": None, "list": []}
+temperature_stats = {"vital": VitalSignCategory.TEMPERATURE.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": None, "list": []}
+height_stats = {"vital": VitalSignCategory.HEIGHT.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": normal_height_unit.name.lower(), "list": []}
+weight_stats = {"vital": VitalSignCategory.WEIGHT.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": normal_weight_unit.name.lower(), "list": []}
+bmi_stats = {"vital": "BMI", "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": "BMI", "list": []}
+
+def calculate_bmi(normalized_height: float, normalized_weight: float):
+    height_meters = convert(HeightUnit.M, normal_height_unit, normalized_height)
+    weight_kilos = convert(WeightUnit.KG, normal_weight_unit, normalized_weight)
+    bmi = round(weight_kilos / (height_meters ** 2), 2)
+    verbose_print("Calculated BMI " + str(bmi) + " (" + str(round(weight_kilos, 2)) + " kg / " + str(round(height_meters, 2)) + " m^2)")
+    return bmi
+
+for vitals_date in sorted(observations_vital_signs.keys()):
+    this_date_observations = observations_vital_signs[vitals_date]
+    this_date_height = None
+    this_date_height_unit = None
+    normalized_height = None
+    this_date_weight = None
+    this_date_weight_unit = None
+    normalized_weight = None
+    try:
+        for obs in this_date_observations:
+            if obs.vital_sign_category is VitalSignCategory.HEIGHT:
+                this_date_height = obs.value
+                this_date_height_unit = obs.unit
+                continue
+            elif obs.vital_sign_category is VitalSignCategory.WEIGHT:
+                this_date_weight = obs.value
+                this_date_weight_unit = obs.unit
+                continue
+            
+            if obs.value == None or obs.unit == None:
+                if obs.vital_sign_category is VitalSignCategory.TEMPERATURE and obs.value != None:
+                    obs.unit = "F" if obs.value > 45 else "C"
+                else:
+                    print("Skipping obs on date " + vitals_date + " of category " + str(obs.vital_sign_category) + " because value or unit was None")
+                    continue
+            
+            if obs.vital_sign_category is VitalSignCategory.PULSE:
+                pulse_stats["list"].append({"date": vitals_date, "value": obs.value})
+                pulse_stats["unit"] = obs.unit
+                pulse_stats["mostRecent"] = obs.value
+                pulse_stats["count"] += 1
+                pulse_stats["sum"] += obs.value
+            elif obs.vital_sign_category is VitalSignCategory.RESPIRATION:
+                respiration_stats["list"].append({"date": vitals_date, "value": obs.value})
+                respiration_stats["unit"] = obs.unit
+                respiration_stats["mostRecent"] = obs.value
+                respiration_stats["count"] += 1
+                respiration_stats["sum"] += obs.value
+            elif obs.vital_sign_category is VitalSignCategory.TEMPERATURE:
+                this_temp_unit = TemperatureUnit.from_value(obs.unit)
+                normalized_temperature = round(this_temp_unit.convertTo(normal_temperature_unit, obs.value), 2)
+                temperature_stats["list"].append({"date": vitals_date, "value": normalized_temperature})
+                temperature_stats["unit"] = obs.unit
+                temperature_stats["mostRecent"] = normalized_temperature
+                temperature_stats["count"] += 1
+                temperature_stats["sum"] += normalized_temperature
+
+        if this_date_height != None and this_date_height_unit != None:
+            normalized_height = convert(normal_height_unit, HeightUnit.from_value(this_date_height_unit), this_date_height)
+            height_stats["list"].append({"date": vitals_date, "value": normalized_height})
+            height_stats["mostRecent"] = normalized_height
+            height_stats["count"] += 1
+            height_stats["sum"] += normalized_height
+        if this_date_weight != None and this_date_weight_unit != None:
+            normalized_weight = convert(normal_weight_unit, WeightUnit.from_value(this_date_weight_unit), this_date_weight)
+            weight_stats["list"].append({"date": vitals_date, "value": normalized_weight})
+            weight_stats["mostRecent"] = normalized_weight
+            weight_stats["count"] += 1
+            weight_stats["sum"] += normalized_weight
+        if normalized_height == None or normalized_weight == None:
+            continue
+        bmi = calculate_bmi(normalized_height, normalized_weight)
+        bmi_stats["list"].append({"date": vitals_date, "value": bmi})
+        bmi_stats["mostRecent"] = bmi
+        bmi_stats["count"] += 1
+        bmi_stats["sum"] += bmi
+    except Exception as e:
+        verbose_print(e)
+
+
+for stats_obj in [height_stats, weight_stats, bmi_stats, temperature_stats, pulse_stats, respiration_stats]:
+    if stats_obj["count"] > 0:
+        avg = stats_obj["sum"] / stats_obj["count"]
+        stats_obj["avg"] = avg
+        del stats_obj["sum"]
+        sum_sq_diffs = 0
+        for obs in stats_obj["list"]:
+            sum_sq_diffs += (obs["value"] - avg) ** 2
+        stats_obj["stDev"] = (sum_sq_diffs / stats_obj["count"]) ** (1/2)
+        if verbose:
+            print("Found stats for vital sign: " + stats_obj["vital"])
+            print(str(stats_obj["count"]) + " unique dates with average value " + str(stats_obj["avg"]) 
+                + " and standard deviation " + str(stats_obj["stDev"]))
 
 ## Write the data to files
 
@@ -524,9 +801,16 @@ if len(observations) > 0:
         meta["description"] = "Laboratory Observations from Apple Health Data"
         meta["processTime"] = str(datetime.datetime.now())
         meta["observationCount"] = len(observations)
+        meta["vitalSignsObservationCount"] = len(observations_vital_signs)
         meta["mostRecentResult"] = observation_dates[0]
         meta["earliestResult"] = observation_dates[-1]
         data["meta"] = meta
+
+        if meta["vitalSignsObservationCount"] > 0:
+            vital_signs = {}
+            data["vitalSigns"] = [temperature_stats, pulse_stats, 
+                respiration_stats, height_stats, weight_stats, bmi_stats]
+
 
         if total_abnormal_results > 0:
             abnormal_results_data = {}
@@ -581,7 +865,7 @@ if len(observations) > 0:
         exit(1)
 
     if verbose and use_custom_data:
-        print("The compiled information includes some custom data not exported from Apple Health:")
+        print("\nThe compiled information includes some custom data not exported from Apple Health:")
         for filename in custom_data_files:
             print(filename)
 

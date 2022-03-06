@@ -81,6 +81,7 @@ class pdf_creator:
             print("Actual table dims: ({}, {})".format(table._height, table._width))
         
         table.drawOn(self.file, x, end_y)
+        self.height -= table._height
 
 
     def _calculate_height(self, data: list):
