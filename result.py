@@ -1,18 +1,31 @@
 import re
 
 class Result:
-    def __init__(self, skip_in_range_abnormal_results: bool, abnormal_boundary: float, range_data: list, value, value_string: str):
+    def __init__(self, skip_in_range_abnormal_results: bool, abnormal_boundary: float, range_data: list, 
+            value, value_string: str, unit: str, check_units_match: bool):
         self.range_text = range_data[0]["text"]
 
         if self.range_text == None or self.range_text == "" or not re.search("[A-z0-9]", self.range_text):
             raise ValueError("Unparsable reference range")
 
+        if "not estab" in self.range_text.lower():
+            raise ValueError("Range not established")
+
         self.is_abnormal_result = False
         self.is_range_type = False
         self.is_binary_type = False
+        self.unit = unit
+
+        if (check_units_match
+            and
+            not (self.range_text.lower() == "none" or self.range_text.lower() == "clear") 
+            and
+            not (self.unit != None and self.unit in self.range_text)):
+            raise ValueError("Unmatched units for reference range")
+
 
         if value != None and not isinstance(value, str):
-            # NOTE "high" and "low" objects seem to be less consistent than "range_text" field, so use "range_text" to set the range
+            # NOTE "high" and "low" objects less consistent than "text" field, so use "text" to set the range
             
             value_range_matcher = re.search("(\d[\d,]*\\.\d+|\d[\d,]+) *(-|–) *(\d[\d,]*\.\d+|\d[\d,]*)", self.range_text)
 
@@ -42,7 +55,7 @@ class Result:
                         low_out_of_range = False
                         high_out_of_range = False
                     if not skip_in_range_abnormal_results:
-                        low_end_of_range = not low_out_of_range and (value - self.range_lower) / self.range_span < abnormal_boundary
+                        low_end_of_range = not self.range_lower == 0 and not low_out_of_range and (value - self.range_lower) / self.range_span < abnormal_boundary
                         high_end_of_range = not high_out_of_range and (self.range_upper - value) / self.range_span < abnormal_boundary
 
                 if low_out_of_range or high_out_of_range or low_end_of_range or high_end_of_range:
@@ -54,9 +67,9 @@ class Result:
                     elif low_end_of_range:
                         self.interpretation = "--"
                     elif high_end_of_range:
-                        self.interpretation = "+++"
+                        self.interpretation = "++"
                     elif high_out_of_range:
-                        self.interpretation = "++++"
+                        self.interpretation = "+++"
 
             else:
                 none_matcher = re.search("^none$", self.range_text, flags=re.IGNORECASE)
@@ -64,12 +77,12 @@ class Result:
                 if none_matcher:
                     self.is_binary_type = True
                     self.is_range_type = True
-                    self.range_upper = float(0)
+                    self.range_upper = float(1) if self.unit != None and self.unit == "%" else float(0)
                     self.range_lower = float(0)
                     if value > self.range_upper:
                         self.is_abnormal_result = True
                         self.range = str(self.range_lower) + " - " + str(self.range_upper)
-                        self.interpretation = "++"
+                        self.interpretation = "+"
 
         elif value == None and value_string != None and isinstance(value_string, str):
             self.is_binary_type = True
@@ -94,7 +107,7 @@ class Result:
                 self.is_abnormal_result = False
 
             if self.is_abnormal_result:
-                self.interpretation = "++"
+                self.interpretation = "+"
 
         if not self.is_abnormal_result:
             self.interpretation = ""
@@ -108,6 +121,7 @@ class Result:
         out["expectedValue"] = self.range_text
         out["isAbnormal"] = self.is_abnormal_result
         out["isRangeType"] = self.is_range_type
+        out["unit"] = self.unit
         if self.is_range_type:
             _range = {}
             _range["rangeHigh"] = self.range_upper
@@ -124,19 +138,19 @@ def get_interpretation_text(interpretation_key: str):
         return "LOW OUT OF RANGE"
     elif interpretation_key == "--":
         return "Low in range"
-    elif interpretation_key == "++":
+    elif interpretation_key == "+":
         return "Non-negative result"
-    elif interpretation_key == "+++":
+    elif interpretation_key == "++":
         return "High in range"
-    elif interpretation_key == "++++":
+    elif interpretation_key == "+++":
         return "HIGH OUT OF RANGE"
     else:
         return ""
 
 def get_interpretation_keys(skip_in_range: bool):
     if skip_in_range:
-        return ["---", "++", "++++"]
+        return ["---", "+", "+++"]
     else:
-        return ["---", "--", "++", "+++", "++++"]
+        return ["---", "--", "+", "++", "+++"]
 
 

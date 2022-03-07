@@ -97,6 +97,10 @@ class Observation:
                 self.unit = value_quantity["unit"]
                 self.value_string = self.value_string + " " + self.unit
 
+
+
+        # Validations
+
         if self.value_string == None or self.value_string == "" or not re.search("[A-z0-9]", self.value_string):
             raise ValueError("Skipping observation with unparseable value for [date / code] " + self.date + " / " + self.code)
         elif "SEE BELOW" in self.value_string or "See Below" in self.value_string:
@@ -110,21 +114,26 @@ class Observation:
         elif skip_long_values and len(self.value_string) > 200:
             raise ValueError("Skipping observation with excessively long value for [date / code] " + self.date + " / " + self.code)
 
+
+        
         self.result = None
         self.has_reference = False
 
         if "referenceRange" in data:
-            self.has_reference = True
-            try:
-                self.result = Result(skip_in_range_abnormal_results, abnormal_boundary, data["referenceRange"], self.value, self.value_string)
-            except ValueError as e:
-                self.result = None
-                self.has_reference = False
+            self.set_reference(skip_in_range_abnormal_results, abnormal_boundary, data["referenceRange"], self.unit, False)
 
         self.comment = data["comments"] if "comments" in data else None
         self.observation_complete = True
 
-    
+
+    def set_reference(self, skip_in_range_abnormal_results: bool, abnormal_boundary: float, ranges_list: list, unit: str, check_units_match: bool):
+        try:
+            self.result = Result(skip_in_range_abnormal_results, abnormal_boundary, 
+                ranges_list, self.value, self.value_string, unit, check_units_match)
+            self.has_reference = True
+        except ValueError:
+            pass
+
 
     def to_dict(self, _id: str, tests: list):
         out = {}

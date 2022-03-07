@@ -78,7 +78,7 @@ class pdf_creator:
             x = self.start_x
         
         if self.verbose:
-            print("Actual table dims: ({}, {})".format(table._height, table._width))
+            print("Table dims: ({}, {})".format(table._height, table._width))
         
         table.drawOn(self.file, x, end_y)
         self.height -= table._height

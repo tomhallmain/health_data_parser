@@ -475,6 +475,61 @@ for f in health_files:
 
 observation_dates.sort()
 observation_dates.reverse()
+
+
+## Ensure ranges apply to all results if applicable
+
+ranges = {}
+
+if len(reference_dates) > 0:
+    verbose_print("\nConsolidating ranges and validating all results where ranges apply are tested for abnormality...\n")
+    
+    # Construct ranges object
+    for code in sorted(observation_code_ids):
+        range_found = False
+        for date in observation_dates:
+            if range_found:
+                break
+            for code_id in observation_code_ids[code]:
+                datecode = date + code_id
+                if datecode in date_codes:
+                    observation = observations[date_codes[datecode]]
+                    if date in reference_dates and observation.has_reference:
+                        ranges[code] = observation.result.range_text
+                        range_found = True
+                        break
+
+    for code in sorted(observation_code_ids):
+        if not code in ranges:
+            continue
+        
+        code_range = ranges[code]
+        range_list = [{"text": code_range}]
+
+        for date in observation_dates:
+            for code_id in observation_code_ids[code]:
+                datecode = date + code_id
+                if datecode in date_codes:
+                    obs = observations[date_codes[datecode]]
+                    if not obs.has_reference:
+                        verbose_print("Found missing reference range for code " + code 
+                            + " on " + date + " - attempting to apply range from other results")
+                        obs.set_reference(skip_in_range_abnormal_results, in_range_abnormal_boundary, range_list, obs.unit, True)
+
+                        if obs.has_reference:
+                            if obs.date not in reference_dates:
+                                reference_dates.append(obs.date)
+
+                            if obs.result.is_abnormal_result:
+                                if obs.primary_code_id not in abnormal_results:
+                                    abnormal_results[obs.primary_code_id] = []
+                                results = abnormal_results[obs.primary_code_id]
+                                results.append(obs)
+                                abnormal_results[obs.primary_code_id] = results
+                                if obs.date not in abnormal_result_dates:
+                                    abnormal_result_dates.append(obs.date)
+
+
 abnormal_result_dates.sort()
 abnormal_result_dates.reverse()
 reference_dates.sort()
@@ -590,10 +645,11 @@ abnormal_result_interpretations_by_code = {}
 
 if len(observations) > 0:
     if use_custom_data:
-        print("The compiled information includes some custom data not exported from Apple Health:")
+        print("\nThe compiled information includes some custom data not exported from Apple Health:")
         for filename in custom_data_files:
             print(filename)
-    
+        print("")
+
     if len(abnormal_results) > 0:
 
         ## Log abnormal results by code then date
@@ -852,6 +908,7 @@ if len(observations) > 0:
                           observations,
                           observation_dates,
                           observation_code_ids,
+                          ranges,
                           date_codes,
                           reference_dates,
                           abnormal_results,
