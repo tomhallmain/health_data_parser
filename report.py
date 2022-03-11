@@ -1,9 +1,9 @@
 from datetime import datetime
 import operator
 import re
-import matplotlib.pyplot as plt
 
 from pdf_creator import pdf_creator
+from units import VitalSignCategory
 
 # Assumes newlines not already present
 def _wrap_text_to_fit_length(text: str, fit_length: int):
@@ -43,6 +43,16 @@ def _wrap_text_to_fit_length(text: str, fit_length: int):
             text = text[fit_length:]
     
     return new_text
+
+
+def _right_pad_with_spaces(text: str, length: int):
+    if len(text) >= length:
+        return text
+    
+    for i in range(length - len(text)):
+        text += " "
+
+    return text
 
 
 
@@ -110,27 +120,24 @@ def _filter_table(table: list, rows_to_skip: list, columns_to_skip: list):
     
     return filtered_table
 
+
 class Report:
-    def __init__(self, output_path: str, subject: str, metadata: dict, verbose: bool, highlight_abnormal: bool):
+    def __init__(self, output_path: str, subject: dict, filename_affix: str, verbose: bool, highlight_abnormal: bool):
         self.output_path = output_path
         self.subject = subject
         self.verbose = verbose
         self.highlight_abnormal = highlight_abnormal
-        self.filename = "LaboratoryResultsReport" + metadata["meta"]["processTime"][:10] + ".pdf"
+        self.filename = "LaboratoryResultsReport" + filename_affix + ".pdf"
         self.filepath = self.output_path + "/" + self.filename
+    
 
-        if not "meta" in metadata or not "observations" in metadata:
-            raise AssertionError("Observations data not found.")
-        elif len(metadata["observations"]) == 0:
-            raise AssertionError("Observations data not found.")
-
-    def create_pdf(self, metadata: dict, observations: dict, observation_dates: list, observation_code_ids: dict, ranges: dict, 
-                   date_codes: dict, reference_dates: list, abnormal_results: dict, abnormal_result_dates: list):
+    def create_pdf(self, data: dict, observations: dict, observation_dates: list, observation_code_ids: dict, ranges: dict, 
+                   date_codes: dict, reference_dates: list, abnormal_results: dict, abnormal_result_dates: list, pulse_stats_graph):
         if self.verbose:
             print("\nCreating report cover page...")
         creator = pdf_creator(800, 50, self.filepath, self.verbose)
         creator.set_font("MesloLGS NF Bold", 15)
-        meta = metadata["meta"]
+        meta = data["meta"]
         creator.show_text(meta["description"])
         creator.set_font("MesloLGS NF", 12)
         creator.set_leading(14)
@@ -141,7 +148,12 @@ class Report:
         if self.subject == None or self.subject == "":
             creator.show_text("Subject:            UNKNOWN")
         else:
-            creator.show_text("Subject:            " + self.subject)
+            creator.show_text("Subject:            " + self.subject["name"])
+            if "birthDate" in self.subject:
+                creator.show_text("DOB:                " + datetime.fromisoformat(self.subject["birthDate"]).strftime("%B %d, %Y"))
+                creator.show_text("Age:                " + str(self.subject["age"]))
+            if "sex" in self.subject:
+                creator.show_text("Sex:                " + str(self.subject["sex"]))
         
         creator.show_text("Observation count:  " + str(meta["observationCount"]))
         creator.show_text("Earliest result:    " + datetime.fromisoformat(meta["earliestResult"]).strftime("%B %d, %Y"))
@@ -152,32 +164,43 @@ class Report:
             creator.newline()
             creator.newline()
             creator.newline()
-
             creator.set_font("MesloLGS NF Bold", 12)
             creator.show_text("Summary of Vitals")
-            creator.set_font("MesloLGS NF", 12)
-
             creator.newline()
-            creator.show_text("Vital sign observation dates count:  " + str(meta["vitalSignsObservationCount"]))
             creator.newline()
 
             creator.set_font("MesloLGS NF", 8)
             creator.set_leading(8)
 
             # TODO add Trend column and/or graph of these vitals
-            vital_signs_table = [["Vital", "Unit", "Most Recent", "Date", "Average", "StDev"]]
+            vital_signs_table = [["Vital", "Unit", "Most Recent", "Date", "Max", "Min", "Average", "StDev", "Count"]]
             
-            for vital in metadata["vitalSigns"]:
-                row = [vital["vital"], vital["unit"]]
+            for vital in data["vitalSigns"]:
                 if vital["count"] > 0:
                     most_recent_obs = vital["list"][-1]
-                    row.append(str(round(most_recent_obs["value"], 1)))
-                    row.append(most_recent_obs["date"])
-                    row.append(round(vital["avg"], 1))
-                    row.append(round(vital["stDev"], 1))
-                    vital_signs_table.append(row)
+                    if type(vital["mostRecent"]["value"]) == list:
+                        for i in range(len(vital["mostRecent"]["value"])):
+                            row = [vital["labels"][i], vital["unit"]]
+                            row.append(str(round(most_recent_obs["value"][i], 1)))
+                            row.append(datetime.strftime(most_recent_obs["time"], "%B %d, %Y"))
+                            row.append(round(vital["max"][i], 1))
+                            row.append(round(vital["min"][i], 1))
+                            row.append(round(vital["avg"][i], 1))
+                            row.append(round(vital["stDev"][i], 1))
+                            row.append(vital["count"])
+                            vital_signs_table.append(row)
+                    else:
+                        row = [vital["vital"], vital["unit"]]
+                        row.append(str(round(most_recent_obs["value"], 1)))
+                        row.append(datetime.strftime(most_recent_obs["time"], "%B %d, %Y"))
+                        row.append(round(vital["max"], 1))
+                        row.append(round(vital["min"], 1))
+                        row.append(round(vital["avg"], 1))
+                        row.append(round(vital["stDev"], 1))
+                        row.append(vital["count"])
+                        vital_signs_table.append(row)
             
-            creator.show_table(vital_signs_table, None, 120)
+            creator.show_table(vital_signs_table, None, 65)
         
         creator.set_font("MesloLGS NF", 12)
         creator.set_leading(14)
@@ -185,12 +208,12 @@ class Report:
         creator.newline()
         creator.newline()
 
-        if "abnormalResults" in metadata:
+        if "abnormalResults" in data:
             creator.set_font("MesloLGS NF Bold", 12)
             creator.show_text("WARNING: Abnormal results were found.")
             creator.set_font("MesloLGS NF", 12)
             creator.newline()
-            abnormal_results_meta = metadata["abnormalResults"]["meta"]
+            abnormal_results_meta = data["abnormalResults"]["meta"]
             creator.show_text("Lab codes with abnormal observed values: " + str(abnormal_results_meta["codesWithAbnormalResultsCount"]))
             creator.show_text("Total abnormal observations:             " + str(abnormal_results_meta["totalAbnormalResultsCount"]))
             creator.newline()
@@ -231,7 +254,7 @@ class Report:
             creator.set_leading(10)
             creator.newline()
 
-            abnormal_result_interpretations_by_code = metadata["abnormalResults"]["codesWithAbnormalResults"]
+            abnormal_result_interpretations_by_code = data["abnormalResults"]["codesWithAbnormalResults"]
 
             for code in sorted(abnormal_result_interpretations_by_code.keys()):
                 if len(code) > 35:
@@ -590,8 +613,38 @@ class Report:
         else:
             creator.show_text("No abnormal results were found in Apple Health data export.")
 
+        
+        if meta["heartRateMonitoringWearableDetected"]:
+            creator.add_page()
+            creator.set_font("MesloLGS NF Bold", 15)
+            creator.set_leading(16)
+            creator.show_text("Heart Rate Analysis")
+            creator.newline()
+            creator.set_leading(10)
+            creator.set_font("MesloLGS NF", 10)
+            for vital in data["vitalSigns"]:
+                if vital["vital"] == VitalSignCategory.PULSE.value:
+                    text1 = _right_pad_with_spaces("             Total readings: " + str(vital["count"]), 45)
+                    text2 = _right_pad_with_spaces("              Pulse average: " + str(round(vital["avg"], 1)), 45)
+                    text3 = _right_pad_with_spaces("   Pulse standard deviation: " + str(round(vital["stDev"], 1)), 45)
+                    percent_in_motion = len(pulse_stats_graph.values_in_motion) / len(pulse_stats_graph.values_resting) * 100
+                    creator.show_text(text1 + "Percent in motion: " + str(round(percent_in_motion)) + "%")
+                    creator.show_text(text2 + "Average in motion: " + str(round(pulse_stats_graph.avg_in_motion, 1)))
+                    creator.show_text(text3 + "  Average resting: " + str(round(pulse_stats_graph.avg_resting, 1)))
+                    creator.newline()
+            creator.show_image(pulse_stats_graph.save_loc, 45, 500)
 
-        #creator.text(": " + meta[""], 100, 120)
+            creator.newline()
+            creator.set_leading(9)
+            creator.set_font("MesloLGS NF", 8)
+            creator.show_text("                                                   NOTES")
+            creator.newline()
+            creator.show_text("• \"Motion\" data found in Apple wearable observations. All pulse observations in clinical records data")
+            creator.show_text("  is assumed to be obtained in a non-motion state. The reliability of motion data may be questionable.")
+            creator.show_text("• \"Pulse spikes\" are instances where there is an increase then subsequent decrease of pulse by >= 40")
+            creator.show_text("  BPM during <= 4 minute period.")
+
+
         creator.save()
 
 

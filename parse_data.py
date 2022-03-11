@@ -1,22 +1,28 @@
 import csv
-import datetime
-from enum import Enum
+from datetime import datetime, timezone
 import json
+import numpy as np
 import operator
 import os
 import sys
 import traceback
+import xml.etree.ElementTree as ET
 
 from labtest import LabTest
 from observation import Observation, ObservationVital, CategoryError
 from report import Report
 from result import get_interpretation_keys, get_interpretation_text
 from generate_diagnostic_report_files import generate_diagnostic_report_files
+from graph import PulseStatsGraph
+from units import VitalSignCategory, HeightUnit, WeightUnit, TemperatureUnit, convert
 
 help_text = """
 Usage:
 
    $ python parse_data.py path/to/apple_health_export ${args}
+
+    --only_clinical_records
+        Do not attempt to parse default XML export files (much faster)
 
     --start_year=[int] 
         Exclude results from before a certain year
@@ -46,6 +52,13 @@ Usage:
         By default abnormal results are highlighted in observations tables on the 
         report. To turn this off, set this value to False.
 
+    --birth_date=[YYYY-MM-DD]
+        Subject birth date for reporting purposes, if not found in export XML.
+
+    --json_add_all_vitals
+        If using a wearable, a lot of vital sign observations may be accumulated.
+        By default these are not added to the JSON output - pass to add these.
+
     -h, --help
         Print this help text
 
@@ -56,6 +69,12 @@ Usage:
 
 ### TODO apply ranges found in other observation dates to same codes if not already verified
 ### TODO get weighted severity of abnormality by code
+
+
+
+## SETUP
+
+
 
 if len(sys.argv) < 2:
     print(help_text)
@@ -77,6 +96,8 @@ all_data_json = data_export_dir + "/observations.json"
 abnormal_results_output_csv = data_export_dir + "/abnormal_results.csv"
 abnormal_results_by_interp_csv = data_export_dir + "/abnormal_results_by_interpretation.csv"
 abnormal_results_by_code_text = data_export_dir + "/abnormal_results_by_code.txt"
+export_xml = data_export_dir + "/export.xml"
+export_cda_xml = data_export_dir + "/export_cda.xml"
 base_dir = data_export_dir + "/clinical-records"
 
 if not os.path.exists(base_dir) or len(os.listdir(base_dir)) == 0:
@@ -92,95 +113,29 @@ skip_in_range_abnormal_results = False
 in_range_abnormal_boundary = 0.15
 skip_dates = []
 report_highlight_abnormal_results = True
+only_clinical_records = False
 extra_observations_csv = None
-
-
-class HeightUnit(Enum):
-    CM = 100
-    M = 1
-    FT = 3.28084
-    IN = 39.37008
-
-    def from_value(value: str):
-        value = value.upper()
-        
-        for name, unit in HeightUnit.__members__.items():
-            if name == value:
-                return unit
-
-        try:
-            if value in "INCHES" and "INCHES".index(value) == 0:
-                return HeightUnit.IN
-            elif value in "FEET" and "FEET".index(value) == 0:
-                return HeightUnit.FT
-            elif value in "METERS" and "METERS".index(value) == 0:
-                return HeightUnit.M
-            elif value in "CENTIMETERS" and "CENTIMETERS".index(value) == 0:
-                return HeightUnit.CM
-        except Exception as e:
-            print(e)
-            return None
-
-class WeightUnit(Enum):
-    G = 1000
-    KG = 1
-    LB = 2.204623
-
-    def from_value(value: str):
-        value = value.upper()
-        
-        for name, unit in WeightUnit.__members__.items():
-            if name == value:
-                return unit
-
-        try:
-            if value in "POUNDS" and "POUNDS".index(value) == 0:
-                return WeightUnit.LB
-            elif value == "KILOS":
-                return WeightUnit.KG
-            elif value in "KILOGRAMS" and "KILOGRAMS".index(value) == 0:
-                return WeightUnit.KG
-            elif value in "GRAMS" and "GRAMS".index(value) == 0:
-                return WeightUnit.G
-        except Exception as e:
-            print(e)
-            return None
-
-class TemperatureUnit(Enum):
-    C = 0
-    F = 32
-
-    def from_value(value: str):
-        value = value.upper()
-        value.replace("DEGREES", "").replace("°", "").replace(" ", "")
-        
-        for name, unit in WeightUnit.__members__.items():
-            if name == value:
-                return unit
-
-        try:
-            if value in "FAHRENHEIT" and "FAHRENHEIT".index(value) == 0:
-                return TemperatureUnit.F
-            elif value in "CELCIUS" and "CELCIUS".index(value) == 0:
-                return TemperatureUnit.C
-        except Exception as e:
-            print(e)
-            return None
-    
-    def convertTo(self, temperatureUnit, value):
-        if self is temperatureUnit:
-            return value
-        elif self is TemperatureUnit.F:
-            return (value - 32) * 5/9
-        else:
-            return value * 9/5 + 32
-
-def convert(to_unit, from_unit, value: float):
-    return value / from_unit.value * to_unit.value
-
+json_add_all_vitals = False
+subject = {}
 normal_height_unit = HeightUnit.CM
 normal_weight_unit = WeightUnit.LB
 normal_temperature_unit = TemperatureUnit.C
+
+def verbose_print(text: str):
+    if verbose:
+        print(text)
+
+def get_age(birth_date):
+    today = datetime.today()
+    age = today.year - birth_date.year
+    test_date = datetime(today.year, birth_date.month, birth_date.day, 0, 0, 0)
+    age += round((today - test_date).days / 365, 1)
+    return age
+
+
+
+## VALIDATE AND SET FROM COMMANDS
+
 
 if len(COMMANDS) > 0:
     for command in COMMANDS:
@@ -189,6 +144,9 @@ if len(COMMANDS) > 0:
             exit()
         elif command == "-v" or command == "--verbose":
             verbose = True
+
+        elif command[:23] == "--only_clinical_records":
+            only_clinical_records = True
         
         elif command[:13] == "--start_year=":
             try:
@@ -208,10 +166,8 @@ if len(COMMANDS) > 0:
                 skip_dates = command[13:].split(",")
                 
                 for date in skip_dates:
-                    ymd = date.split("-")
-                    if len(ymd) != 3 or len(ymd[0]) != 4 or len(ymd[1]) != 2 or len(ymd[2]) != 2:
-                        raise Exception
-            except Exception as e:
+                    test = datetime.fromisoformat(date)
+            except Exception:
                 print("\"" + command[13:] + "\" is not a valid list of dates in format YYYY-MM-DD.")
                 exit(1)
             if len(skip_dates) > 0:
@@ -242,6 +198,25 @@ if len(COMMANDS) > 0:
         elif command[:21] == "--extra_observations=":
             extra_observations_csv = command[21:]
 
+        elif command[:13] == "--birth_date=":
+            birth_date_str = command[13:]
+            try:
+                birth_date = datetime.fromisoformat(birth_date_str)
+            except Exception:
+                print("\"" + command[13:] + "\" is not a valid list of date in format YYYY-MM-DD.")
+                exit(1)
+            
+            subject["birthDate"] = birth_date_str
+            subject["age"] = get_age(birth_date)
+
+        elif command[:21] == "--json_add_all_vitals":
+            json_add_all_vitals = True
+
+
+
+
+## PROCESS CUSTOM DATA FILES
+
 
 use_custom_data = extra_observations_csv != None
 custom_data_files = []
@@ -249,6 +224,220 @@ custom_data_files = []
 if use_custom_data:
     if not generate_diagnostic_report_files(extra_observations_csv, base_dir, verbose, False):
         exit(1)
+
+
+
+
+
+## PROCESS APPLE HEALTH XML DATA
+
+
+datetime_format = "%Y-%m-%d %X %z"
+blood_pressure_stats_preset = False
+blood_pressure_stats = {
+    "vital": VitalSignCategory.BLOOD_PRESSURE.value, "count": 0, 
+    "labels": ["BP Systolic", "BP Diastolic"],
+    "sum": [0, 0],
+    "avg": [None, None],
+    "max": [None, None],
+    "min": [None, None],
+    "mostRecent": [None, None],
+    "unit": "mmHg",
+    "list": []}
+pulse_stats_preset = False
+pulse_stats = {"vital": VitalSignCategory.PULSE.value, "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": None, "list": []}
+temperature_stats_preset = False
+temperature_stats = {"vital": VitalSignCategory.TEMPERATURE.value, "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": None, "list": []}
+xml_vitals_observations_count = 0
+
+
+if only_clinical_records:
+    verbose_print("Skipping all data present not in clinical-records folder.")
+else:
+    if os.path.exists(export_xml):
+        print("Parsing XML...")
+        try:
+            tree = ET.parse(export_xml)
+            root = tree.getroot()
+            me = root.find("Me").attrib
+            if "birthDate" not in subject:
+                birth_date_str = me["HKCharacteristicTypeIdentifierDateOfBirth"]
+                birth_date = datetime.fromisoformat(birth_date_str)
+                subject["birthDate"] = birth_date_str
+                subject["age"] = get_age(birth_date)
+            subject["sex"] = me["HKCharacteristicTypeIdentifierBiologicalSex"].replace("HKBiologicalSex", "")
+            subject["bloodType"] = me["HKCharacteristicTypeIdentifierBloodType"].replace("HKBloodType", "")
+
+            blood_pressure_observations = []
+            blood_pressure_sums = [0, 0]
+            blood_pressure_count = 0
+            blood_pressure_max = [None, None]
+            blood_pressure_min = [None, None]
+            heart_rate_observations = []
+            heart_rate_sum = 0
+            heart_rate_count = 0
+            heart_rate_max = None
+            heart_rate_min = None
+            temperature_observations = []
+            temperature_sum = 0
+            temperature_count = 0
+            temperature_max = None
+            temperature_min = None
+
+            for correlation in root.iter("Correlation"):
+                if not "type" in correlation.attrib:
+                    continue
+
+                if correlation.attrib["type"] == "HKCorrelationTypeIdentifierBloodPressure":
+                    blood_pressure_obs = {}
+                    systolic = None
+                    diastolic = None
+                    
+                    for rec in correlation.iter("Record"):
+                        if rec.attrib["type"] == "HKQuantityTypeIdentifierBloodPressureSystolic":
+                            systolic = int(rec.attrib["value"])
+                        elif rec.attrib["type"] == "HKQuantityTypeIdentifierBloodPressureDiastolic":
+                            diastolic = int(rec.attrib["value"])
+                    
+                    if systolic == None or diastolic == None:
+                        continue
+
+                    blood_pressure_obs["value"] = [systolic, diastolic]
+                    blood_pressure_obs["time"] = datetime.strptime(rec.attrib["startDate"], datetime_format)
+                    blood_pressure_observations.append(blood_pressure_obs)
+                    blood_pressure_count += 1
+                    blood_pressure_sums[0] += systolic
+                    blood_pressure_sums[1] += diastolic
+                    
+                    if blood_pressure_max[0] == None:
+                        blood_pressure_max[0] = systolic
+                        blood_pressure_max[1] = diastolic
+                        blood_pressure_min[0] = systolic
+                        blood_pressure_min[1] = diastolic
+                    else:
+                        if blood_pressure_max[0] < systolic:
+                            blood_pressure_max[0] = systolic
+                        elif blood_pressure_min[0] > systolic:
+                            blood_pressure_min[0] = systolic
+                        if blood_pressure_max[1] < diastolic:
+                            blood_pressure_max[1] = diastolic
+                        elif blood_pressure_min[1] > diastolic:
+                            blood_pressure_min[1] = diastolic
+
+            for rec in root.iter("Record"):
+                if not "type" in rec.attrib:
+                    continue
+
+                rec_type = rec.attrib["type"]
+
+                if rec_type == "HKQuantityTypeIdentifierHeartRate":
+                    heart_rate_obs = {}
+                    value = float(rec.attrib["value"])
+                    metadataentry = rec.find("MetadataEntry")
+                    motion_data_found = False
+
+                    if metadataentry != None and "key" in metadataentry.attrib and metadataentry.attrib["key"] == "HKMetadataKeyHeartRateMotionContext":
+                        heart_rate_obs["motion"] = int(metadataentry.attrib["value"])
+                        motion_data_found = True
+                    else:
+                        heart_rate_obs["motion"] = 0
+
+                    if value > 155:
+                        continue
+                    elif value > 140 and heart_rate_obs["motion"] != 0:
+                        continue
+                    elif value < 35:
+                        continue
+                    
+                    heart_rate_obs["value"] = value
+                    heart_rate_obs["time"] = datetime.strptime(rec.attrib["startDate"], datetime_format)
+                    heart_rate_observations.append(heart_rate_obs)
+                    heart_rate_count += 1
+                    heart_rate_sum += value
+                    heart_rate_most_recent = value
+                    if heart_rate_max == None:
+                        heart_rate_max = value
+                        heart_rate_min = value
+                    elif value > heart_rate_max:
+                        heart_rate_max = value
+                    elif value < heart_rate_min:
+                        heart_rate_min = value
+                
+                elif rec_type == "HKQuantityTypeIdentifierBodyTemperature":
+                    temp_obs = {}
+                    value = float(rec.attrib["value"])
+
+                    if "unit" in rec.attrib:
+                        try:
+                            value = TemperatureUnit.from_value(rec.attrib["unit"]).convertTo(normal_temperature_unit, value)
+                        except Exception as e:
+                            verbose_print(e)
+                            verbose_print(rec.attrib["unit"])
+                            continue
+                    else:
+                        try:
+                            value = TemperatureUnit.from_value("F" if obs.value > 45 else "C").convertTo(normal_temperature_unit, value)
+                        except Exception as e:
+                            verbose_print(e)
+                            continue
+
+                    temp_obs["value"] = value
+                    temp_obs["time"] = datetime.strptime(rec.attrib["startDate"], datetime_format)
+                    temperature_observations.append(temp_obs)
+                    temperature_count += 1
+                    temperature_sum += value
+                    if temperature_max == None:
+                        temperature_max = value
+                        temperature_min = value
+                    elif value > temperature_max:
+                        temperature_max = value
+                    elif value < temperature_min:
+                        temperature_min = value
+                
+
+            blood_pressure_stats["list"] = blood_pressure_observations
+            blood_pressure_stats["max"] = blood_pressure_max
+            blood_pressure_stats["min"] = blood_pressure_min
+            pulse_stats["list"] = heart_rate_observations
+            pulse_stats["max"] = heart_rate_max
+            pulse_stats["min"] = heart_rate_min
+            temperature_stats["list"] = temperature_observations
+            temperature_stats["max"] = temperature_max
+            temperature_stats["min"] = temperature_min
+            xml_vitals_observations_count = heart_rate_count + temperature_count + blood_pressure_count
+
+            if len(blood_pressure_stats["list"]) > 0:
+                blood_pressure_stats_preset = True
+                verbose_print("Found " + str(len(blood_pressure_observations)) + " heart rate observations in XML data.")
+                blood_pressure_stats["count"] = blood_pressure_count
+                blood_pressure_stats["sum"] = blood_pressure_sums
+            if len(pulse_stats["list"]) > 0:
+                pulse_stats_preset = True
+                verbose_print("Found " + str(len(heart_rate_observations)) + " heart rate observations in XML data.")
+                pulse_stats["count"] = heart_rate_count
+                pulse_stats["sum"] = heart_rate_sum
+            if len(temperature_stats["list"]) > 0:
+                temperature_stats_preset = True
+                verbose_print("Found " + str(len(temperature_observations)) + " temperature observations in XML data.")
+                temperature_stats["count"] = temperature_count
+                temperature_stats["sum"] = temperature_sum
+
+        except Exception as e:
+            print("An exception occurred in parsing XML export files. For more detail on the error run in verbose mode.")
+            verbose_print(e)
+            exit()
+    else:
+        print("WARNING: export.xml or export_cda.xml not found in export directory.")
+
+
+
+
+
+## PROCESS CLINICAL RECORDS JSON DATA
+
+
+
+print("Parsing clinical-records JSON...")
 
 health_files = os.listdir(base_dir)
 observations = {}
@@ -260,37 +449,14 @@ tests = []
 date_codes = {}
 abnormal_results = {}
 abnormal_result_dates = []
-subject = None
-
-class VitalSignCategory(Enum):
-    HEIGHT = "Height"
-    PULSE = "Pulse"
-    RESPIRATION = "Respiration"
-    SPO2 = "SpO2"
-    TEMPERATURE = "Temperature"
-    WEIGHT = "Weight"
-
-    def matches(self, string: str):
-        return self.value in string or self.name in string or self.name.lower() in string
-
-category_vital_signs = "Vital Signs"
-category_height = "Height"
-category_pulse = "Pulse"
-category_respiration = "Respiration"
-category_spo2 = "SpO2"
-category_temperature = "Temperature"
-category_weight = "Weight"
 observations_vital_signs = {}
-vital_sign_dates = []
-vital_sign_categories = [category_vital_signs, category_height, category_respiration, category_pulse, category_spo2, category_temperature, category_weight]
+category_vital_signs = "Vital Signs"
+vital_sign_categories = [member.value for name, member in VitalSignCategory.__members__.items()]
+vital_sign_categories.insert(0, category_vital_signs)
 disallowed_codes = ["NARRATIVE", "REQUEST PROBLEM"]
 
 
-def verbose_print(text: str):
-    if verbose:
-        print(text)
-
-def handle_disallowed_category_observation(data: dict, obs_id: str, tests: list, start_year: int,
+def handle_vital_sign_category_observation(data: dict, obs_id: str, tests: list, start_year: int,
         skip_long_values: bool, skip_in_range_abnormal_results: bool, in_range_abnormal_boundary: float):
     obs_v = None
 
@@ -345,7 +511,7 @@ def handle_disallowed_category_observation(data: dict, obs_id: str, tests: list,
     this_date_observations.append(obs_v)
     observations_vital_signs[obs_v.date] = this_date_observations
     
-    verbose_print("Observation recorded for " + obs_v.code + " on " + obs_v.date)
+    verbose_print("Vital sign observation recorded for " + obs_v.code + " on " + obs_v.date)
 
 
 
@@ -360,7 +526,7 @@ def process_observation(data: dict, obs_id: str):
         pass
     except CategoryError as e:
         verbose_print(e)
-        handle_disallowed_category_observation(data, obs_id, tests, start_year,
+        handle_vital_sign_category_observation(data, obs_id, tests, start_year,
             skip_long_values, skip_in_range_abnormal_results, in_range_abnormal_boundary)
         return
     except AssertionError as e:
@@ -418,8 +584,6 @@ def process_observation(data: dict, obs_id: str):
     verbose_print("Observation recorded for " + obs.code + " on " + obs.date)
 
 
-## Process the exported health data
-
 for f in health_files:
     file_category = f[0:(f.index("-"))]
     f_addr = base_dir + "/" + f
@@ -429,11 +593,11 @@ for f in health_files:
     if file_category == "Observation":
         file_data = json.load(open(f_addr))
 
-        if subject == None and "subject" in file_data:
+        if not "name" in subject and "subject" in file_data:
             subject_data = file_data["subject"]
             if subject_data != None and "display" in subject_data and subject_data["display"] != None:
-                subject = subject_data["display"]
-                verbose_print("Identified subject: " + subject)
+                subject["name"] = subject_data["display"]
+                verbose_print("Identified subject: " + subject["name"])
 
         try:
             process_observation(file_data, f)
@@ -477,7 +641,11 @@ observation_dates.sort()
 observation_dates.reverse()
 
 
-## Ensure ranges apply to all results if applicable
+
+
+
+## APPLY RANGES TO CLINICAL RECORDS RESULTS
+
 
 ranges = {}
 
@@ -535,16 +703,19 @@ abnormal_result_dates.reverse()
 reference_dates.sort()
 
 
-## Vital Signs
+
+
+## COMPILE VITAL SIGNS DATA
+
+
+
 
 verbose_print("\nCompiling vital signs data if present...\n")
 
-respiration_stats = {"vital": VitalSignCategory.RESPIRATION.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": None, "list": []}
-pulse_stats = {"vital": VitalSignCategory.PULSE.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": None, "list": []}
-temperature_stats = {"vital": VitalSignCategory.TEMPERATURE.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": None, "list": []}
-height_stats = {"vital": VitalSignCategory.HEIGHT.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": normal_height_unit.name.lower(), "list": []}
-weight_stats = {"vital": VitalSignCategory.WEIGHT.value, "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": normal_weight_unit.name.lower(), "list": []}
-bmi_stats = {"vital": "BMI", "count": 0, "sum": 0, "avg": None, "mostRecent": None, "unit": "BMI", "list": []}
+respiration_stats = {"vital": VitalSignCategory.RESPIRATION.value, "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": None, "list": []}
+height_stats = {"vital": VitalSignCategory.HEIGHT.value, "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": normal_height_unit.name.lower(), "list": []}
+weight_stats = {"vital": VitalSignCategory.WEIGHT.value, "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": normal_weight_unit.name.lower(), "list": []}
+bmi_stats = {"vital": "BMI", "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": "BMI", "list": []}
 
 def calculate_bmi(normalized_height: float, normalized_weight: float):
     height_meters = convert(HeightUnit.M, normal_height_unit, normalized_height)
@@ -553,7 +724,38 @@ def calculate_bmi(normalized_height: float, normalized_weight: float):
     verbose_print("Calculated BMI " + str(bmi) + " (" + str(round(weight_kilos, 2)) + " kg / " + str(round(height_meters, 2)) + " m^2)")
     return bmi
 
+current_tzinfo = timezone(datetime.now().astimezone().tzinfo.utcoffset(None))
+
+def set_stats(stats: dict, time, value):
+    if time == None:
+        stats["list"].append(value)
+    else:
+        stats["list"].append({"time": time, "value": value})
+    stats["count"] += 1
+    if type(value) == list:
+        for i in range(len(value)):
+            c_value = value[i]
+            stats["sum"][i] += c_value
+            if stats["max"][i] == None:
+                stats["max"][i] = c_value
+                stats["min"][i] = c_value
+            elif stats["max"][i] < c_value:
+                stats["max"][i] = c_value
+            elif stats["min"][i] > c_value:
+                stats["min"][i] = c_value
+    else:
+        stats["sum"] += value
+        if stats["max"] == None:
+            stats["max"] = value
+            stats["min"] = value
+        elif stats["max"] < value:
+            stats["max"] = value
+        elif stats["min"] > value:
+            stats["min"] = value
+
 for vitals_date in sorted(observations_vital_signs.keys()):
+    vitals_datetime = datetime.fromisoformat(vitals_date)
+    vitals_datetime = vitals_datetime.replace(tzinfo=current_tzinfo)
     this_date_observations = observations_vital_signs[vitals_date]
     this_date_height = None
     this_date_height_unit = None
@@ -579,65 +781,94 @@ for vitals_date in sorted(observations_vital_signs.keys()):
                     print("Skipping obs on date " + vitals_date + " of category " + str(obs.vital_sign_category) + " because value or unit was None")
                     continue
             
-            if obs.vital_sign_category is VitalSignCategory.PULSE:
-                pulse_stats["list"].append({"date": vitals_date, "value": obs.value})
+            if obs.vital_sign_category is VitalSignCategory.BLOOD_PRESSURE:
+                blood_pressure_stats["unit"] = obs.unit
+                set_stats(blood_pressure_stats, vitals_datetime, [obs.value, obs.value2])
+            elif obs.vital_sign_category is VitalSignCategory.PULSE:
                 pulse_stats["unit"] = obs.unit
-                pulse_stats["mostRecent"] = obs.value
-                pulse_stats["count"] += 1
-                pulse_stats["sum"] += obs.value
+                set_stats(pulse_stats, vitals_datetime, obs.value)
+                pulse_stats["list"][-1]["motion"] = 0 # Assume heart rate observations in clinical-records are not in motion
             elif obs.vital_sign_category is VitalSignCategory.RESPIRATION:
-                respiration_stats["list"].append({"date": vitals_date, "value": obs.value})
                 respiration_stats["unit"] = obs.unit
-                respiration_stats["mostRecent"] = obs.value
-                respiration_stats["count"] += 1
-                respiration_stats["sum"] += obs.value
+                set_stats(respiration_stats, vitals_datetime, obs.value)
             elif obs.vital_sign_category is VitalSignCategory.TEMPERATURE:
                 this_temp_unit = TemperatureUnit.from_value(obs.unit)
                 normalized_temperature = round(this_temp_unit.convertTo(normal_temperature_unit, obs.value), 2)
-                temperature_stats["list"].append({"date": vitals_date, "value": normalized_temperature})
+                set_stats(temperature_stats, vitals_datetime, normalized_temperature)
                 temperature_stats["unit"] = obs.unit
-                temperature_stats["mostRecent"] = normalized_temperature
-                temperature_stats["count"] += 1
-                temperature_stats["sum"] += normalized_temperature
 
         if this_date_height != None and this_date_height_unit != None:
             normalized_height = convert(normal_height_unit, HeightUnit.from_value(this_date_height_unit), this_date_height)
-            height_stats["list"].append({"date": vitals_date, "value": normalized_height})
-            height_stats["mostRecent"] = normalized_height
-            height_stats["count"] += 1
-            height_stats["sum"] += normalized_height
+            set_stats(height_stats, vitals_datetime, normalized_height)
         if this_date_weight != None and this_date_weight_unit != None:
             normalized_weight = convert(normal_weight_unit, WeightUnit.from_value(this_date_weight_unit), this_date_weight)
-            weight_stats["list"].append({"date": vitals_date, "value": normalized_weight})
-            weight_stats["mostRecent"] = normalized_weight
-            weight_stats["count"] += 1
-            weight_stats["sum"] += normalized_weight
+            set_stats(weight_stats, vitals_datetime, normalized_weight)
         if normalized_height == None or normalized_weight == None:
             continue
         bmi = calculate_bmi(normalized_height, normalized_weight)
-        bmi_stats["list"].append({"date": vitals_date, "value": bmi})
-        bmi_stats["mostRecent"] = bmi
-        bmi_stats["count"] += 1
-        bmi_stats["sum"] += bmi
+        set_stats(bmi_stats, vitals_datetime, bmi)
     except Exception as e:
         verbose_print(e)
 
 
-for stats_obj in [height_stats, weight_stats, bmi_stats, temperature_stats, pulse_stats, respiration_stats]:
-    if stats_obj["count"] > 0:
-        avg = stats_obj["sum"] / stats_obj["count"]
-        stats_obj["avg"] = avg
-        del stats_obj["sum"]
-        sum_sq_diffs = 0
+for stats_obj in [height_stats, weight_stats, bmi_stats, temperature_stats, pulse_stats, respiration_stats, blood_pressure_stats]:
+    try:
+        stats_obj["list"] = sorted(stats_obj["list"], key=operator.itemgetter("time"))
+    except Exception:
+        print("WARNING: Encountered a problem comparing timezones between XML and clinical records JSON data."
+            + " Vital signs output that relies on sorting may not be calculated correctly.")
+        tzinfos = []
         for obs in stats_obj["list"]:
-            sum_sq_diffs += (obs["value"] - avg) ** 2
-        stats_obj["stDev"] = (sum_sq_diffs / stats_obj["count"]) ** (1/2)
+            date = obs["time"]
+            if not date.tzinfo in tzinfos:
+                verbose_print("Found new tzinfo for date " + str(date))
+                verbose_print(date.tzinfo)
+                tzinfos.append(date.tzinfo)
+    
+    if stats_obj["count"] > 0:
+        stats_obj["mostRecent"] = stats_obj["list"][-1]
+        if stats_obj["mostRecent"]["value"] == None:
+            verbose_print("Stats collection for vital " + stats_obj["vital"] + " failed.")
+        elif type(stats_obj["mostRecent"]["value"]) == list:
+            stats_obj["stDev"] = []
+            for i in range(len(stats_obj["mostRecent"])):
+                avg = stats_obj["sum"][i] / stats_obj["count"]
+                stats_obj["avg"][i] = avg
+                sum_sq_diffs = 0
+                for obs in stats_obj["list"]:
+                    sum_sq_diffs += (obs["value"][i] - avg) ** 2
+                stats_obj["stDev"].append((sum_sq_diffs / stats_obj["count"]) ** (1/2))
+            del stats_obj["sum"]
+        else:
+            avg = stats_obj["sum"] / stats_obj["count"]
+            stats_obj["avg"] = avg
+            del stats_obj["sum"]
+            sum_sq_diffs = 0
+            for obs in stats_obj["list"]:
+                sum_sq_diffs += (obs["value"] - avg) ** 2
+            stats_obj["stDev"] = (sum_sq_diffs / stats_obj["count"]) ** (1/2)
         if verbose:
             print("Found stats for vital sign: " + stats_obj["vital"])
-            print(str(stats_obj["count"]) + " unique dates with average value " + str(stats_obj["avg"]) 
+            print(str(stats_obj["count"]) + " unique observations with average value " + str(stats_obj["avg"]) 
                 + " and standard deviation " + str(stats_obj["stDev"]))
 
-## Write the data to files
+
+
+## PULSE GRAPH CALCS
+
+
+pulse_stats_graph = None
+pulse_stats["graphEligible"] = pulse_stats["count"] > 10000
+
+if pulse_stats["graphEligible"]:
+    pulse_stats_graph = PulseStatsGraph(pulse_stats)
+    pulse_stats_graph.save_graph_images(data_export_dir)
+
+
+
+## WRITE DATA TO FILES
+
+
 
 verbose_print("\nProcessing complete, writing data to files...\n")
 total_abnormal_results = 0
@@ -855,17 +1086,29 @@ if len(observations) > 0:
     try:
         meta = {}
         meta["description"] = "Laboratory Observations from Apple Health Data"
-        meta["processTime"] = str(datetime.datetime.now())
+        meta["processTime"] = str(datetime.now())
         meta["observationCount"] = len(observations)
-        meta["vitalSignsObservationCount"] = len(observations_vital_signs)
+        meta["vitalSignsObservationCount"] = len(observations_vital_signs) + xml_vitals_observations_count
         meta["mostRecentResult"] = observation_dates[0]
         meta["earliestResult"] = observation_dates[-1]
+        meta["heartRateMonitoringWearableDetected"] = pulse_stats["graphEligible"]
         data["meta"] = meta
 
         if meta["vitalSignsObservationCount"] > 0:
             vital_signs = {}
-            data["vitalSigns"] = [temperature_stats, pulse_stats, 
-                respiration_stats, height_stats, weight_stats, bmi_stats]
+            if json_add_all_vitals:
+                data["vitalSigns"] = [temperature_stats, pulse_stats, respiration_stats, 
+                    height_stats, weight_stats, bmi_stats, blood_pressure_stats]
+            else:
+                save_stats_objs = [temperature_stats, pulse_stats, respiration_stats,
+                        height_stats, weight_stats, bmi_stats, blood_pressure_stats]
+                data["vitalSigns"] = []
+                for stats_obj in save_stats_objs:
+                    new_obj = dict(stats_obj)
+                    del new_obj["list"]
+                    if "graph" in new_obj:
+                        del new_obj["graph"]
+                    data["vitalSigns"].append(new_obj)
 
 
         if total_abnormal_results > 0:
@@ -888,8 +1131,15 @@ if len(observations) > 0:
         observations_list.reverse()
         data["observations"] = observations_list
 
+        class DateTimeEncoder(json.JSONEncoder):
+            def default(self, z):
+                if isinstance(z, datetime):
+                    return (datetime.strftime(z, datetime_format))
+                else:
+                    return super().default(z)
+
         with open(all_data_json, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+            json.dump(data, f, cls=DateTimeEncoder, ensure_ascii=False, indent=4)
 
         print("Laboratory records data from Apple Health saved to " + all_data_json)
 
@@ -903,7 +1153,11 @@ if len(observations) > 0:
     ## Write observations data to PDF report
 
     try:
-        report = Report(data_export_dir, subject, data, verbose, report_highlight_abnormal_results)
+        if not json_add_all_vitals:
+            data["vitalSigns"] = save_stats_objs
+
+        report = Report(data_export_dir, subject, data["meta"]["processTime"][:10], 
+                verbose, report_highlight_abnormal_results)
         report.create_pdf(data,
                           observations,
                           observation_dates,
@@ -912,8 +1166,9 @@ if len(observations) > 0:
                           date_codes,
                           reference_dates,
                           abnormal_results,
-                          abnormal_result_dates)
-        print("Results report saved to " + report.filename)
+                          abnormal_result_dates,
+                          pulse_stats_graph)
+        print("Results report saved to " + os.path.join(data_export_dir, report.filename))
     except Exception as e:
         print("An error occurred in writing observations data to PDF report.")
         if verbose:

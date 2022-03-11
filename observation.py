@@ -17,9 +17,10 @@ class Observation:
                  skip_in_range_abnormal_results: bool, abnormal_boundary: float, vital_sign_categories: list, disallowed_codes: list):
         self.obs_id = obs_id
         self.observation_complete = False
-
+        
         if "valueString" not in data and "valueQuantity" not in data:
-            raise ValueError("Observation value not found")
+            if not "component" in data:
+                raise ValueError("Observation value not found")
 
         if "text" in data["category"]:
             self.category = data["category"]["text"]
@@ -76,10 +77,10 @@ class Observation:
             raise AssertionError("Datecode " + self.datecode + " for code " + self.code + " already recorded")
 
         self.unit = None
+        self.value = None
 
         if "valueString" in data:
             self.value_string = data["valueString"]
-            self.value = None
         elif "valueQuantity" in data:
             value_quantity = data["valueQuantity"]
             value = value_quantity["value"]
@@ -91,12 +92,36 @@ class Observation:
                         numbervalue = value_matcher.group(1)
                 else:
                     numbervalue = value
-            self.value = None if numbervalue == None else float(numbervalue)
+            if numbervalue != None:
+                self.value = float(numbervalue)
             self.value_string = str(value)
             if "unit" in value_quantity:
                 self.unit = value_quantity["unit"]
-                self.value_string = self.value_string + " " + self.unit
-
+                self.value_string += " " + self.unit
+        elif "component" in data: # Blood pressure observations
+            for component_value in data["component"]:
+                if not ("code" in component_value and "valueQuantity" in component_value
+                        and "value" in component_value["valueQuantity"]
+                        and "coding" in component_value["code"]
+                        and len(component_value["code"]["coding"]) > 0
+                        and "system" in component_value["code"]["coding"][0]
+                        and component_value["code"]["coding"][0]["system"] == "http://loinc.org"
+                        and "code" in component_value["code"]["coding"][0]):
+                    continue
+                elif component_value["code"]["coding"][0]["code"] == "8480-6": # Systolic
+                    self.value = float(component_value["valueQuantity"]["value"])
+                elif component_value["code"]["coding"][0]["code"] == "8462-4": # Diastolic
+                    self.value2 = float(component_value["valueQuantity"]["value"])
+                
+                if "unit" in component_value["valueQuantity"]:
+                    self.unit = component_value["valueQuantity"]["unit"]
+            
+            if self.value == None or self.value2 == None:
+                raise ValueError("Systolic or Diastolic value not found for assumed blood pressure observation.")
+            if self.unit == None:
+                self.value_string = str(self.value) + "/" + str(self.value2) + " mm[Hg]"
+            else:
+                self.value_string = str(self.value) + "/" + str(self.value2) + " " + self.unit
 
 
         # Validations

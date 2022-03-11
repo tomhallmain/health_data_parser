@@ -1,6 +1,9 @@
 from reportlab.platypus import Table, Image
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.pdfbase import ttfonts, pdfmetrics
+from reportlab.lib import utils
+
+
 
 class pdf_creator:
 
@@ -61,12 +64,6 @@ class pdf_creator:
             if self.verbose:
                 print("Reduced leading to " + str(self.leading) + " to reach table width " + str(table._width))
 
-        #table_width = self._calculated_width(data)
-
-
-        #while self.leading > 4 and table_width < 200:
-        #    self.leading -= 1
-
         # TODO handle new page
         #if self.height - table_height < 50:
         #    print("Found table height too large: " + str(table_height))
@@ -82,21 +79,6 @@ class pdf_creator:
         
         table.drawOn(self.file, x, end_y)
         self.height -= table._height
-
-
-    def _calculate_height(self, data: list):
-        table_height = 0
-        for row in data:
-            row_lines = 1
-            for cell_value in row:
-                n_lines = cell_value.count("\n") + 1
-                if n_lines > row_lines:
-                    row_height = n_lines
-
-            table_height += (row_lines * self.leading)
-            table_height += self.leading * 1.5
-
-        return table_height
 
 
     def _get_table_style(self, extra_style_commands: list):
@@ -124,14 +106,14 @@ class pdf_creator:
         else:
             return 1.8
 
-    def image(self, path: str, x: int, y: int):
-        """
-        :param path: to image
-        :param x: image-cordinate
-        :param y: image-cordinate
-        """
-        image = Image(path)
-        image.drawOn(self.file, x, y)
+    def show_image(self, path: str, x: int, width=150):
+        img = utils.ImageReader(path)
+        iw, ih = img.getSize()
+        aspect = ih / float(iw)
+        image_height = width * aspect
+        scaled_image = Image(path, width=width, height=image_height)
+        self.height -= image_height
+        scaled_image.drawOn(self.file, x, self.height)
 
     def add_page(self):
         self.file.showPage()
