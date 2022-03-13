@@ -8,13 +8,14 @@ import sys
 import traceback
 import xml.etree.ElementTree as ET
 
+from food_data import FoodData
+from generate_diagnostic_report_files import generate_diagnostic_report_files
+from graph import PulseStatsGraph
 from labtest import LabTest
 from observation import Observation, ObservationVital, CategoryError
 from report import Report
 from result import get_interpretation_keys, get_interpretation_text
-from generate_diagnostic_report_files import generate_diagnostic_report_files
-from graph import PulseStatsGraph
-from units import VitalSignCategory, HeightUnit, WeightUnit, TemperatureUnit, convert
+from units import VitalSignCategory, HeightUnit, WeightUnit, TemperatureUnit, convert, calculate_bmi, set_stats
 
 help_text = """
 Usage:
@@ -48,6 +49,10 @@ Usage:
         Fill out the sample CSV with data and pass the location at runtime to
         include data not hooked up to your Apple Health in the output
 
+    --food_data=path/to/food_data.csv
+        Fill out the sample CSV with data and pass the location at runtime to
+        include nutritional data in the output
+
     --report_highlight_abnormal_results=[bool]
         By default abnormal results are highlighted in observations tables on the 
         report. To turn this off, set this value to False.
@@ -56,7 +61,7 @@ Usage:
         Subject birth date for reporting purposes, if not found in export XML.
 
     --json_add_all_vitals
-        If using a wearable, a lot of vital sign observations may be accumulated.
+        If using a wearable, many vital sign observations may be accumulated.
         By default these are not added to the JSON output - pass to add these.
 
     -h, --help
@@ -115,6 +120,7 @@ skip_dates = []
 report_highlight_abnormal_results = True
 only_clinical_records = False
 extra_observations_csv = None
+food_data_csv = None
 json_add_all_vitals = False
 subject = {}
 normal_height_unit = HeightUnit.CM
@@ -195,6 +201,9 @@ if len(COMMANDS) > 0:
                 print("\"" + abnormal_boundary + "\" is not a valid decimal-formatted percentage")
                 exit(1)
 
+        elif command[:12] == "--food_data=":
+            food_data_csv = command[12:]
+
         elif command[:21] == "--extra_observations=":
             extra_observations_csv = command[21:]
 
@@ -222,10 +231,31 @@ use_custom_data = extra_observations_csv != None
 custom_data_files = []
 
 if use_custom_data:
+    custom_data_files.append(extra_observations_csv)
     if not generate_diagnostic_report_files(extra_observations_csv, base_dir, verbose, False):
         exit(1)
 
 
+use_food_data = food_data_csv != None
+food_data = None
+
+if use_food_data:
+    try:
+        food_data = FoodData(food_data_csv, verbose)
+        if food_data.to_print:
+            food_data.save_most_common_foods_chart(80, data_export_dir)
+            if food_data.to_print:
+                use_custom_data = True
+                custom_data_files.append(food_data_csv)
+            else:
+                exit(1)
+        else:
+            exit(1)
+    except Exception as e:
+        if verbose:
+            print(e)
+        print("Failed to assemble or analyze food data provided.")
+        exit(1)
 
 
 
@@ -476,13 +506,10 @@ def handle_vital_sign_category_observation(data: dict, obs_id: str, tests: list,
             verbose_print(obs_v.datecode)
         verbose_print(traceback.print_exc())
         raise e
-    
     if obs_v != None:
         force_presence = str(obs_v.observation_complete)
-
     if obs_v == None or not obs_v.observation_complete:
         return
-    
     if obs_v.date != None and obs_v.date in skip_dates:
         raise Exception("Skipping observation on date " + obs_v.date)
 
@@ -491,7 +518,6 @@ def handle_vital_sign_category_observation(data: dict, obs_id: str, tests: list,
             if category.matches(obs_v.code):
                 obs_v.vital_sign_category = category
                 break
-
         if obs_v.vital_sign_category == None:
             raise AssertionError("Vital sign observation category not identified: " + obs_v.category)
     else:
@@ -499,7 +525,6 @@ def handle_vital_sign_category_observation(data: dict, obs_id: str, tests: list,
             if category.matches(obs_v.category):
                 obs_v.vital_sign_category = category
                 break
-
         if obs_v.vital_sign_category == None:
             raise AssertionError("Vital sign observation category not identified: " + obs_v.category)
 
@@ -517,7 +542,6 @@ def handle_vital_sign_category_observation(data: dict, obs_id: str, tests: list,
 
 def process_observation(data: dict, obs_id: str):
     obs = None
-
     try:
         obs = Observation(data, obs_id, tests, date_codes,
             start_year, skip_long_values, skip_in_range_abnormal_results, 
@@ -538,32 +562,24 @@ def process_observation(data: dict, obs_id: str):
             verbose_print(obs.datecode)
         verbose_print(traceback.print_exc())
         raise e
-
     if obs == None or not obs.observation_complete:
         return
-
     if obs.date != None and obs.date in skip_dates:
         raise Exception("Skipping observation on date " + obs.date)
 
     observations[obs_id] = obs
-
     if obs.is_seen_test:
         tests[obs.test_index] = obs.test
     else:
         tests.append(obs.test)
-
     if obs.primary_code_id not in observation_codes:
         observation_codes[obs.primary_code_id] = obs.code
-    
     if obs.code not in observation_code_ids:
         observation_code_ids[obs.code] = []
-
     code_ids = observation_code_ids[obs.code]
-    
     if not obs.primary_code_id in code_ids:
         code_ids.append(obs.primary_code_id)
         observation_code_ids[obs.code] = code_ids
-
     if obs.date != None:
         if obs.date not in observation_dates:
             observation_dates.append(obs.date)
@@ -580,7 +596,6 @@ def process_observation(data: dict, obs_id: str):
         abnormal_results[obs.primary_code_id] = results
         if obs.date not in abnormal_result_dates:
             abnormal_result_dates.append(obs.date)
-    
     verbose_print("Observation recorded for " + obs.code + " on " + obs.date)
 
 
@@ -589,16 +604,13 @@ for f in health_files:
     f_addr = base_dir + "/" + f
 
     ## Get data from Observation files
-
     if file_category == "Observation":
         file_data = json.load(open(f_addr))
-
         if not "name" in subject and "subject" in file_data:
             subject_data = file_data["subject"]
             if subject_data != None and "display" in subject_data and subject_data["display"] != None:
                 subject["name"] = subject_data["display"]
                 verbose_print("Identified subject: " + subject["name"])
-
         try:
             process_observation(file_data, f)
         except Exception as e:
@@ -606,7 +618,6 @@ for f in health_files:
             continue
 
     ## Get data from Diagnostic Report type files
-
     elif file_category == "DiagnosticReport":
         if "-CUSTOM" in f_addr:
             use_custom_data = True
@@ -614,12 +625,10 @@ for f in health_files:
 
         file_data = json.load(open(f_addr))
         data_category = file_data["category"]["coding"][0]["code"]
-
         if data_category not in ["Lab", "LAB"]:
             continue
 
         ## Some Diagnostic Report files have multiple results contained
-
         if "contained" in file_data:
             i = 0
             for observation in file_data["contained"]:
@@ -687,7 +696,6 @@ if len(reference_dates) > 0:
                         if obs.has_reference:
                             if obs.date not in reference_dates:
                                 reference_dates.append(obs.date)
-
                             if obs.result.is_abnormal_result:
                                 if obs.primary_code_id not in abnormal_results:
                                     abnormal_results[obs.primary_code_id] = []
@@ -716,42 +724,7 @@ respiration_stats = {"vital": VitalSignCategory.RESPIRATION.value, "count": 0, "
 height_stats = {"vital": VitalSignCategory.HEIGHT.value, "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": normal_height_unit.name.lower(), "list": []}
 weight_stats = {"vital": VitalSignCategory.WEIGHT.value, "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": normal_weight_unit.name.lower(), "list": []}
 bmi_stats = {"vital": "BMI", "count": 0, "sum": 0, "avg": None, "max": None, "min": None, "mostRecent": None, "unit": "BMI", "list": []}
-
-def calculate_bmi(normalized_height: float, normalized_weight: float):
-    height_meters = convert(HeightUnit.M, normal_height_unit, normalized_height)
-    weight_kilos = convert(WeightUnit.KG, normal_weight_unit, normalized_weight)
-    bmi = round(weight_kilos / (height_meters ** 2), 2)
-    verbose_print("Calculated BMI " + str(bmi) + " (" + str(round(weight_kilos, 2)) + " kg / " + str(round(height_meters, 2)) + " m^2)")
-    return bmi
-
 current_tzinfo = timezone(datetime.now().astimezone().tzinfo.utcoffset(None))
-
-def set_stats(stats: dict, time, value):
-    if time == None:
-        stats["list"].append(value)
-    else:
-        stats["list"].append({"time": time, "value": value})
-    stats["count"] += 1
-    if type(value) == list:
-        for i in range(len(value)):
-            c_value = value[i]
-            stats["sum"][i] += c_value
-            if stats["max"][i] == None:
-                stats["max"][i] = c_value
-                stats["min"][i] = c_value
-            elif stats["max"][i] < c_value:
-                stats["max"][i] = c_value
-            elif stats["min"][i] > c_value:
-                stats["min"][i] = c_value
-    else:
-        stats["sum"] += value
-        if stats["max"] == None:
-            stats["max"] = value
-            stats["min"] = value
-        elif stats["max"] < value:
-            stats["max"] = value
-        elif stats["min"] > value:
-            stats["min"] = value
 
 for vitals_date in sorted(observations_vital_signs.keys()):
     vitals_datetime = datetime.fromisoformat(vitals_date)
@@ -805,7 +778,7 @@ for vitals_date in sorted(observations_vital_signs.keys()):
             set_stats(weight_stats, vitals_datetime, normalized_weight)
         if normalized_height == None or normalized_weight == None:
             continue
-        bmi = calculate_bmi(normalized_height, normalized_weight)
+        bmi = calculate_bmi(normalized_height, normalized_weight, verbose)
         set_stats(bmi_stats, vitals_datetime, bmi)
     except Exception as e:
         verbose_print(e)
@@ -861,8 +834,15 @@ pulse_stats_graph = None
 pulse_stats["graphEligible"] = pulse_stats["count"] > 10000
 
 if pulse_stats["graphEligible"]:
-    pulse_stats_graph = PulseStatsGraph(pulse_stats)
-    pulse_stats_graph.save_graph_images(data_export_dir)
+    try:
+        pulse_stats_graph = PulseStatsGraph(pulse_stats)
+        pulse_stats_graph.save_graph_images(data_export_dir)
+    except Exception as e:
+        if verbose:
+            print(e)
+        print("WARNING: Failed to generate pulse statistics graph, so skipping print.")
+    if not pulse_stats_graph.to_print:
+        print("WARNING: Failed to generate pulse statistics graph, so skipping print.")
 
 
 
@@ -891,10 +871,8 @@ if len(observations) > 0:
                 verbose_print("\n")
                 verbose_print(line)
                 verbose_print("\n")
-
                 textfile.write(line)
                 textfile.write("\n\n")
-
                 for code in sorted(observation_code_ids):
                     for code_id in observation_code_ids[code]:
                         if code_id in abnormal_results:
@@ -903,7 +881,6 @@ if len(observations) > 0:
                             verbose_print(line)
                             textfile.write(line)
                             textfile.write("\n")
-
                             for observation in sorted(results, key=operator.attrgetter("date")):
                                 total_abnormal_results += 1
                                 interpretation = observation.result.get_result_interpretation_text()
@@ -915,7 +892,6 @@ if len(observations) > 0:
                                 verbose_print(line)
                                 textfile.write(line)
                                 textfile.write("\n")
-
                             verbose_print("")
                             textfile.write("\n")
 
@@ -947,7 +923,6 @@ if len(observations) > 0:
                         if code_id in abnormal_results:
                             results = abnormal_results[code_id]
                             abnormal_result_found = True
-
                             for observation in results:
                                 interpretation_key = observation.result.interpretation
                                 if interpretation_key not in code_interpretation_keys:
@@ -961,7 +936,6 @@ if len(observations) > 0:
                                 code_interpretations.append(get_interpretation_text(interpretation_key))
                             else:
                                 row.append("")
-
                         abnormal_result_interpretations_by_code[code] = code_interpretations
                         filewriter.writerow(row)
 
@@ -979,26 +953,20 @@ if len(observations) > 0:
         try:
             with open(abnormal_results_output_csv, "w") as csvfile:
                 filewriter = csv.writer(csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
-
                 header = ["Laboratory Abnormal Results from Apple Health Data"]
-
                 for date in abnormal_result_dates:
                     header.append(date)
-
                 filewriter.writerow(header)
 
                 for code in sorted(observation_code_ids):
                     row = [code]
                     abnormal_result_found = False
-                    
                     for date in abnormal_result_dates:
                         date_found = False
-                        
                         for code_id in observation_code_ids[code]:
                             if code_id in abnormal_results:
                                 abnormal_result_found = True
                                 results = abnormal_results[code_id]
-
                                 for observation in results:
                                     if observation.date == date and date + code_id in date_codes:
                                         date_found = True
@@ -1006,17 +974,13 @@ if len(observations) > 0:
                                         break
                                 else:
                                     continue
-
                                 break
-                        
                         if not date_found:
                             row.append("")
-
                     if abnormal_result_found:
                         filewriter.writerow(row)
 
             print("Abnormal laboratory results data from Apple Health saved to " + abnormal_results_output_csv)
-
         except Exception as e:
             print("An error occurred in writing abnormal results data to CSV.")
             if verbose:
@@ -1032,22 +996,17 @@ if len(observations) > 0:
     try:
         with open(all_data_csv, "w", encoding="utf-8") as csvfile:
             filewriter = csv.writer(csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
-
             header = ["Laboratory Observations from Apple Health Data"]
-
             for date in observation_dates:
                 if date in reference_dates:
                     header.append(date + " range")
                 header.append(date + " result")
-
             filewriter.writerow(header)
 
             for code in sorted(observation_code_ids):
                 row = [code]
-
                 for date in observation_dates:
                     date_found = False
-
                     for code_id in observation_code_ids[code]:
                         datecode = date + code_id
                         if datecode in date_codes:
@@ -1061,12 +1020,10 @@ if len(observations) > 0:
                             abnormal_result_tag = " " + observation.result.interpretation if observation.has_reference else ""
                             row.append(observation.value_string + abnormal_result_tag)
                             break
-                    
                     if not date_found:
                         row.append("")
                         if date in reference_dates:
                             row.append("")
-
                 filewriter.writerow(row)
 
         print("Laboratory records data from Apple Health saved to " + all_data_csv)
@@ -1085,7 +1042,7 @@ if len(observations) > 0:
 
     try:
         meta = {}
-        meta["description"] = "Laboratory Observations from Apple Health Data"
+        meta["description"] = "Health Records Report"
         meta["processTime"] = str(datetime.now())
         meta["observationCount"] = len(observations)
         meta["vitalSignsObservationCount"] = len(observations_vital_signs) + xml_vitals_observations_count
@@ -1123,10 +1080,8 @@ if len(observations) > 0:
             data["abnormalResults"] = abnormal_results_data
         
         observations_list = []
-
         for obs_id in observations:
             observations_list.append(observations[obs_id].to_dict(obs_id, tests))
-
         observations_list.sort(key=lambda obs: obs.get("date"))
         observations_list.reverse()
         data["observations"] = observations_list
@@ -1167,7 +1122,8 @@ if len(observations) > 0:
                           reference_dates,
                           abnormal_results,
                           abnormal_result_dates,
-                          pulse_stats_graph)
+                          pulse_stats_graph,
+                          food_data)
         print("Results report saved to " + os.path.join(data_export_dir, report.filename))
     except Exception as e:
         print("An error occurred in writing observations data to PDF report.")

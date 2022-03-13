@@ -1,0 +1,41 @@
+logDateTime,logType,mealType,foodName,foodPrep,foodServingSize,categories,okDiets,warningDiets,dangerDiets
+2022-03-11 21:30:00,meal,Snack,Batata,NA,Tiny,,,,
+2022-03-11 21:30:00,meal,Snack,Canola Oil,NA,Tiny,,,,
+2022-03-11 21:30:00,meal,Snack,Dried mango slices,NA,Small,,,,
+2022-03-11 21:30:00,meal,Snack,Mixed nuts,NA,Small,,,,
+2022-03-11 21:30:00,meal,Snack,Parsnip chips,NA,Tiny,,,,
+2022-03-11 21:30:00,meal,Snack,Safflower Oil,NA,Tiny,,,,
+2022-03-11 21:30:00,meal,Snack,Salt,NA,Small,,Lactose;Galactans;Salicylates;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,Fructose;Fructans;Polyols;Histamines,
+2022-03-11 21:30:00,meal,Snack,Sleepytime tea,NA,Regular,,,,
+2022-03-11 21:30:00,meal,Snack,Sunflower Oil,NA,Tiny,,,,
+2022-03-11 21:30:00,meal,Snack,Sweet potato chips,NA,Small,,,,
+2022-03-11 21:30:00,meal,Snack,Taro chips,NA,Small,,,,
+2022-03-11 21:30:00,meal,Snack,Turmeric - Ground,NA,Regular,,Lactose;Galactans;Histamines;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,Fructose;Fructans;Polyols,Salicylates
+2022-03-11 21:30:00,meal,Snack,Water,NA,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;Histamines;Salicylates;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,
+2022-03-11 18:30:00,meal,Dinner,Bell Peppers,Raw,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;SCD Legal;Paleo Legal;Gluten-Free;Grain-Free,,Histamines;Salicylates;Paleo AIP Legal
+2022-03-11 18:30:00,meal,Dinner,Broccoli,Cooked,Regular,,Lactose;Fructans;Histamines;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,Fructose;Galactans;Polyols,Salicylates
+2022-03-11 18:30:00,meal,Dinner,Brown Rice,Cooked,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;Histamines;Salicylates;Gluten-Free,,SCD Legal;Paleo Legal;Paleo AIP Legal;Grain-Free
+2022-03-11 18:30:00,meal,Dinner,Chicken - Skinless,Cooked,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;Histamines;Salicylates;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,
+2022-03-11 18:30:00,meal,Dinner,Water,NA,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;Histamines;Salicylates;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,
+2022-03-11 18:30:00,meal,Dinner,Wild rice,NA,Regular,,,,
+2022-03-11 13:15:00,meal,Lunch,Brown beans,NA,Regular,,,,
+2022-03-11 13:15:00,meal,Lunch,Coconut water,NA,Small,,,,
+2022-03-11 13:15:00,meal,Lunch,Honey,NA,Tiny,,Lactose;Fructans;Galactans;Polyols;Histamines;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,Fructose;Salicylates
+2022-03-11 13:15:00,meal,Lunch,Onions,Cooked,Tiny,,Lactose;Polyols;Salicylates;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,Galactans;Histamines,Fructose;Fructans
+2022-03-11 13:15:00,meal,Lunch,Potato chips - baked,NA,Regular,,,,
+2022-03-11 13:15:00,meal,Lunch,Tomatoes,Raw,Regular,,Lactose;Fructans;Galactans;Polyols;SCD Legal;Paleo Legal;Gluten-Free;Grain-Free,,Fructose;Histamines;Salicylates;Paleo AIP Legal
+2022-03-11 13:15:00,meal,Lunch,Water,NA,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;Histamines;Salicylates;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,
+2022-03-11 13:15:00,meal,Lunch,White Rice,Cooked,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;Histamines;Salicylates;Gluten-Free,,SCD Legal;Paleo Legal;Paleo AIP Legal;Grain-Free
+2022-03-11 09:30:00,meal,Breakfast,Bananas - Yellow no spots,Raw,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;Salicylates;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,Histamines;SCD Legal
+2022-03-11 09:30:00,meal,Breakfast,Black Pepper - Ground,NA,Tiny,,Fructose;Lactose;Fructans;Galactans;Polyols;SCD Legal;Paleo Legal;Gluten-Free;Grain-Free,,Histamines;Salicylates;Paleo AIP Legal
+2022-03-11 09:30:00,meal,Breakfast,Cantaloupe,Raw,Small,,Lactose;Fructans;Galactans;Polyols;Histamines;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,Fructose,Salicylates
+2022-03-11 09:30:00,meal,Breakfast,Eggs - Hardboiled,NA,Small,,,,
+2022-03-11 09:30:00,meal,Breakfast,Grapes,Raw,Tiny,,Lactose;Fructans;Galactans;Polyols;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,Histamines,Fructose;Salicylates
+2022-03-11 09:30:00,meal,Breakfast,Honeydew Melon,Raw,Small,,Fructose;Lactose;Fructans;Galactans;Polyols;Histamines;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,Salicylates
+2022-03-11 09:30:00,meal,Breakfast,Oatmeal,NA,Regular,,,,
+2022-03-11 09:30:00,meal,Breakfast,Pineapple,Raw,Tiny,,Lactose;Fructans;Galactans;Polyols;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,Fructose;Histamines;Salicylates
+2022-03-11 09:30:00,meal,Breakfast,Raisins,Raw,Tiny,,Lactose;Galactans;Polyols;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,Fructose;Fructans;Histamines;Salicylates
+2022-03-11 09:30:00,meal,Breakfast,Salt,NA,Small,,Lactose;Galactans;Salicylates;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,Fructose;Fructans;Polyols;Histamines,
+2022-03-11 09:30:00,meal,Breakfast,Turmeric - Ground,NA,Large,,Lactose;Galactans;Histamines;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,Fructose;Fructans;Polyols,Salicylates
+2022-03-11 09:30:00,meal,Breakfast,Unsweet iced tea,NA,Regular,,,,
+2022-03-11 09:30:00,meal,Breakfast,Water,NA,Regular,,Fructose;Lactose;Fructans;Galactans;Polyols;Histamines;Salicylates;SCD Legal;Paleo Legal;Paleo AIP Legal;Gluten-Free;Grain-Free,,

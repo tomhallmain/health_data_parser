@@ -7,25 +7,27 @@ from reportlab.lib import utils
 
 class pdf_creator:
 
-    def __init__(self, start_height: int, start_x: int, path: str, verbose: bool):
+    def __init__(self, start_height: int, start_x: int, path: str, footer_text: str, verbose: bool):
         self.file = Canvas(path)
         self.start_height = start_height
         self.height = start_height
         self.start_x = start_x
+        self.footer_text = footer_text
         self.verbose = verbose
+        self.has_completed_first_page = False
         pdfmetrics.registerFont(ttfonts.TTFont("MesloLGS NF Bold", "MesloLGS NF Bold.ttf"))
         pdfmetrics.registerFont(ttfonts.TTFont("MesloLGS NF", "MesloLGS NF Regular.ttf"))
         self.set_leading(16)
 
-    def text(self, string: str, x: int, y: int):
-        self.file.drawString(x, y, string)
 
     def text(self, string: str, x: int):
         self.handle_height_change()
         self.file.drawString(x, self.height, string)
 
     def show_text(self, string: str):
-        self.text(string, self.start_x)
+        lines = string.split("\n")
+        for line in lines:
+            self.text(line, self.start_x)
 
     def set_font(self, font: str, size: int):
         self.font = font
@@ -106,7 +108,7 @@ class pdf_creator:
         else:
             return 1.8
 
-    def show_image(self, path: str, x: int, width=150):
+    def show_image(self, path: str, x: int, width=150, height=None):
         img = utils.ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
@@ -115,7 +117,17 @@ class pdf_creator:
         self.height -= image_height
         scaled_image.drawOn(self.file, x, self.height)
 
+    def add_header_and_footer(self):
+        self.set_font("MesloLGS NF", 9)
+        self.set_leading(9)
+        self.file.drawString(130, self.start_height + 20, self.footer_text)
+        self.file.drawString(130, 20, self.footer_text)
+    
     def add_page(self):
+        if self.has_completed_first_page:
+            self.add_header_and_footer()
+        else:
+            self.has_completed_first_page = True
         self.file.showPage()
         self.height = self.start_height
         self.file.setFont(self.font, self.size)

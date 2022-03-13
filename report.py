@@ -127,17 +127,30 @@ class Report:
         self.subject = subject
         self.verbose = verbose
         self.highlight_abnormal = highlight_abnormal
-        self.filename = "LaboratoryResultsReport" + filename_affix + ".pdf"
+        self.filename = "HealthReport" + filename_affix + ".pdf"
         self.filepath = self.output_path + "/" + self.filename
     
-
     def create_pdf(self, data: dict, observations: dict, observation_dates: list, observation_code_ids: dict, ranges: dict, 
-                   date_codes: dict, reference_dates: list, abnormal_results: dict, abnormal_result_dates: list, pulse_stats_graph):
+                   date_codes: dict, reference_dates: list, abnormal_results: dict, abnormal_result_dates: list, 
+                   pulse_stats_graph, food_data):
         if self.verbose:
             print("\nCreating report cover page...")
-        creator = pdf_creator(800, 50, self.filepath, self.verbose)
-        creator.set_font("MesloLGS NF Bold", 15)
+        
         meta = data["meta"]
+        report_date = meta["processTime"][:10]
+        has_abnormal_results = "abnormalResults" in data
+        print_pulse_stats_graph = meta["heartRateMonitoringWearableDetected"] and pulse_stats_graph.to_print
+        print_food_data = food_data != None and food_data.to_print
+        
+        if self.subject == None or self.subject["name"] == "":
+            footer_text = "Subject: UNKNOWN" + " | Report created: " + report_date
+            subject_known = False
+        else:
+            footer_text = "Subject: " + self.subject["name"] + " | Report created: " + report_date
+            subject_known = True
+        
+        creator = pdf_creator(800, 50, self.filepath, footer_text, self.verbose)
+        creator.set_font("MesloLGS NF Bold", 15)
         creator.show_text(meta["description"])
         creator.set_font("MesloLGS NF", 12)
         creator.set_leading(14)
@@ -145,20 +158,20 @@ class Report:
         creator.newline()
         creator.newline()
 
-        if self.subject == None or self.subject == "":
-            creator.show_text("Subject:            UNKNOWN")
-        else:
-            creator.show_text("Subject:            " + self.subject["name"])
+        if subject_known:
+            creator.show_text("Subject                " + self.subject["name"])
             if "birthDate" in self.subject:
-                creator.show_text("DOB:                " + datetime.fromisoformat(self.subject["birthDate"]).strftime("%B %d, %Y"))
-                creator.show_text("Age:                " + str(self.subject["age"]))
+                creator.show_text("DOB                    " + datetime.fromisoformat(self.subject["birthDate"]).strftime("%B %d, %Y"))
+                creator.show_text("Age                    " + str(self.subject["age"]))
             if "sex" in self.subject:
-                creator.show_text("Sex:                " + str(self.subject["sex"]))
+                creator.show_text("Sex                    " + str(self.subject["sex"]))
+        else:
+            creator.show_text("Subject                UNKNOWN")
         
-        creator.show_text("Observation count:  " + str(meta["observationCount"]))
-        creator.show_text("Earliest result:    " + datetime.fromisoformat(meta["earliestResult"]).strftime("%B %d, %Y"))
-        creator.show_text("Most recent result: " + datetime.fromisoformat(meta["mostRecentResult"]).strftime("%B %d, %Y"))
-        creator.show_text("Report assembled:   " + datetime.fromisoformat(meta["processTime"][:10]).strftime("%B %d, %Y"))
+        creator.show_text("Lab records count      " + str(meta["observationCount"]))
+        creator.show_text("Earliest record        " + datetime.fromisoformat(meta["earliestResult"]).strftime("%B %d, %Y"))
+        creator.show_text("Most recent record     " + datetime.fromisoformat(meta["mostRecentResult"]).strftime("%B %d, %Y"))
+        creator.show_text("Report assembled       " + datetime.fromisoformat(report_date).strftime("%B %d, %Y"))
         
         if meta["vitalSignsObservationCount"] > 0:
             creator.newline()
@@ -208,26 +221,16 @@ class Report:
         creator.newline()
         creator.newline()
 
-        if "abnormalResults" in data:
+        if has_abnormal_results:
             creator.set_font("MesloLGS NF Bold", 12)
             creator.show_text("WARNING: Abnormal results were found.")
             creator.set_font("MesloLGS NF", 12)
             creator.newline()
             abnormal_results_meta = data["abnormalResults"]["meta"]
-            creator.show_text("Lab codes with abnormal observed values: " + str(abnormal_results_meta["codesWithAbnormalResultsCount"]))
-            creator.show_text("Total abnormal observations:             " + str(abnormal_results_meta["totalAbnormalResultsCount"]))
+            creator.show_text("Lab codes with abnormal results " + str(abnormal_results_meta["codesWithAbnormalResultsCount"]))
+            creator.show_text("Total abnormal observations     " + str(abnormal_results_meta["totalAbnormalResultsCount"]))
             creator.newline()
             includes_in_range = abnormal_results_meta["includesInRangeAbnormalities"]
-
-            ##################################################################################
-            ##
-            ## ABNORMAL RESULTS SUMMARY TABLE
-            ##
-            ##################################################################################
-
-            if self.verbose:
-                print("Writing abnormal results summary and detail tables...")
-
             creator.set_leading(10)
             creator.set_font("MesloLGS NF", 9)
             creator.show_text("NOTE: Reference ranges for tests are not static. The range displayed in all tables")
@@ -246,6 +249,46 @@ class Report:
                 creator.show_text("All listed abnormal results are out of the relevant range. Tags \"+++\" and \"---\" indicate")
                 creator.show_text("high and low out of range. Tag \"+\" indicates a positive result.")
                 abnormal_results_table = [["RESULT CODE", "LOW OUT OF RANGE", "OBSERVED", "HIGH OUT OF RANGE"]]
+
+
+        ##################################################################################
+        ##
+        ## TABLE OF CONTENTS
+        ##
+        ##################################################################################
+
+        creator.newline()
+        creator.newline()
+        creator.newline()
+        creator.set_font("MesloLGS NF Bold", 12)
+        creator.show_text("Sections included in this report")
+        creator.newline()
+        creator.set_leading(10)
+        creator.set_font("MesloLGS NF", 10)
+        
+        if has_abnormal_results:
+            creator.show_text(" • Abnormal Results By Code Summary")
+            creator.show_text(" • Abnormal Results By Code Detail")
+        creator.show_text(" • All Lab Observations")
+        if print_pulse_stats_graph:
+            creator.show_text(" • Heart Rate Data Analysis")
+        if print_food_data:
+            creator.show_text(" • Food Data Analysis")
+
+        ## TODO Symptoms page
+
+        if has_abnormal_results:
+            abnormal_results_meta = data["abnormalResults"]["meta"]
+            includes_in_range = abnormal_results_meta["includesInRangeAbnormalities"]
+
+            ##################################################################################
+            ##
+            ## ABNORMAL RESULTS SUMMARY TABLE
+            ##
+            ##################################################################################
+
+            if self.verbose:
+                print("Writing abnormal results summary and detail tables...")
 
             creator.add_page()
             creator.set_font("MesloLGS NF Bold", 15)
@@ -590,9 +633,9 @@ class Report:
                     creator.set_font("MesloLGS NF Bold", 15)
                     creator.set_leading(16)
                     if has_shown_first_page:
-                        creator.show_text("All Observations (continued)")
+                        creator.show_text("All Lab Observations (continued)")
                     else:
-                        creator.show_text("All Observations")
+                        creator.show_text("All Lab Observations")
                         has_shown_first_page = True
                     creator.set_leading(7)
                     creator.newline()
@@ -613,26 +656,25 @@ class Report:
         else:
             creator.show_text("No abnormal results were found in Apple Health data export.")
 
-        
-        if meta["heartRateMonitoringWearableDetected"]:
+        if print_pulse_stats_graph:
             creator.add_page()
             creator.set_font("MesloLGS NF Bold", 15)
             creator.set_leading(16)
-            creator.show_text("Heart Rate Analysis")
+            creator.show_text("Heart Rate Data Analysis")
             creator.newline()
             creator.set_leading(10)
             creator.set_font("MesloLGS NF", 10)
             for vital in data["vitalSigns"]:
                 if vital["vital"] == VitalSignCategory.PULSE.value:
-                    text1 = _right_pad_with_spaces("             Total readings: " + str(vital["count"]), 45)
-                    text2 = _right_pad_with_spaces("              Pulse average: " + str(round(vital["avg"], 1)), 45)
-                    text3 = _right_pad_with_spaces("   Pulse standard deviation: " + str(round(vital["stDev"], 1)), 45)
+                    text1 = _right_pad_with_spaces("Total readings:           " + str(vital["count"]), 45)
+                    text2 = _right_pad_with_spaces("Pulse average:            " + str(round(vital["avg"], 1)), 45)
+                    text3 = _right_pad_with_spaces("Pulse standard deviation: " + str(round(vital["stDev"], 1)), 45)
                     percent_in_motion = len(pulse_stats_graph.values_in_motion) / len(pulse_stats_graph.values_resting) * 100
                     creator.show_text(text1 + "Percent in motion: " + str(round(percent_in_motion)) + "%")
                     creator.show_text(text2 + "Average in motion: " + str(round(pulse_stats_graph.avg_in_motion, 1)))
                     creator.show_text(text3 + "  Average resting: " + str(round(pulse_stats_graph.avg_resting, 1)))
                     creator.newline()
-            creator.show_image(pulse_stats_graph.save_loc, 45, 500)
+            creator.show_image(pulse_stats_graph.save_loc, 45, width=500)
 
             creator.newline()
             creator.set_leading(9)
@@ -641,10 +683,45 @@ class Report:
             creator.newline()
             creator.show_text("• \"Motion\" data found in Apple wearable observations. All pulse observations in clinical records data")
             creator.show_text("  is assumed to be obtained in a non-motion state. The reliability of motion data may be questionable.")
-            creator.show_text("• \"Pulse spikes\" are instances where there is an increase then subsequent decrease of pulse by >= 40")
-            creator.show_text("  BPM during <= 4 minute period.")
+            creator.show_text("• \"Pulse spikes\" are instances where there is an increase then subsequent decrease of pulse by at")
+            creator.show_text("  least 35 BPM during 5 or fewer minutes.")
 
 
+        if print_food_data:
+            creator.add_page()
+            creator.set_font("MesloLGS NF Bold", 15)
+            creator.set_leading(16)
+            creator.show_text("Food Data Analysis")
+            creator.newline()
+            creator.set_leading(10)
+            creator.set_font("MesloLGS NF", 10)
+            text1 = _right_pad_with_spaces("Total food records:      " + str(food_data.record_count), 45)
+            text2 = _right_pad_with_spaces("Earliest food record:    " + food_data.meal_times[0].strftime("%B %d, %Y"), 45)
+            text3 = _right_pad_with_spaces("Most recent food record: " + food_data.meal_times[-1].strftime("%B %d, %Y"), 45)
+            creator.show_text(text1 + " Total meals recorded:  " + str(len(food_data.meal_times)))
+            creator.show_text(text2 + " Total dates recorded:  " + str(len(food_data.dates_recorded)))
+            creator.show_text(text3 + " Average meals per day: " + str(food_data.avg_meals_per_day))
+            creator.newline()
+            creator.newline()
+            creator.set_font("MesloLGS NF Bold", 10)
+            creator.show_text("Most common foods recorded")
+            creator.newline()
+            creator.show_image(food_data.save_loc, 150, width=250)
+
+            creator.newline()
+            creator.set_leading(9)
+            creator.set_font("MesloLGS NF", 8)
+            creator.show_text("                                                   NOTES")
+            
+            if food_data.has_warning_diets() or food_data.has_danger_diets():
+                creator.show_text("Certain diets are contraindicated by the foods found. These include:")
+                if food_data.has_danger_diets():
+                    creator.show_text(_wrap_text_to_fit_length("   DANGER: " + ", ".join(food_data.get_top_n_danger_diets(10)), 100))
+                if food_data.has_warning_diets():
+                    creator.show_text(_wrap_text_to_fit_length("  WARNING: " + ", ".join(food_data.get_top_n_warning_diets(10)), 100))
+
+
+        creator.add_header_and_footer()
         creator.save()
 
 

@@ -1,7 +1,7 @@
 
 # Apple Health Data Parser
 
-Simple parser to extract laboratory test results from Apple Health. In the current iteration only JSON, CSV and text file output are supported.
+Simple parser to extract vitals data and laboratory test results from Apple Health and combine with custom data. Generate a PDF report as well as JSON, CSV, text file output presenting and analyzing your health data.
 
 ## Usage
 
@@ -11,6 +11,9 @@ Various filtering options are available:
 
 ```bash
 $ python parse_data.py path/to/apple_health_export -h
+
+--only_clinical_records
+    Do not attempt to parse default XML export files (much faster)
 
 --start_year=[int] 
     Exclude results from before a certain year
@@ -36,14 +39,22 @@ $ python parse_data.py path/to/apple_health_export -h
     Fill out the sample CSV with data and pass the location at runtime to
     include data not hooked up to your Apple Health in the output
 
+--food_data=path/to/food_data.csv
+    Fill out the sample CSV with data and pass the location at runtime to
+    include nutritional data in the output
+
 --report_highlight_abnormal_results=[bool]
     By default abnormal results are highlighted in observations tables on the 
     report. To turn this off, set this value to False.
+
+--json_add_all_vitals
+    If using a wearable, many vital sign observations may be accumulated.
+    By default these are not added to the JSON output - pass to add these.
 ```
 
 Depending on the filters set and data found in the export directory, one or more files will be created with the extracted data.
 
-- `LaboratoryResultsReport{processDate}.pdf` is a report including summaries and all results
+- `HealthReport{processDate}.pdf` is a report including summaries and all results
 
 - `observations.json` contains all data collected along with a few statistics
 

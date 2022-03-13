@@ -35,6 +35,7 @@ class PulseStatsGraph:
             date_pulse_readings[date] = readings_stats_by_date
         '''
 
+        self.to_print = False
         # For each day in the series, split it into minute increments and
         # calculate the average pulse during this minute
         day_minute_readings = {}
@@ -78,12 +79,12 @@ class PulseStatsGraph:
 
             if has_potential_spike:
                 save_duration += minute - save_minute
-                if save_duration >= 5:
+                if save_duration > 5:
                     has_potential_spike = False
-                elif save_duration < 5 and save_value - value >= 40:
+                elif save_duration <= 5 and save_value - value >= 35:
                     instances_of_heart_rate_spike[save_minute] += 1
             else:
-                if minute - save_minute < 5 and value - save_value >= 40:
+                if minute - save_minute <= 5 and value - save_value >= 35:
                     has_potential_spike = True
                     spike_minute = minute
                     save_duration = minute - save_minute
@@ -173,14 +174,15 @@ class PulseStatsGraph:
         smoother = 20
         y_est = np.pad(np.array(self.avgsMotion), (smoother//2, smoother-smoother//2), mode="edge")
         y_est = np.cumsum(y_est[smoother:] - y_est[:-smoother]) / smoother
-        y_err = np.pad(np.array(self.stDevsMotion), (smoother//2, smoother-smoother//2), mode="edge")
-        y_err = np.cumsum(y_err[smoother:] - y_err[:-smoother]) / smoother
+        #y_err = np.pad(np.array(self.stDevsMotion), (smoother//2, smoother-smoother//2), mode="edge")
+        #y_err = np.cumsum(y_err[smoother:] - y_err[:-smoother]) / smoother
         ax2.plot(x, y_est, "-", color="black")
         ax3.plot(x, np.array(self.spikeCounts), color="black")
         ax3.fill_between(x, 0, np.array(self.spikeCounts), color="black")
         fig.set_size_inches(10, 12)
         #plt.show()
         fig.savefig(self.save_loc, pad_inches=0.02, bbox_inches='tight')
+        self.to_print = True
 
 
 
