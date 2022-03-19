@@ -4,10 +4,10 @@ from reportlab.pdfbase import ttfonts, pdfmetrics
 from reportlab.lib import utils
 
 
-
 class pdf_creator:
 
-    def __init__(self, start_height: int, start_x: int, path: str, footer_text: str, verbose: bool):
+    def __init__(self, start_height: int, start_x: int, path: str,
+                 footer_text: str, verbose: bool):
         self.file = Canvas(path)
         self.start_height = start_height
         self.height = start_height
@@ -15,10 +15,11 @@ class pdf_creator:
         self.footer_text = footer_text
         self.verbose = verbose
         self.has_completed_first_page = False
-        pdfmetrics.registerFont(ttfonts.TTFont("MesloLGS NF Bold", "MesloLGS NF Bold.ttf"))
-        pdfmetrics.registerFont(ttfonts.TTFont("MesloLGS NF", "MesloLGS NF Regular.ttf"))
+        pdfmetrics.registerFont(ttfonts.TTFont(
+            "MesloLGS NF Bold", "MesloLGS NF Bold.ttf"))
+        pdfmetrics.registerFont(ttfonts.TTFont(
+            "MesloLGS NF", "MesloLGS NF Regular.ttf"))
         self.set_leading(16)
-
 
     def text(self, string: str, x: int):
         self.handle_height_change()
@@ -53,50 +54,48 @@ class pdf_creator:
 
     def show_table(self, data: list, extra_style_commands: list, x: int):
         table = self._get_table(data, extra_style_commands)
-        
+
         while self.leading > 4 and self.height - table._height < 50:
             self.leading -= 0.5
             table = self._get_table(data, extra_style_commands)
             if self.verbose:
-                print("Reduced leading to " + str(self.leading) + " to reach table height " + str(table._height))
-        
+                print("Reduced leading to " + str(self.leading)
+                      + " to reach table height " + str(table._height))
+
         while self.leading > 4 and table._width > 550:
             self.leading -= 0.5
             table = self._get_table(data, extra_style_commands)
             if self.verbose:
-                print("Reduced leading to " + str(self.leading) + " to reach table width " + str(table._width))
+                print("Reduced leading to " + str(self.leading)
+                      + " to reach table width " + str(table._width))
 
         # TODO handle new page
-        #if self.height - table_height < 50:
-        #    print("Found table height too large: " + str(table_height))
-        #    print("Current height: " + str(self.height))
 
         end_y = self.height - table._height
-        
+
         if x < 0:
             x = self.start_x
-        
+
         if self.verbose:
             print("Table dims: ({}, {})".format(table._height, table._width))
-        
+
         table.drawOn(self.file, x, end_y)
         self.height -= table._height
 
-
     def _get_table_style(self, extra_style_commands: list):
         style = [("GRID", (0, 1), (-1, -1), 1, "Black"),
-                 #("TEXTCOLOR", (0, 0), (0, -1), "White"),
+                 # ("TEXTCOLOR", (0, 0), (0, -1), "White"),
                  ("TEXTCOLOR", (0, 0), (-1, 0), "White"),
                  ("FONT", (0, 0), (0, -1), "MesloLGS NF Bold", self.leading),
                  ("FONT", (0, 0), (-1, 0), "MesloLGS NF Bold", self.leading),
                  ("FONT", (1, 1), (-1, -1), "MesloLGS NF", self.leading),
                  ("BOX", (0, 0), (-1, -1), 1, "Black"),
-                 #("BACKGROUND", (0, 0), (0, -1), "Lightgrey"),
+                 # ("BACKGROUND", (0, 0), (0, -1), "Lightgrey"),
                  ("BACKGROUND", (0, 0), (-1, 0), "Darkslategray")]
 
-        if extra_style_commands == None or len(extra_style_commands) == 0:
+        if extra_style_commands is None or len(extra_style_commands) == 0:
             return style
-        
+
         style.extend(extra_style_commands)
         return style
 
@@ -122,7 +121,7 @@ class pdf_creator:
         self.set_leading(9)
         self.file.drawString(130, self.start_height + 20, self.footer_text)
         self.file.drawString(130, 20, self.footer_text)
-    
+
     def add_page(self):
         if self.has_completed_first_page:
             self.add_header_and_footer()
@@ -134,4 +133,3 @@ class pdf_creator:
 
     def save(self):
         self.file.save()
-

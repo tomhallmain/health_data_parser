@@ -11,7 +11,9 @@ class VitalSignCategory(Enum):
     WEIGHT = "Weight"
 
     def matches(self, string: str):
-        return self.value in string or self.name in string or self.name.lower() in string
+        return (self.value in string
+                or self.name in string
+                or self.name.lower() in string)
 
 
 class HeightUnit(Enum):
@@ -22,7 +24,7 @@ class HeightUnit(Enum):
 
     def from_value(value: str):
         value = value.upper()
-        
+
         for name, unit in HeightUnit.__members__.items():
             if name == value:
                 return unit
@@ -48,7 +50,7 @@ class WeightUnit(Enum):
 
     def from_value(value: str):
         value = value.upper()
-        
+
         for name, unit in WeightUnit.__members__.items():
             if name == value:
                 return unit
@@ -74,13 +76,13 @@ class TemperatureUnit(Enum):
     def from_value(value: str):
         value = value.upper()
         value.replace("DEGREES", "").replace("°", "").replace(" ", "")
-        
+
         # XML export units
         if value == "DEGF":
             return TemperatureUnit.F
         elif value == "DEGC":
             return TemperatureUnit.C
-        
+
         for name, unit in WeightUnit.__members__.items():
             if name == value:
                 return unit
@@ -93,7 +95,7 @@ class TemperatureUnit(Enum):
         except Exception as e:
             print(e)
             return None
-    
+
     def convertTo(self, temperatureUnit, value):
         if self is temperatureUnit:
             return value
@@ -107,17 +109,32 @@ def convert(to_unit, from_unit, value: float):
     return value / from_unit.value * to_unit.value
 
 
-def calculate_bmi(normalized_height: float, normalized_weight: float, verbose: bool):
-    height_meters = convert(HeightUnit.M, normal_height_unit, normalized_height)
-    weight_kilos = convert(WeightUnit.KG, normal_weight_unit, normalized_weight)
+def calculate_bmi(normalized_height: float, normalized_weight: float,
+                  normal_height_unit, normal_weight_unit, verbose: bool):
+    height_meters = convert(
+        HeightUnit.M, normal_height_unit, normalized_height)
+    weight_kilos = convert(
+        WeightUnit.KG, normal_weight_unit, normalized_weight)
     bmi = round(weight_kilos / (height_meters ** 2), 2)
     if verbose:
-        print("Calculated BMI " + str(bmi) + " (" + str(round(weight_kilos, 2)) + " kg / " + str(round(height_meters, 2)) + " m^2)")
+        print("Calculated BMI " + str(bmi) + " (" + str(round(weight_kilos, 2))
+              + " kg / " + str(round(height_meters, 2)) + " m^2)")
     return bmi
 
 
+base_stats = {
+    "count": 0,
+    "sum": 0,
+    "avg": None,
+    "max": None,
+    "min": None,
+    "mostRecent": None,
+    "unit": None,
+    "list": []}
+
+
 def set_stats(stats: dict, time, value):
-    if time == None:
+    if time is None:
         stats["list"].append(value)
     else:
         stats["list"].append({"time": time, "value": value})
@@ -126,7 +143,7 @@ def set_stats(stats: dict, time, value):
         for i in range(len(value)):
             c_value = value[i]
             stats["sum"][i] += c_value
-            if stats["max"][i] == None:
+            if stats["max"][i] is None:
                 stats["max"][i] = c_value
                 stats["min"][i] = c_value
             elif stats["max"][i] < c_value:
@@ -135,13 +152,10 @@ def set_stats(stats: dict, time, value):
                 stats["min"][i] = c_value
     else:
         stats["sum"] += value
-        if stats["max"] == None:
+        if stats["max"] is None:
             stats["max"] = value
             stats["min"] = value
         elif stats["max"] < value:
             stats["max"] = value
         elif stats["min"] > value:
             stats["min"] = value
-
-
-
