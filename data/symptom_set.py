@@ -53,10 +53,10 @@ class Symptom:
 
 
 class SymptomSet:
-    def __init__(self, symptom_data_loc: str, verbose=False, start_year=None):
+    def __init__(self, symptom_data_loc: str, verbose=False, start_year=1970):
         self.symptom_data_loc = symptom_data_loc
         self.verbose = verbose
-        self.start_year = start_year
+        self.start_year = 1970 if start_year is None else start_year
         self.to_print = False
         self.has_chronic_conditions_from_start = False
         self.symptoms = []
@@ -158,6 +158,7 @@ class SymptomSet:
 
         counter = 0
         self.stimulant_info = {}
+        self.medication_info = {}
 
         for symptom in self.symptoms:
             for cause in symptom.stimulants:
@@ -168,8 +169,20 @@ class SymptomSet:
                         markers[counter % len(markers)]
                     counter += 1
 
+        for symptom in self.symptoms:
+            for medication in symptom.medications:
+                if medication not in self.medication_info:
+                    self.medication_info[medication] = {
+                        "color": "C" + str(counter)}
+                    self.medication_info[medication]["positions"] = []
+                    self.medication_info[medication]["marker"] = \
+                        markers[counter % len(markers)]
+                    counter += 1
+
         counter = 0
-        self.symptoms = sorted(self.symptoms,
+        self.symptoms = sorted(sorted(self.symptoms,
+                                      key=lambda s: self.get_start_date(s),
+                                      reverse=True),
                                key=lambda s: s.severity, reverse=True)
 
         bar_verts = []
@@ -201,6 +214,13 @@ class SymptomSet:
                     (start_date - stimulant_marker_offset, index))
                 stimulant_marker_offset += self.chart_span_days / 50
 
+            medication_marker_offset = self.chart_span_days / 70
+
+            for medication in symptom.medications:
+                self.medication_info[medication]["positions"].append(
+                    (start_date + medication_marker_offset, index))
+                medication_marker_offset += self.chart_span_days / 50
+
         self.bars = PolyCollection(bar_verts, facecolors=bar_colors)
 
     def save_chart(self, graph_cutoff: int, base_dir: str):
@@ -217,19 +237,37 @@ class SymptomSet:
             len(self.symptoms)+1-self.seen_symptom_counts) if i > 0])
         ax.set_yticklabels(list(dict.fromkeys(
             list(map(lambda s: s.name, self.symptoms)))))
-        legend_handles = []
+        stimulant_handles = []
+        medication_handles = []
+
         for stimulant in self.stimulant_info:
             info = self.stimulant_info[stimulant]
             color = info["color"]
             marker = info["marker"]
-            legend_handles.append(mlines.Line2D(
+            stimulant_handles.append(mlines.Line2D(
                 [], [], color=color, marker=marker, linestyle='None',
                 markersize=10, label=stimulant))
             for position in info["positions"]:
-                ax.plot(position[0], position[1], marker=marker, color=color)
-        ax.legend(bbox_to_anchor=(0, 1, 1, 0), loc="lower left",
-                  handles=legend_handles, title="PRIMARY CAUSE / STIMULANT",
-                  mode="expand", ncol=2)
+                ax.plot(position[0], position[1], marker=marker, color=color,
+                        markeredgecolor="black")
+
+        for medication in self.medication_info:
+            info = self.medication_info[medication]
+            color = info["color"]
+            marker = info["marker"]
+            medication_handles.append(mlines.Line2D(
+                [], [], color=color, marker=marker, linestyle='None',
+                markersize=10, label=medication))
+            for position in info["positions"]:
+                ax.plot(position[0], position[1], marker=marker, color=color,
+                        markeredgecolor="black")
+        l1 = ax.legend(bbox_to_anchor=(0, 1, 1, 0), loc="lower left",
+                       handles=stimulant_handles,
+                       title="PRIMARY CAUSE / STIMULANT", mode="expand", ncol=2)
+        ax.legend(bbox_to_anchor=(0, -0.05, 1, 0), loc="upper left",
+                  handles=medication_handles,
+                  title="MEDICATION / TREATMENT", mode="expand", ncol=2)
+        ax.add_artist(l1)
         fig.set_size_inches(10, 8)
         fig.savefig(self.save_loc, pad_inches=0.02, bbox_inches='tight')
         fig.clear(True)
