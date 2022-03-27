@@ -129,7 +129,7 @@ def _filter_table(table: list, rows_to_skip: list, columns_to_skip: list):
 
 class Report:
     def __init__(self, output_path: str, subject: dict, filename_affix: str,
-                 verbose: bool, highlight_abnormal: bool):
+                 verbose=False, highlight_abnormal=True):
         self.output_path = output_path
         self.subject = subject
         self.verbose = verbose
@@ -140,15 +140,18 @@ class Report:
     def create_pdf(self, data: dict, observations: dict, observation_dates: list,
                    observation_code_ids: dict, ranges: dict, date_codes: dict,
                    reference_dates: list, abnormal_results: dict,
-                   abnormal_result_dates: list, pulse_stats_graph, food_data):
+                   abnormal_result_dates: list, symptom_data,
+                   pulse_stats_graph, food_data):
         if self.verbose:
             print("\nCreating report cover page...")
 
         meta = data["meta"]
         report_date = meta["processTime"][:10]
         has_abnormal_results = "abnormalResults" in data
+        print_symptom_data = symptom_data is not None and symptom_data.to_print
         print_pulse_stats_graph = (meta["heartRateMonitoringWearableDetected"]
-                                   and pulse_stats_graph is not None and pulse_stats_graph.to_print)
+                                   and pulse_stats_graph is not None
+                                   and pulse_stats_graph.to_print)
         print_food_data = food_data is not None and food_data.to_print
 
         if self.subject is None or self.subject["name"] == "":
@@ -280,11 +283,11 @@ class Report:
                 abnormal_results_table = [
                     ["RESULT CODE", "LOW OUT OF RANGE", "OBSERVED", "HIGH OUT OF RANGE"]]
 
-        ##################################################################################
+        #############################################################
         ##
         ## TABLE OF CONTENTS
         ##
-        ##################################################################################
+        #############################################################
 
         creator.newline()
         creator.newline()
@@ -295,6 +298,8 @@ class Report:
         creator.set_leading(10)
         creator.set_font("MesloLGS NF", 10)
 
+        if print_symptom_data:
+            creator.show_text(" • Symptoms Report")
         if has_abnormal_results:
             creator.show_text(" • Abnormal Results By Code Summary")
             creator.show_text(" • Abnormal Results By Code Detail")
@@ -304,17 +309,34 @@ class Report:
         if print_food_data:
             creator.show_text(" • Food Data Analysis")
 
-        ## TODO Symptoms page
+        #############################################################
+        ##
+        ## SYMPTOM SET REPORT
+        ##
+        #############################################################
+
+        if print_symptom_data:
+            if self.verbose:
+                print("Adding symptoms report...")
+            creator.add_page()
+            creator.set_font("MesloLGS NF Bold", 15)
+            creator.set_leading(16)
+            creator.show_text("Symptoms Report")
+            creator.newline()
+            creator.set_leading(10)
+            creator.set_font("MesloLGS NF", 10)
+            creator.show_image(symptom_data.save_loc, 550,
+                               width=720, height=500, rotate=True)
 
         if has_abnormal_results:
             abnormal_results_meta = data["abnormalResults"]["meta"]
             includes_in_range = abnormal_results_meta["includesInRangeAbnormalities"]
 
-            ##################################################################################
+            #############################################################
             ##
             ## ABNORMAL RESULTS SUMMARY TABLE
             ##
-            ##################################################################################
+            #############################################################
 
             if self.verbose:
                 print("Writing abnormal results summary and detail tables...")
@@ -325,7 +347,6 @@ class Report:
             creator.show_text("Abnormal Results By Code Summary")
             creator.set_leading(10)
             creator.newline()
-
             abnormal_result_interpretations_by_code = data["abnormalResults"]["codesWithAbnormalResults"]
 
             for code in sorted(abnormal_result_interpretations_by_code.keys()):
@@ -361,11 +382,11 @@ class Report:
 
             creator.show_table(abnormal_results_table, None, -1)
 
-            ##################################################################################
+            #############################################################
             ##
             ## ABNORMAL OBSERVATIONS BY DATE TABLES
             ##
-            ##################################################################################
+            #############################################################
 
             n_dates_in_table_per_page = 9
             header = ["Observation Code", "Range"] if len(
@@ -439,7 +460,10 @@ class Report:
                                 if observation.date == date and date + code_id in date_codes:
                                     date_found = True
                                     value = observation.value_string[:15]
-                                    abnormal_result_tag = observation.result.interpretation if observation.has_reference else ""
+                                    if observation.has_reference:
+                                        abnormal_result_tag = observation.result.interpretation
+                                    else:
+                                        abnormal_result_tag = ""
                                     row.append(_wrap_text_to_fit_length(
                                         value + abnormal_result_tag, 10))
                                     break
@@ -536,11 +560,11 @@ class Report:
                     creator.show_table(
                         table_to_show, extra_style_commands, x_offset)
 
-            ##################################################################################
+            #############################################################
             ##
             ## ALL OBSERVATIONS BY DATE TABLES
             ##
-            ##################################################################################
+            #############################################################
 
             if self.verbose:
                 print("Writing all observations detail tables...")
@@ -608,7 +632,10 @@ class Report:
                         if datecode in date_codes:
                             date_found = True
                             observation = observations[date_codes[datecode]]
-                            abnormal_result_tag = observation.result.interpretation if observation.has_reference else ""
+                            if observation.has_reference:
+                                abnormal_result_tag = observation.result.interpretation
+                            else:
+                                abnormal_result_tag = ""
                             value = observation.value_string[:15]
                             row.append(_wrap_text_to_fit_length(
                                 value + abnormal_result_tag, 10))
@@ -707,6 +734,8 @@ class Report:
                 "No abnormal results were found in Apple Health data export.")
 
         if print_pulse_stats_graph:
+            if self.verbose:
+                print("Adding pulse stats graphs sections...")
             creator.add_page()
             creator.set_font("MesloLGS NF Bold", 15)
             creator.set_leading(16)
@@ -778,6 +807,8 @@ class Report:
                 "  count may vary in either direction from recorded values.")
 
         if print_food_data:
+            if self.verbose:
+                print("Adding food data report...")
             creator.add_page()
             creator.set_font("MesloLGS NF Bold", 15)
             creator.set_leading(16)

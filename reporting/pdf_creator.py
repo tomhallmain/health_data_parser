@@ -4,6 +4,17 @@ from reportlab.pdfbase import ttfonts, pdfmetrics
 from reportlab.lib import utils
 
 
+class RotatedImage(Image):
+
+    def wrap(self, availWidth, availHeight):
+        h, w = Image.wrap(self, availHeight, availWidth)
+        return w, h
+
+    def draw(self):
+        self.canv.rotate(90)
+        Image.draw(self)
+
+
 class pdf_creator:
 
     def __init__(self, start_height: int, start_x: int, path: str,
@@ -107,14 +118,20 @@ class pdf_creator:
         else:
             return 1.8
 
-    def show_image(self, path: str, x: int, width=150, height=None):
+    def show_image(self, path: str, x: int,
+                   width=150, height=None, rotate=False):
         img = utils.ImageReader(path)
         iw, ih = img.getSize()
         aspect = ih / float(iw)
         image_height = width * aspect
-        scaled_image = Image(path, width=width, height=image_height)
-        self.height -= image_height
-        scaled_image.drawOn(self.file, x, self.height)
+        if rotate:
+            scaled_image = RotatedImage(path, width=width, height=height)
+            self.height -= width
+            scaled_image.drawOn(self.file, x, self.height)
+        else:
+            scaled_image = Image(path, width=width, height=image_height)
+            self.height -= image_height
+            scaled_image.drawOn(self.file, x, self.height)
 
     def add_header_and_footer(self):
         self.set_font("MesloLGS NF", 9)

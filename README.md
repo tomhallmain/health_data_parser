@@ -36,8 +36,12 @@ $ python parse_data.py path/to/apple_health_export -h
     of the higher or lower ends of a range. Change that percentage with this flag.
 
 --extra_observations=path/to/observations_data.csv
-    Fill out the sample CSV with data and pass the location at runtime to
-    include data not hooked up to your Apple Health in the output
+    Fill out the sample CSV with data about current and past symptoms to
+    include in the PDF report
+
+--symptom_data=path/to/symptom_data.csv
+    Include data about current and past symptoms to be included in the PDF
+    report.
 
 --food_data=path/to/food_data.csv
     Fill out the sample CSV with data and pass the location at runtime to

@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 from data.food_data import FoodData
 from data.observation import Observation, ObservationVital, CategoryError
 from data.result import get_interpretation_keys, get_interpretation_text
+from data.symptom_set import SymptomSet
 from data.units import VitalSignCategory, HeightUnit, WeightUnit, TemperatureUnit
 from data.units import convert, calculate_bmi, set_stats, base_stats
 from generate_diagnostic_report_files import generate_diagnostic_report_files
@@ -48,7 +49,11 @@ Usage:
 
     --extra_observations=path/to/observations_data.csv
         Fill out the sample CSV with data and pass the location at runtime to
-        include data not hooked up to your Apple Health in the output
+        include laboratory data not hooked up to your Apple Health in the output
+
+    --symptom_data=path/to/symptom_data.csv
+        Fill out the sample CSV with data about current and past symptoms to
+        include in the PDF report
 
     --food_data=path/to/food_data.csv
         Fill out the sample CSV with data and pass the location at runtime to
@@ -73,6 +78,9 @@ Usage:
 """
 
 ### TODO get weighted severity of abnormality by code
+### TODO make this into a class and call from another script
+### TODO XML parser class
+### TODO observation parser class
 
 ## SETUP
 
@@ -103,6 +111,7 @@ report_highlight_abnormal_results = True
 only_clinical_records = False
 extra_observations_csv = None
 food_data_csv = None
+symptom_data_csv = None
 json_add_all_vitals = False
 subject = {}
 normal_height_unit = HeightUnit.CM
@@ -156,6 +165,7 @@ try:
             "report_highlight_abnormal_results=",
             "start_year=",
             "skip_dates=",
+            "symptom_data=",
             ])
 except getopt.GetoptError as err:
     # print help information and exit:
@@ -231,6 +241,8 @@ for o, a in opts:
         except Exception:
             print("\"" + a + "\" is not a valid year.")
             exit(1)
+    elif o == "--symptom_data":
+        symptom_data_csv = a
     else:
         assert False, "unhandled option"
 
@@ -239,9 +251,11 @@ for o, a in opts:
 
 
 use_custom_data = extra_observations_csv is not None
-custom_data_files = []
 use_food_data = food_data_csv is not None
+use_symptom_data = symptom_data_csv is not None
+custom_data_files = []
 food_data = None
+symptom_data = None
 
 if use_custom_data:
     custom_data_files.append(extra_observations_csv)
@@ -265,6 +279,23 @@ if use_food_data:
         if verbose:
             print(e)
         print("Failed to assemble or analyze food data provided.")
+        exit(1)
+
+if use_symptom_data:
+    try:
+        symptom_data = SymptomSet(symptom_data_csv, verbose, start_year)
+        symptom_data.set_chart_start_date()
+        symptom_data.generate_chart_data()
+        symptom_data.save_chart(30, data_export_dir)
+        if symptom_data.to_print:
+            use_custom_data = True
+            custom_data_files.append(symptom_data_csv)
+        else:
+            exit(1)
+    except Exception as e:
+        if verbose:
+            print(e)
+        print("Failed to assemble symptom data provided.")
         exit(1)
 
 
@@ -564,9 +595,11 @@ elif os.path.exists(export_xml):
                       + " temperature observations in XML data.")
     except Exception as e:
         print("An exception occurred in parsing XML export files.")
-        print("For more detail on the error run in verbose mode.")
-        verbose_print(e)
-        exit()
+        if verbose:
+            print(e)
+        else:
+            print("For more detail on the error run in verbose mode.")
+        exit(1)
 else:
     print("WARNING: export.xml or export_cda.xml not found in export directory.")
 
@@ -1234,6 +1267,7 @@ try:
                       reference_dates,
                       abnormal_results,
                       abnormal_result_dates,
+                      symptom_data,
                       vital_stats_graph,
                       food_data)
     print("Results report saved to "

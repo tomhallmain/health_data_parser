@@ -43,15 +43,11 @@ class Observation:
                 raise AssertionError("Observation year is before start year")
 
         self.set_code_and_test(data, disallowed_codes, tests)
-
         self.datecode = self.date + self.primary_code_id
 
         if self.datecode in date_codes:
             raise AssertionError(
                 "Datecode " + self.datecode + " for code " + self.code + " already recorded")
-
-        self.unit = None
-        self.value = None
 
         self.set_value_and_value_string(data)
         self.validate_value(skip_long_values)
@@ -101,6 +97,9 @@ class Observation:
             saved_test = None
 
     def set_value_and_value_string(self, data):
+        self.unit = None
+        self.value = None
+
         if "valueString" in data:
             self.value_string = data["valueString"]
         elif "valueQuantity" in data:

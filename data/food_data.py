@@ -23,14 +23,14 @@ def _get_size_count(size_str: str):
 class FoodData:
     def __init__(self, food_data_loc, verbose):
         self.food_data_loc = food_data_loc
+        self.to_print = False
 
         if os.path.exists(self.food_data_loc) and self.food_data_loc[-4:] == ".csv":
             if verbose:
-                print("Using food data file: " + food_data_loc)
+                print("Using food data file: " + self.food_data_loc)
         else:
             print("WARNING: Food data CSV file " + self.food_data_loc
                   + " is invalid, skipping food analysis.")
-            self.to_print = False
             return
 
         self.verbose = verbose
@@ -43,7 +43,7 @@ class FoodData:
         datetime_format = "%Y-%m-%d %X"
 
         try:
-            with open(food_data_loc, "r") as f:
+            with open(self.food_data_loc, "r") as f:
                 reader = csv.reader(f, delimiter=',', quotechar='"')
                 has_seen_header = False
                 for row in reader:
@@ -109,7 +109,6 @@ class FoodData:
                 print(e)
             print("WARNING: Failed to parse food data CSV file " + self.food_data_loc
                   + ", ensure the file is consistent with sample - skipping food analysis.")
-            self.to_print = False
             return
 
         self.meal_times.sort()
