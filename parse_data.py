@@ -53,11 +53,11 @@ Usage:
 
     --symptom_data=path/to/symptom_data.csv
         Fill out the sample CSV with data about current and past symptoms to
-        include in the PDF report
+        include a timeline chart in the PDF report
 
     --food_data=path/to/food_data.csv
         Fill out the sample CSV with data and pass the location at runtime to
-        include nutritional data in the output
+        include nutritional data in the PDF report
 
     --report_highlight_abnormal_results=[bool]
         By default abnormal results are highlighted in observations tables on the
