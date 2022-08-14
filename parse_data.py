@@ -284,14 +284,15 @@ if use_food_data:
 if use_symptom_data:
     try:
         symptom_data = SymptomSet(symptom_data_csv, verbose, start_year)
-        symptom_data.set_chart_start_date()
-        symptom_data.generate_chart_data()
-        symptom_data.save_chart(30, data_export_dir)
-        if symptom_data.to_print:
-            use_custom_data = True
-            custom_data_files.append(symptom_data_csv)
-        else:
-            exit(1)
+        if len(symptom_data.symptoms) > 0:
+            symptom_data.set_chart_start_date()
+            symptom_data.generate_chart_data()
+            symptom_data.save_chart(30, data_export_dir)
+            if symptom_data.to_print:
+                use_custom_data = True
+                custom_data_files.append(symptom_data_csv)
+            else:
+                exit(1)
     except Exception as e:
         if verbose:
             print(e)

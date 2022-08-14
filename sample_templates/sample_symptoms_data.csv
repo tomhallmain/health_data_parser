@@ -1,8 +1,20 @@
-Symptom/Condition,Date of Onset/Diagnosis,Date of Conclusion,Medications,Stimulants,Comment,Severity
-Inflammation - High nightly blood pressure,2021-02,2021-10,"Naproxen, turmeric, salt","Exercise and assoc. muscle growth",,1
-Sensitivity - Light,2021-02,Chronic,,,,2
-Chronic fatigue,2021-02,Chronic,Trazodone,Inability to exercise,,5
-Memory loss,Chronic,Chronic,,Unknown,,5
-Cough,2020-03,2020-07,,Sars-Cov-2 infection,,2
-Fever,2020-03-01,2020-03-05,,Sars-Cov-2 infection,,1
-Fever,2021-02,2021-10,"Naproxen, acetaminophen, salt","Exercise and assoc. muscle growth",,1
+Symptom/Condition,Onset/Time of Diagnosis,Conclusion,Medications,Stimulants,Comment,Severity
+Symptom A - Subsymptom A,2021-02,Chronic,"Medication A, Medication B, Supplement A","Stimulant A, Stimulant B, Medication F",,1
+Symptom A - Subsymptom C,2020-03,Chronic,"Medication A, Medication B, Supplement A","Stimulant 0, Stimulant A, Stimulant B",,2
+Symptom B,2021-02,2021-10,"Medication A, Medication B, Supplement A","Stimulant A, Stimulant B",,1
+Symptom A - Subsymptom D,2021-02,2021-10,"Medication A, Medication B, Supplement A","Stimulant A, Stimulant B",,1
+Symptom A - Subsymptom E,2020-03,Chronic,Medication B,"Stimulant 0, Stimulant A, Stimulant B",,2
+Condition A,2021-06,Chronic,Medication D,"Stimulant A, Stimulant B",,1
+Condition B,2021-02,Chronic,"Supplement A, Supplement B",Stimulant F,,1
+Condition C,2021-02,Chronic,,"Stimulant A, Stimulant B",,2
+Condition E,2021-06,Chronic,,"Stimulant A, Stimulant B",,2
+Condition F,2021-02,Chronic,Medication A,Cause C,,4
+Condition G,2021-02,Chronic,Medication C,Cause C,,5
+Condition H,2020-03,Chronic,,"Stimulant A, Stimulant B",,4
+Symptom E,2021-02,Chronic,,"Stimulant A, Stimulant D, Stimulant E",,5
+Symptom D,2021-02,Chronic,"Medication A, Medication B, Supplement A","Stimulant A, Stimulant B",,2
+Condition M,2021-02,Chronic,,Genetics,,2
+Condition I,Chronic,Chronic,Treatment A,Genetics,Long-standing issue,3
+Condition K,Chronic,Chronic,,Genetics,Long-standing issue,3
+Symtpom C,2020-03,2020-07,,Stimulant 0,Sequalae from Stimulant 0,2
+Symptom B,2020-03-01,2020-03-05,,Stimulant 0,Sequalae from Stimulant 0,1
