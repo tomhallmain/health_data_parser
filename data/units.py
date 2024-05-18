@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 
 
@@ -22,6 +23,7 @@ class HeightUnit(Enum):
     FT = 3.28084
     IN = 39.37008
 
+    @staticmethod
     def from_value(value: str):
         value = value.upper()
 
@@ -48,6 +50,7 @@ class WeightUnit(Enum):
     KG = 1
     LB = 2.204623
 
+    @staticmethod
     def from_value(value: str):
         value = value.upper()
 
@@ -73,6 +76,7 @@ class TemperatureUnit(Enum):
     C = 0
     F = 32
 
+    @staticmethod
     def from_value(value: str):
         value = value.upper()
         value.replace("DEGREES", "").replace("°", "").replace(" ", "")
@@ -111,14 +115,15 @@ def convert(to_unit, from_unit, value: float):
 
 def calculate_bmi(normalized_height: float, normalized_weight: float,
                   normal_height_unit, normal_weight_unit, verbose: bool):
-    height_meters = convert(
-        HeightUnit.M, normal_height_unit, normalized_height)
-    weight_kilos = convert(
-        WeightUnit.KG, normal_weight_unit, normalized_weight)
-    bmi = round(weight_kilos / (height_meters ** 2), 2)
+    height_meters = convert(HeightUnit.M, normal_height_unit, normalized_height)
+    weight_kilos = convert(WeightUnit.KG, normal_weight_unit, normalized_weight)
+    divisor = height_meters ** 2
+    if divisor == 0.0:
+        raise Exception("Invalid height in meters provided to calculate_bmi - would create division by zero error")
+    bmi = round(weight_kilos / divisor, 2)
     if verbose:
-        print("Calculated BMI " + str(bmi) + " (" + str(round(weight_kilos, 2))
-              + " kg / " + str(round(height_meters, 2)) + " m^2)")
+        print(f"Calculated BMI {bmi} ({round(weight_kilos, 2)}" + \
+              f" kg / {round(height_meters, 2)} m^2)")
     return bmi
 
 
@@ -159,3 +164,11 @@ def set_stats(stats: dict, time, value):
             stats["max"] = value
         elif stats["min"] > value:
             stats["min"] = value
+
+
+def get_age(birth_date):
+    today = datetime.today()
+    age = today.year - birth_date.year
+    test_date = datetime(today.year, birth_date.month, birth_date.day, 0, 0, 0)
+    age += round((today - test_date).days / 365, 1)
+    return age

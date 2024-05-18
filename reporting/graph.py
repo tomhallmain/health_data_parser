@@ -26,16 +26,16 @@ def smooth(data, smoothing_factor: int, pad_with_zeros=False):
     pad_value = 0 if pad_with_zeros else np.nan
 
     if data[0] is None or np.isnan(data[0]):
-        end_nan_counter = 0
+        start_nan_counter = 0
         data_len = len(data)
-        while end_nan_counter < data_len:
+        while start_nan_counter < data_len:
             end_nan_counter += 1
-            if data[end_nan_counter] is None or np.isnan(data[end_nan_counter]):
+            if data[start_nan_counter] is None or np.isnan(data[start_nan_counter]):
                 start_padding.append(pad_value)
             else:
                 start_padding.append(pad_value)
                 break
-        data = data[end_nan_counter:]
+        data = data[start_nan_counter:]
 
     if data[-1] is None or np.isnan(data[-1]):
         end_nan_counter = -1
@@ -47,7 +47,7 @@ def smooth(data, smoothing_factor: int, pad_with_zeros=False):
             else:
                 end_padding.append(pad_value)
                 break
-        data = data[:end_nan_counter]
+        data = data[:end_nan_counter+1]
 
     data = np.array(data)
 
@@ -73,11 +73,9 @@ def smooth(data, smoothing_factor: int, pad_with_zeros=False):
                 save_value = value
             i += 1
 
-    data = np.pad(data, (smoothing_factor//2, smoothing_factor
-                  - smoothing_factor//2), mode="edge")
+    data = np.pad(data, (smoothing_factor//2, smoothing_factor - smoothing_factor//2), mode="edge")
     cumsum = np.cumsum(data)
-    smoothed = (cumsum[smoothing_factor:]
-                - cumsum[:-smoothing_factor]) / smoothing_factor
+    smoothed = (cumsum[smoothing_factor:] - cumsum[:-smoothing_factor]) / smoothing_factor
     return np.append(np.append(start_padding, smoothed), end_padding)
 
 

@@ -209,22 +209,25 @@ class Observation:
         return out
 
 
-'''
-Used to handle observations belonging to these (and potentially other) codes:
-    - "Vital Signs"
-    - "Height"
-    - "Pulse"
-    - "Respiration"
-    - "SpO2"
-    - "Temperature"
-    - "Weight"
-'''
-
 
 class ObservationVital(Observation):
+    '''
+    Used to handle observations belonging to these (and potentially other) codes:
+        - "Vital Signs"
+        - "Height"
+        - "Pulse"
+        - "Respiration"
+        - "SpO2"
+        - "Temperature"
+        - "Weight"
+    '''
     def __init__(self, data: dict, obs_id: str, tests: list, date_codes: dict,
                  start_year: int, skip_long_values: bool,
                  skip_in_range_abnormal_results: bool, abnormal_boundary: float):
         super().__init__(data, obs_id, tests, date_codes, start_year, skip_long_values,
                          skip_in_range_abnormal_results, abnormal_boundary, [], [])
         self.vital_sign_category = None
+    
+    def set_vital_sign_category(self, vital_sign_category):
+        self.vital_sign_category = vital_sign_category
+

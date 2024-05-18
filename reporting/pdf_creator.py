@@ -1,3 +1,5 @@
+import sys
+
 from reportlab.platypus import Table, Image
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.pdfbase import ttfonts, pdfmetrics
@@ -15,6 +17,27 @@ class RotatedImage(Image):
         Image.draw(self)
 
 
+def get_font(font=None):
+    if font is not None:
+        return font
+    elif sys.platform == 'darwin':
+        return ("MesloLGS NF", "MesloLGS NF.ttf")
+    elif sys.platform == 'win32':
+        return ('arial', 'arial.ttf')
+    else:
+        raise Exception("Font not set.")
+
+def get_bold_font(font=None):
+    if font is not None:
+        return font
+    elif sys.platform == 'darwin':
+        return ("MesloLGS NF Bold", "MesloLGS NF Bold.ttf")
+    elif sys.platform == 'win32':
+        return ('arial bold', 'arialbd.ttf')
+    else:
+        raise Exception("Font not set.")
+
+
 class pdf_creator:
 
     def __init__(self, start_height: int, start_x: int, path: str,
@@ -26,10 +49,8 @@ class pdf_creator:
         self.footer_text = footer_text
         self.verbose = verbose
         self.has_completed_first_page = False
-        pdfmetrics.registerFont(ttfonts.TTFont(
-            "MesloLGS NF Bold", "MesloLGS NF Bold.ttf"))
-        pdfmetrics.registerFont(ttfonts.TTFont(
-            "MesloLGS NF", "MesloLGS NF Regular.ttf"))
+        pdfmetrics.registerFont(ttfonts.TTFont(*get_font()))
+        pdfmetrics.registerFont(ttfonts.TTFont(*get_bold_font()))
         self.set_leading(16)
 
     def text(self, string: str, x: int):
@@ -97,9 +118,9 @@ class pdf_creator:
         style = [("GRID", (0, 1), (-1, -1), 1, "Black"),
                  # ("TEXTCOLOR", (0, 0), (0, -1), "White"),
                  ("TEXTCOLOR", (0, 0), (-1, 0), "White"),
-                 ("FONT", (0, 0), (0, -1), "MesloLGS NF Bold", self.leading),
-                 ("FONT", (0, 0), (-1, 0), "MesloLGS NF Bold", self.leading),
-                 ("FONT", (1, 1), (-1, -1), "MesloLGS NF", self.leading),
+                 ("FONT", (0, 0), (0, -1), get_bold_font()[0], self.leading),
+                 ("FONT", (0, 0), (-1, 0), get_bold_font()[0], self.leading),
+                 ("FONT", (1, 1), (-1, -1), get_font()[0], self.leading),
                  ("BOX", (0, 0), (-1, -1), 1, "Black"),
                  # ("BACKGROUND", (0, 0), (0, -1), "Lightgrey"),
                  ("BACKGROUND", (0, 0), (-1, 0), "Darkslategray")]
@@ -134,7 +155,7 @@ class pdf_creator:
             scaled_image.drawOn(self.file, x, self.height)
 
     def add_header_and_footer(self):
-        self.set_font("MesloLGS NF", 9)
+        self.set_font(get_font()[0], 9)
         self.set_leading(9)
         self.file.drawString(130, self.start_height + 20, self.footer_text)
         self.file.drawString(130, 20, self.footer_text)

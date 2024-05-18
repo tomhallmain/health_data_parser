@@ -1,7 +1,8 @@
 from datetime import datetime
+import os
 import re
 
-from reporting.pdf_creator import pdf_creator
+from reporting.pdf_creator import pdf_creator, get_font, get_bold_font
 from data.units import VitalSignCategory
 
 
@@ -135,19 +136,16 @@ class Report:
         self.verbose = verbose
         self.highlight_abnormal = highlight_abnormal
         self.filename = "HealthReport" + filename_affix + ".pdf"
-        self.filepath = self.output_path + "/" + self.filename
+        self.filepath = os.path.join(self.output_path, self.filename)
 
-    def create_pdf(self, data: dict, observations: dict, observation_dates: list,
-                   observation_code_ids: dict, ranges: dict, date_codes: dict,
-                   reference_dates: list, abnormal_results: dict,
-                   abnormal_result_dates: list, symptom_data,
+    def create_pdf(self, json_data: dict, data, symptom_data,
                    pulse_stats_graph, food_data):
         if self.verbose:
             print("\nCreating report cover page...")
 
-        meta = data["meta"]
+        meta = json_data["meta"]
         report_date = meta["processTime"][:10]
-        has_abnormal_results = "abnormalResults" in data
+        has_abnormal_results = "abnormalResults" in json_data
         print_symptom_data = symptom_data is not None and symptom_data.to_print
         print_pulse_stats_graph = (meta["heartRateMonitoringWearableDetected"]
                                    and pulse_stats_graph is not None
@@ -164,9 +162,9 @@ class Report:
 
         creator = pdf_creator(800, 50, self.filepath,
                               footer_text, self.verbose)
-        creator.set_font("MesloLGS NF Bold", 15)
+        creator.set_font(get_bold_font()[0], 15)
         creator.show_text(meta["description"])
-        creator.set_font("MesloLGS NF", 12)
+        creator.set_font(get_font()[0], 12)
         creator.set_leading(14)
         creator.newline()
         creator.newline()
@@ -196,18 +194,18 @@ class Report:
         if meta["vitalSignsObservationCount"] > 0:
             creator.newline()
             creator.newline()
-            creator.set_font("MesloLGS NF Bold", 12)
+            creator.set_font(get_bold_font()[0], 12)
             creator.show_text("Summary of Vitals")
             creator.newline()
 
-            creator.set_font("MesloLGS NF", 8)
+            creator.set_font(get_font()[0], 8)
             creator.set_leading(8)
 
             # TODO add Trend column and/or graph of these vitals
             vital_signs_table = [["Vital", "Unit", "Most Recent", "Date", "Max",
                                   "Min", "Average", "StDev", "Count"]]
 
-            for vital in data["vitalSigns"]:
+            for vital in json_data["vitalSigns"]:
                 if vital["count"] > 0:
                     most_recent_obs = vital["list"][-1]
                     if type(vital["mostRecent"]["value"]) == list:
@@ -235,19 +233,19 @@ class Report:
                         row.append(vital["count"])
                         vital_signs_table.append(row)
 
-            creator.show_table(vital_signs_table, None, 50)
+            creator.show_table(vital_signs_table, [], 50)
 
-        creator.set_font("MesloLGS NF", 12)
+        creator.set_font(get_font()[0], 12)
         creator.set_leading(14)
         creator.newline()
         creator.newline()
 
         if has_abnormal_results:
-            creator.set_font("MesloLGS NF Bold", 12)
+            creator.set_font(get_bold_font()[0], 12)
             creator.show_text("WARNING: Abnormal results were found.")
-            creator.set_font("MesloLGS NF", 12)
+            creator.set_font(get_font()[0], 12)
             creator.newline()
-            abnormal_results_meta = data["abnormalResults"]["meta"]
+            abnormal_results_meta = json_data["abnormalResults"]["meta"]
             creator.show_text("Lab codes with abnormal results " + str(
                 abnormal_results_meta["codesWithAbnormalResultsCount"]))
             creator.show_text("Total abnormal observations     " + str(
@@ -255,7 +253,7 @@ class Report:
             creator.newline()
             includes_in_range = abnormal_results_meta["includesInRangeAbnormalities"]
             creator.set_leading(10)
-            creator.set_font("MesloLGS NF", 9)
+            creator.set_font(get_font()[0], 9)
             creator.show_text(
                 "NOTE: Reference ranges for tests are not static. The range displayed in all tables")
             creator.show_text(
@@ -292,11 +290,11 @@ class Report:
         creator.newline()
         creator.newline()
         creator.newline()
-        creator.set_font("MesloLGS NF Bold", 12)
+        creator.set_font(get_bold_font()[0], 12)
         creator.show_text("Sections included in this report")
         creator.newline()
         creator.set_leading(10)
-        creator.set_font("MesloLGS NF", 10)
+        creator.set_font(get_font()[0], 10)
 
         if print_symptom_data:
             creator.show_text(" • Symptoms Report")
@@ -319,17 +317,17 @@ class Report:
             if self.verbose:
                 print("Adding symptoms report...")
             creator.add_page()
-            creator.set_font("MesloLGS NF Bold", 15)
+            creator.set_font(get_bold_font()[0], 15)
             creator.set_leading(16)
             creator.show_text("Symptoms Report")
             creator.newline()
             creator.set_leading(10)
-            creator.set_font("MesloLGS NF", 10)
+            creator.set_font(get_font()[0], 10)
             creator.show_image(symptom_data.save_loc, 550,
                                width=720, height=500, rotate=True)
 
         if has_abnormal_results:
-            abnormal_results_meta = data["abnormalResults"]["meta"]
+            abnormal_results_meta = json_data["abnormalResults"]["meta"]
             includes_in_range = abnormal_results_meta["includesInRangeAbnormalities"]
 
             #############################################################
@@ -342,12 +340,12 @@ class Report:
                 print("Writing abnormal results summary and detail tables...")
 
             creator.add_page()
-            creator.set_font("MesloLGS NF Bold", 15)
+            creator.set_font(get_bold_font()[0], 15)
             creator.set_leading(20)
             creator.show_text("Abnormal Results By Code Summary")
             creator.set_leading(10)
             creator.newline()
-            abnormal_result_interpretations_by_code = data["abnormalResults"]["codesWithAbnormalResults"]
+            abnormal_result_interpretations_by_code = json_data["abnormalResults"]["codesWithAbnormalResults"]
 
             for code in sorted(abnormal_result_interpretations_by_code.keys()):
                 if len(code) > 35:
@@ -380,7 +378,7 @@ class Report:
 
                 abnormal_results_table.append(code_row)
 
-            creator.show_table(abnormal_results_table, None, -1)
+            creator.show_table(abnormal_results_table, [], -1)
 
             #############################################################
             ##
@@ -390,14 +388,14 @@ class Report:
 
             n_dates_in_table_per_page = 9
             header = ["Observation Code", "Range"] if len(
-                reference_dates) > 0 else ["Observation Code"]
+                data.reference_dates) > 0 else ["Observation Code"]
             header_dates_tables = []
             header_dates = []
             table_counter = 0
             date_counter = 0
             has_unappended_row = False
 
-            for date in abnormal_result_dates:
+            for date in data.abnormal_result_dates:
                 header_dates.append(date)
                 date_counter += 1
                 has_unappended_row = True
@@ -420,13 +418,13 @@ class Report:
 
             code_ranges_table = []
 
-            for code in sorted(observation_code_ids):
-                for code_id in observation_code_ids[code]:
-                    if code_id in abnormal_results:
-                        if len(reference_dates) > 0:
-                            if code in ranges:
+            for code in sorted(data.observation_code_ids):
+                for code_id in data.observation_code_ids[code]:
+                    if code_id in data.abnormal_results:
+                        if len(data.reference_dates) > 0:
+                            if code in data.ranges:
                                 row = [_wrap_text_to_fit_length(
-                                    code, 20), _wrap_text_to_fit_length(ranges[code], 15)]
+                                    code, 20), _wrap_text_to_fit_length(data.ranges[code], 15)]
                             else:
                                 row = [code, ""]
                         else:
@@ -438,7 +436,7 @@ class Report:
             # results with columsn of up to n_dates_in_table_per_page per page
             abnormal_results_tables = []
 
-            for code in sorted(observation_code_ids):
+            for code in sorted(data.observation_code_ids):
                 date_counter = 0
                 table_counter = 0
                 table = abnormal_results_tables[table_counter] if len(
@@ -447,17 +445,17 @@ class Report:
                 has_unappended_row = False
                 abnormal_result_found = False
 
-                for date in abnormal_result_dates:
+                for date in data.abnormal_result_dates:
                     date_counter += 1
                     date_found = False
                     has_unappended_row = True
 
-                    for code_id in observation_code_ids[code]:
-                        if code_id in abnormal_results:
+                    for code_id in data.observation_code_ids[code]:
+                        if code_id in data.abnormal_results:
                             abnormal_result_found = True
-                            results = abnormal_results[code_id]
+                            results = data.abnormal_results[code_id]
                             for observation in results:
-                                if observation.date == date and date + code_id in date_codes:
+                                if observation.date == date and date + code_id in data.date_codes:
                                     date_found = True
                                     value = observation.value_string[:15]
                                     if observation.has_reference:
@@ -534,7 +532,7 @@ class Report:
                         table_to_show = _filter_table(
                             table_to_show, rows_to_skip, columns_to_skip)
                     creator.add_page()
-                    creator.set_font("MesloLGS NF Bold", 15)
+                    creator.set_font(get_bold_font()[0], 15)
                     creator.set_leading(16)
                     if has_shown_first_page:
                         creator.show_text(
@@ -545,7 +543,7 @@ class Report:
                         has_shown_first_page = True
                     creator.set_leading(7)
                     creator.newline()
-                    creator.set_font("MesloLGS NF", 6)
+                    creator.set_font(get_font()[0], 6)
                     extra_style_commands = [
                         ("BACKGROUND", (1, 1), (1, -1), "oldlace"),
                         ("LEFTPADDING", (0, 0), (-1, -1), 2),
@@ -575,7 +573,7 @@ class Report:
             date_counter = 0
             has_unappended_row = False
 
-            for date in observation_dates:
+            for date in data.observation_dates:
                 header_dates.append(date)
                 date_counter += 1
                 has_unappended_row = True
@@ -598,11 +596,11 @@ class Report:
 
             code_ranges_table = []
 
-            for code in sorted(observation_code_ids):
-                if len(reference_dates) > 0:
-                    if code in ranges:
+            for code in sorted(data.observation_code_ids):
+                if len(data.reference_dates) > 0:
+                    if code in data.ranges:
                         row = [_wrap_text_to_fit_length(
-                            code, 20), _wrap_text_to_fit_length(ranges[code], 15)]
+                            code, 20), _wrap_text_to_fit_length(data.ranges[code], 15)]
                     else:
                         row = [code, ""]
                 else:
@@ -614,7 +612,7 @@ class Report:
             # of up to n_dates_in_table_per_page per page
             results_tables = []
 
-            for code in sorted(observation_code_ids):
+            for code in sorted(data.observation_code_ids):
                 date_counter = 0
                 table_counter = 0
                 table = results_tables[table_counter] if len(
@@ -622,16 +620,16 @@ class Report:
                 row = []
                 has_unappended_row = False
 
-                for date in observation_dates:
+                for date in data.observation_dates:
                     date_counter += 1
                     date_found = False
                     has_unappended_row = True
 
-                    for code_id in observation_code_ids[code]:
+                    for code_id in data.observation_code_ids[code]:
                         datecode = date + code_id
-                        if datecode in date_codes:
+                        if datecode in data.date_codes:
                             date_found = True
-                            observation = observations[date_codes[datecode]]
+                            observation = data.observations[data.date_codes[datecode]]
                             if observation.has_reference:
                                 abnormal_result_tag = observation.result.interpretation
                             else:
@@ -705,7 +703,7 @@ class Report:
                         table_to_show = _filter_table(
                             table_to_show, rows_to_skip, columns_to_skip)
                     creator.add_page()
-                    creator.set_font("MesloLGS NF Bold", 15)
+                    creator.set_font(get_bold_font()[0], 15)
                     creator.set_leading(16)
                     if has_shown_first_page:
                         creator.show_text("All Lab Observations (continued)")
@@ -714,7 +712,7 @@ class Report:
                         has_shown_first_page = True
                     creator.set_leading(7)
                     creator.newline()
-                    creator.set_font("MesloLGS NF", 6)
+                    creator.set_font(get_font()[0], 6)
                     extra_style_commands = [
                         ("BACKGROUND", (1, 1), (1, -1), "oldlace"),
                         ("LEFTPADDING", (0, 0), (-1, -1), 2),
@@ -737,13 +735,13 @@ class Report:
             if self.verbose:
                 print("Adding pulse stats graphs sections...")
             creator.add_page()
-            creator.set_font("MesloLGS NF Bold", 15)
+            creator.set_font(get_bold_font()[0], 15)
             creator.set_leading(16)
             creator.show_text("Heart Rate Data Analysis")
             creator.newline()
             creator.set_leading(10)
-            creator.set_font("MesloLGS NF", 10)
-            for vital in data["vitalSigns"]:
+            creator.set_font(get_font()[0], 10)
+            for vital in json_data["vitalSigns"]:
                 if vital["vital"] == VitalSignCategory.PULSE.value:
                     text1 = _right_pad_with_spaces("Total readings:           "
                                                    + str(vital["count"]), 45)
@@ -765,7 +763,7 @@ class Report:
 
             creator.newline()
             creator.set_leading(9)
-            creator.set_font("MesloLGS NF", 8)
+            creator.set_font(get_font()[0], 8)
             creator.show_text(
                 "                                                   NOTES")
             creator.newline()
@@ -778,12 +776,12 @@ class Report:
             creator.show_text("  fewer minutes.")
 
             creator.add_page()
-            creator.set_font("MesloLGS NF Bold", 15)
+            creator.set_font(get_bold_font()[0], 15)
             creator.set_leading(16)
             creator.show_text("Heart Rate Data Analysis")
             creator.newline()
             creator.set_leading(10)
-            creator.set_font("MesloLGS NF", 10)
+            creator.set_font(get_font()[0], 10)
             creator.show_text("Dates recorded:   "
                               + str(len(pulse_stats_graph.pulse_dates)))
             creator.show_text("Earliest date:    " + datetime.fromordinal(
@@ -795,7 +793,7 @@ class Report:
                 pulse_stats_graph.save_loc_dates_data, 45, width=500)
             creator.newline()
             creator.set_leading(9)
-            creator.set_font("MesloLGS NF", 8)
+            creator.set_font(get_font()[0], 8)
             creator.show_text(
                 "                                                   NOTES")
             creator.newline()
@@ -810,12 +808,12 @@ class Report:
             if self.verbose:
                 print("Adding food data report...")
             creator.add_page()
-            creator.set_font("MesloLGS NF Bold", 15)
+            creator.set_font(get_bold_font()[0], 15)
             creator.set_leading(16)
             creator.show_text("Food Data Analysis")
             creator.newline()
             creator.set_leading(10)
-            creator.set_font("MesloLGS NF", 10)
+            creator.set_font(get_font()[0], 10)
             text1 = _right_pad_with_spaces("Total food records:      "
                                            + str(food_data.record_count), 45)
             text2 = _right_pad_with_spaces("Earliest food record:    "
@@ -830,14 +828,14 @@ class Report:
                               + str(food_data.avg_meals_per_day))
             creator.newline()
             creator.newline()
-            creator.set_font("MesloLGS NF Bold", 10)
+            creator.set_font(get_bold_font()[0], 10)
             creator.show_text("Most common foods recorded")
             creator.newline()
             creator.show_image(food_data.save_loc, 150, width=250)
 
             creator.newline()
             creator.set_leading(9)
-            creator.set_font("MesloLGS NF", 8)
+            creator.set_font(get_font()[0], 8)
             creator.show_text(
                 "                                                   NOTES")
 
