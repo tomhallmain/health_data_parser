@@ -21,11 +21,12 @@ def get_font(font=None):
     if font is not None:
         return font
     elif sys.platform == 'darwin':
-        return ("MesloLGS NF", "MesloLGS NF.ttf")
+        return ("MesloLGS NF", "MesloLGS NF Regular.ttf")
     elif sys.platform == 'win32':
         return ('arial', 'arial.ttf')
     else:
         raise Exception("Font not set.")
+
 
 def get_bold_font(font=None):
     if font is not None:

@@ -29,7 +29,7 @@ class DataParser:
         self.normal_height_unit = HeightUnit.CM
         self.normal_weight_unit = WeightUnit.LB
         self.normal_temperature_unit = TemperatureUnit.C
-        
+
         self.all_data_csv = os.path.join(self.data_export_dir, "observations.csv")
         self.all_data_json = os.path.join(self.data_export_dir, "observations.json")
         self.abnormal_results_output_csv = os.path.join(self.data_export_dir, "abnormal_results.csv")
@@ -47,6 +47,9 @@ class DataParser:
         self.observations_data = ObservationsData()
         self.vital_stats_graph = None
 
+    def create_custom_report(self):
+        self.process_custom_data()
+        self.report(include_observations=False)
 
     def run(self):
         self.process_custom_data()
@@ -91,6 +94,9 @@ class DataParser:
                     self.symptom_data.set_chart_start_date()
                     self.symptom_data.generate_chart_data()
                     self.symptom_data.save_chart(30, self.data_export_dir)
+                    if self.symptom_data.has_both_resolved_and_unresolved_symptoms():
+                        self.symptom_data.generate_chart_data(include_historical_symptoms=False)
+                        self.symptom_data.save_chart(30, self.data_export_dir, unresolved_only=True)
                     if self.symptom_data.to_print:
                         self.custom_data_files.append(self.symptom_data_csv)
                     else:
@@ -254,12 +260,12 @@ class DataParser:
 
         data.vitals_stats_list.remove(data.step_stats)
 
-    def report(self):
+    def report(self, include_observations=True):
         ## WRITE DATA TO FILES
         if self.verbose:
             print("\nProcessing complete, writing data to files...\n")
 
-        if len(self.observations_data.observations) == 0:
+        if include_observations and len(self.observations_data.observations) == 0:
             print("No relevant laboratory records found in exported Apple Health data")
             exit(1)
 
@@ -270,14 +276,11 @@ class DataParser:
             print("")
 
         reporter = Reporter(self.verbose)
-        reporter.report_abnormal_results_by_code_then_date(self.abnormal_results_by_code_text, self.observations_data)
-        reporter.report_abnormal_results_by_interpretation(self.abnormal_results_by_interp_csv, self.observations_data, self.args)
-        reporter.report_abnormal_results_by_date(self.abnormal_results_output_csv, self.observations_data)
-        reporter.report_all_data_by_datecode(self.all_data_csv, self.observations_data)
-        reporter.report_all_data_json_and_pdf(self.all_data_json, self.data_export_dir, self.observations_data, self.xml_data, 
-                            self.symptom_data, self.vital_stats_graph, self.food_data, self.custom_data_files, self.args)
-
-
-
-
-
+        if include_observations:
+            reporter.report_abnormal_results_by_code_then_date(self.abnormal_results_by_code_text, self.observations_data)
+            reporter.report_abnormal_results_by_interpretation(self.abnormal_results_by_interp_csv, self.observations_data, self.args)
+            reporter.report_abnormal_results_by_date(self.abnormal_results_output_csv, self.observations_data)
+            reporter.report_all_data_by_datecode(self.all_data_csv, self.observations_data)
+        reporter.report_all_data_json_and_pdf(
+            include_observations, self.all_data_json, self.data_export_dir, self.observations_data, self.xml_data,
+            self.symptom_data, self.vital_stats_graph, self.food_data, self.custom_data_files, self.args)

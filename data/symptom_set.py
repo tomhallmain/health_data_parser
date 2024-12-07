@@ -1,3 +1,4 @@
+from copy import deepcopy
 import csv
 from datetime import datetime
 import os
@@ -51,15 +52,28 @@ class Symptom:
         else:
             return self.end_date
 
+    def __str__(self):
+        if self.start_date is None and self.end_date is None:
+            return self.name + " (chronic)"
+        elif self.start_date is None and self.end_date is not None:
+            return self.name + " chronic until " + str(self.end_date)
+        elif self.start_date is not None and self.end_date is None:
+            return self.name + " chronic from " + str(self.start_date)
+        else:
+            return self.name + " " + str(self.start_date) + " " + str(self.end_date)
+
 
 class SymptomSet:
     def __init__(self, symptom_data_loc: str, verbose=False, start_year=1970):
         self.symptom_data_loc = symptom_data_loc
+        self.save_loc = None
+        self.save_loc_unresolved = None
         self.verbose = verbose
         self.start_year = 1970 if start_year is None else start_year
         self.to_print = False
         self.has_chronic_conditions_from_start = False
         self.symptoms = []
+        self.symptoms_filter = []
         self.dates_recorded = []
         self.severities = []
         self.record_count = 0
@@ -85,6 +99,8 @@ class SymptomSet:
                         continue
                     try:
                         symptom = Symptom(row)
+                        # if self.verbose:
+                        #     print("Added symptom: " + str(symptom))
                     except Exception as e:
                         all_symptom_records_valid = False
                         if self.verbose:
@@ -115,6 +131,10 @@ class SymptomSet:
         if not all_symptom_records_valid:
             print("WARNING: Some symptom records were invalid and could not"
                   + " be processed - ensure file is consistent with sample.")
+
+    def has_both_resolved_and_unresolved_symptoms(self):
+        return any([not symptom.is_resolved for symptom in self.symptoms]) \
+                and any([symptom.is_resolved for symptom in self.symptoms])
 
     def set_chart_start_date(self):
         if len(self.dates_recorded) > 0:
@@ -148,9 +168,17 @@ class SymptomSet:
         else:
             return self.chart_start_date
 
-    def generate_chart_data(self):
+    def get_filtered_symptoms(self, include_historical_symptoms=False):
+        if include_historical_symptoms:
+            return deepcopy(self.symptoms)
+        else:
+            return [deepcopy(symptom) for symptom in self.symptoms if not symptom.is_resolved]
+
+    def generate_chart_data(self, include_historical_symptoms=True):
         severity_colors = {}
         counter = 0
+        self.symptoms_filter = self.get_filtered_symptoms(
+            include_historical_symptoms)
 
         for severity in self.severities:
             severity_colors[severity] = "C" + str(counter)
@@ -160,7 +188,7 @@ class SymptomSet:
         self.stimulant_info = {}
         self.medication_info = {}
 
-        for symptom in self.symptoms:
+        for symptom in self.symptoms_filter:
             for cause in symptom.stimulants:
                 if cause not in self.stimulant_info:
                     self.stimulant_info[cause] = {"color": "C" + str(counter)}
@@ -169,7 +197,7 @@ class SymptomSet:
                         markers[counter % len(markers)]
                     counter += 1
 
-        for symptom in self.symptoms:
+        for symptom in self.symptoms_filter:
             for medication in symptom.medications:
                 if medication not in self.medication_info:
                     self.medication_info[medication] = {
@@ -180,22 +208,23 @@ class SymptomSet:
                     counter += 1
 
         counter = 0
-        self.symptoms = sorted(sorted(self.symptoms,
-                                      key=lambda s: self.get_start_date(s),
-                                      reverse=True),
-                               key=lambda s: s.severity, reverse=True)
+        self.symptoms_filter = sorted(sorted(self.symptoms_filter,
+                                             key=lambda s: self.get_start_date(
+                                                 s),
+                                             reverse=True),
+                                      key=lambda s: s.severity, reverse=False)
 
         bar_verts = []
         bar_colors = []
         seen_symptom_index = {}
         self.seen_symptom_counts = 0
 
-        for symptom in self.symptoms:
-            counter += 1
+        for symptom in self.symptoms_filter:
             if symptom.name in seen_symptom_index:
                 index = seen_symptom_index[symptom.name]
                 self.seen_symptom_counts += 1
             else:
+                counter += 1
                 seen_symptom_index[symptom.name] = counter
                 index = counter
             start_date = mdates.date2num(self.get_start_date(symptom))
@@ -223,8 +252,15 @@ class SymptomSet:
 
         self.bars = PolyCollection(bar_verts, facecolors=bar_colors)
 
-    def save_chart(self, graph_cutoff: int, base_dir: str):
-        self.save_loc = os.path.join(base_dir, "symptoms.png")
+    def save_chart(self, graph_cutoff: int, base_dir: str, unresolved_only=False):
+        if unresolved_only:
+            filename = "symptoms_unresolved.png"
+            self.save_loc_unresolved = os.path.join(base_dir, filename)
+            save_loc = self.save_loc_unresolved
+        else:
+            filename = "symptoms.png"
+            self.save_loc = os.path.join(base_dir, filename)
+            save_loc = self.save_loc
 
         fig, ax = plt.subplots()
         ax.add_collection(self.bars)
@@ -233,10 +269,12 @@ class SymptomSet:
         ax.xaxis.set_major_locator(loc)
         ax.xaxis.set_major_formatter(mdates.AutoDateFormatter(loc))
 
-        ax.set_yticks([i for i in range(
-            len(self.symptoms)+1-self.seen_symptom_counts) if i > 0])
-        ax.set_yticklabels(list(dict.fromkeys(
-            list(map(lambda s: s.name, self.symptoms)))))
+        y = [i for i in range(
+            len(self.symptoms_filter)+1-self.seen_symptom_counts) if i > 0]
+        y_labels = list(dict.fromkeys(
+            list(map(lambda s: s.name, self.symptoms_filter))))
+        ax.set_yticks(y)
+        ax.set_yticklabels(y_labels)
         stimulant_handles = []
         medication_handles = []
 
@@ -261,14 +299,15 @@ class SymptomSet:
             for position in info["positions"]:
                 ax.plot(position[0], position[1], marker=marker, color=color,
                         markeredgecolor="black")
-        l1 = ax.legend(bbox_to_anchor=(0, 1, 1, 0), loc="lower left",
+        box = ax.get_position()
+        l1 = ax.legend(bbox_to_anchor=(0, -0.05, 1, 0), loc="upper left",
                        handles=stimulant_handles,
-                       title="PRIMARY CAUSE / STIMULANT", mode="expand", ncol=2)
-        ax.legend(bbox_to_anchor=(0, -0.05, 1, 0), loc="upper left",
+                       title="PRIMARY CAUSE / STIMULANT", ncol=4, prop={"size": 7})
+        ax.legend(bbox_to_anchor=(-0.4, -0.05, 1, 0), loc="upper left",
                   handles=medication_handles,
-                  title="MEDICATION / TREATMENT", mode="expand", ncol=2)
+                  title="MEDICATION / TREATMENT", ncol=2, prop={"size": 7})
         ax.add_artist(l1)
-        fig.set_size_inches(10, 8)
-        fig.savefig(self.save_loc, pad_inches=0.02, bbox_inches='tight')
+        fig.set_size_inches(11, 9)
+        fig.savefig(save_loc, pad_inches=0.02, bbox_inches='tight')
         fig.clear(True)
         self.to_print = True

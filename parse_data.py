@@ -19,6 +19,7 @@ class HealthDataParseArgs:
 
         self.data_export_dir = data_export_dir
         self.datetime_format = "%Y-%m-%d %X %z"
+        self.custom_only = False
         self.only_clinical = False
         self.start_year = 0
         self.skip_long_values = True
@@ -106,6 +107,10 @@ Usage:
         If using a wearable, many vital sign observations may be accumulated.
         By default these are not added to the JSON output - pass to add these.
 
+    --custom_only
+        Skip parsing of Apple Health export data and only create a report from
+        the custom files provided in the arguments.
+
     -h, --help
         Print this help text
 
@@ -135,6 +140,7 @@ if __name__ == "__main__":
                 "only_clinical_records",
                 "skip_long_values",
                 "verbose",
+                "custom_only",
                 "birth_date=",
                 "extra_observations=",
                 "food_data=",
@@ -216,8 +222,13 @@ if __name__ == "__main__":
                 exit(1)
         elif o == "--symptom_data":
             parse_args.symptom_data_csv = a
+        elif o == "--custom_only":
+            parse_args.custom_only = True
         else:
             assert False, "unhandled option"
 
     parser = DataParser(parse_args)
-    parser.run()
+    if parse_args.custom_only:
+        parser.create_custom_report()
+    else:
+        parser.run()

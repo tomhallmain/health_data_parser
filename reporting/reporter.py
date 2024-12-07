@@ -194,7 +194,7 @@ class Reporter:
                 traceback.print_exc()
             exit(1)
 
-    def report_all_data_json_and_pdf(self, filepath, data_export_dir, data, xml_data, symptom_data, vital_stats_graph, food_data, custom_data_files, args):
+    def report_all_data_json_and_pdf(self, include_observations, filepath, data_export_dir, data, xml_data, symptom_data, vital_stats_graph, food_data, custom_data_files, args):
         # Write simplified observations data to JSON
 
         json_data = {}
@@ -204,43 +204,45 @@ class Reporter:
             meta = {}
             meta["description"] = "Health Records Report"
             meta["processTime"] = str(datetime.now())
-            meta["observationCount"] = len(data.observations)
-            meta["vitalSignsObservationCount"] = (
-                len(data.observations_vital_signs) + xml_data.xml_vitals_observations_count)
-            meta["mostRecentResult"] = data.observation_dates[0]
-            meta["earliestResult"] = data.observation_dates[-1]
-            meta["heartRateMonitoringWearableDetected"] = xml_data.pulse_stats["graphEligible"]
+            if include_observations:
+                meta["observationCount"] = len(data.observations)
+                meta["vitalSignsObservationCount"] = (
+                    len(data.observations_vital_signs) + xml_data.xml_vitals_observations_count)
+                meta["mostRecentResult"] = data.observation_dates[0]
+                meta["earliestResult"] = data.observation_dates[-1]
+                meta["heartRateMonitoringWearableDetected"] = xml_data.pulse_stats["graphEligible"]
             json_data["meta"] = meta
-            if meta["vitalSignsObservationCount"] > 0:
-                vital_signs = {}
-                if args.json_add_all_vitals:
-                    json_data["vitalSigns"] = xml_data.vitals_stats_list
-                else:
-                    save_stats_objs = deepcopy(xml_data.vitals_stats_list)
-                    json_data["vitalSigns"] = []
-                    for stats_obj in save_stats_objs:
-                        new_obj = stats_obj.copy()
-                        del new_obj["list"]
-                        if "graph" in new_obj:
-                            del new_obj["graph"]
-                        json_data["vitalSigns"].append(new_obj)
-            if data.total_abnormal_results > 0:
-                abnormal_results_data = {}
-                meta = {}
-                meta["codesWithAbnormalResultsCount"] = len(data.abnormal_results)
-                meta["totalAbnormalResultsCount"] = data.total_abnormal_results
-                meta["includesInRangeAbnormalities"] = (args.in_range_abnormal_boundary > 0
-                                                        and not args.skip_in_range_abnormal_results)
-                meta["inRangeAbnormalBoundary"] = args.in_range_abnormal_boundary
-                abnormal_results_data["meta"] = meta
-                abnormal_results_data["codesWithAbnormalResults"] = data.abnormal_result_interpretations_by_code
-                json_data["abnormalResults"] = abnormal_results_data
-            observations_list = []
-            for obs_id in data.observations:
-                observations_list.append(data.observations[obs_id].to_dict(obs_id, data.tests))
-            observations_list.sort(key=lambda obs: obs.get("date"))
-            observations_list.reverse()
-            json_data["observations"] = observations_list
+            if include_observations:
+                if meta["vitalSignsObservationCount"] > 0:
+                    vital_signs = {}
+                    if args.json_add_all_vitals:
+                        json_data["vitalSigns"] = xml_data.vitals_stats_list
+                    else:
+                        save_stats_objs = deepcopy(xml_data.vitals_stats_list)
+                        json_data["vitalSigns"] = []
+                        for stats_obj in save_stats_objs:
+                            new_obj = stats_obj.copy()
+                            del new_obj["list"]
+                            if "graph" in new_obj:
+                                del new_obj["graph"]
+                            json_data["vitalSigns"].append(new_obj)
+                if data.total_abnormal_results > 0:
+                    abnormal_results_data = {}
+                    meta = {}
+                    meta["codesWithAbnormalResultsCount"] = len(data.abnormal_results)
+                    meta["totalAbnormalResultsCount"] = data.total_abnormal_results
+                    meta["includesInRangeAbnormalities"] = (args.in_range_abnormal_boundary > 0
+                                                            and not args.skip_in_range_abnormal_results)
+                    meta["inRangeAbnormalBoundary"] = args.in_range_abnormal_boundary
+                    abnormal_results_data["meta"] = meta
+                    abnormal_results_data["codesWithAbnormalResults"] = data.abnormal_result_interpretations_by_code
+                    json_data["abnormalResults"] = abnormal_results_data
+                observations_list = []
+                for obs_id in data.observations:
+                    observations_list.append(data.observations[obs_id].to_dict(obs_id, data.tests))
+                observations_list.sort(key=lambda obs: obs.get("date"))
+                observations_list.reverse()
+                json_data["observations"] = observations_list
 
             class DateTimeEncoder(json.JSONEncoder):
                 def default(self, z):
@@ -263,7 +265,7 @@ class Reporter:
         # Write observations data to PDF report
 
         try:
-            if not args.json_add_all_vitals:
+            if include_observations and not args.json_add_all_vitals:
                 json_data["vitalSigns"] = save_stats_objs
             report = Report(data_export_dir, args.subject, json_data["meta"]["processTime"][:10],
                             self.verbose, args.report_highlight_abnormal_results)
