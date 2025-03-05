@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
 
     try:
-        opts, args = getopt.getopt(sys.argv[2:], ":hv", [
+        opts, args = getopt.getopt(COMMANDS, ":hv", [
                 "filter_abnormal_in_range",
                 "help",
                 "json_add_all_vitals",
