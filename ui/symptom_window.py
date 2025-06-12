@@ -9,6 +9,9 @@ from tkcalendar import DateEntry
 from data.symptom_set import Symptom
 from ui.symptom_dialog import SymptomDialog
 from ui.symptom_import_dialog import ImportDialog
+from utils.logger import setup_logger
+
+logger = setup_logger('symptom_window')
 
 class SymptomWindow:
     def __init__(self, parent, symptom_file):
@@ -67,9 +70,9 @@ class SymptomWindow:
                             symptom = Symptom(row)
                             self.symptoms.append(symptom)
                         except Exception as e:
-                            print(f"Error loading symptom: {str(e)}")
+                            logger.error(f"Error loading symptom: {str(e)}")
             except Exception as e:
-                print(f"Error reading symptom file: {str(e)}")
+                logger.error(f"Error reading symptom file: {str(e)}")
                 
     def save_symptoms(self):
         """Save symptoms to CSV file"""
@@ -372,7 +375,7 @@ class SymptomWindow:
                         new_symptoms.append(symptom)
                     except Exception as e:
                         error_count += 1
-                        print(f"Error in row {row_num}: {str(e)}")
+                        logger.error(f"Error in row {row_num}: {str(e)}")
             
             if error_count > 0:
                 if messagebox.askyesno("Warning", 

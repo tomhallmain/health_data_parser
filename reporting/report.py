@@ -4,7 +4,10 @@ import re
 
 from reporting.pdf_creator import pdf_creator, get_font, get_bold_font
 from data.units import VitalSignCategory
+from utils.logger import setup_logger
 
+# Set up logger
+logger = setup_logger('report')
 
 # Assumes newlines not already present
 
@@ -142,7 +145,7 @@ class Report:
     def create_pdf(self, json_data: dict, data, symptom_data,
                    pulse_stats_graph, food_data):
         if self.verbose:
-            print("\nCreating report cover page...")
+            logger.info("\nCreating report cover page...")
 
         include_observations = "observations" in json_data
         meta = json_data["meta"]
@@ -372,7 +375,7 @@ class Report:
 
     def add_symptom_data(self, creator, symptom_data):
         if self.verbose:
-            print("Adding symptoms report...")
+            logger.info("Adding symptoms report...")
         creator.add_page()
         creator.set_font(get_bold_font()[0], 15)
         creator.set_leading(16)
@@ -396,7 +399,7 @@ class Report:
 
     def add_abnormal_results_summary_table(self, creator, json_data, includes_in_range, abnormal_results_table):
         if self.verbose:
-            print("Writing abnormal results summary and detail tables...")
+            logger.info("Writing abnormal results summary and detail tables...")
 
         creator.add_page()
         creator.set_font(get_bold_font()[0], 15)
@@ -577,8 +580,7 @@ class Report:
                             observation_cutoff+extension_amount)])
                         observation_cutoff += extension_amount
                         if self.verbose:
-                            print("Extended table by " + str(extension_amount)
-                                  + " as some rows skipped. New table length: " + str(len(table_to_show)))
+                            logger.info(f"Extended table by {extension_amount} as some rows skipped. New table length: {len(table_to_show)}")
                         rows_to_skip, columns_to_skip = _find_rows_and_columns_to_skip(
                             table_to_show)
                         extension_amount = max_observations_per_page - \
@@ -618,7 +620,7 @@ class Report:
 
     def add_observations_by_date_tables(self, creator, data):
         if self.verbose:
-            print("Writing all observations detail tables...")
+            logger.info("Writing all observations detail tables...")
 
         header = self.get_header(data)
         header_dates_tables = []
@@ -743,9 +745,7 @@ class Report:
                             observation_cutoff+extension_amount)])
                         observation_cutoff += extension_amount
                         if self.verbose:
-                            print("Extended table by " + str(extension_amount)
-                                  + " as some rows skipped. New table length "
-                                  + "including skipped: " + str(len(table_to_show)))
+                            logger.info(f"Extended table by {extension_amount} as some rows skipped. New table length including skipped: {len(table_to_show)}")
                         rows_to_skip, columns_to_skip = _find_rows_and_columns_to_skip(
                             table_to_show)
                         extension_amount = max_observations_per_page - \
@@ -783,7 +783,7 @@ class Report:
 
     def add_heart_stats(self, creator, json_data, pulse_stats_graph):
         if self.verbose:
-            print("Adding pulse stats graphs sections...")
+            logger.info("Adding pulse stats graphs sections...")
         creator.add_page()
         creator.set_font(get_bold_font()[0], 15)
         creator.set_leading(16)
@@ -856,7 +856,7 @@ class Report:
 
     def add_food_data(self, creator, food_data):
         if self.verbose:
-            print("Adding food data report...")
+            logger.info("Adding food data report...")
         creator.add_page()
         creator.set_font(get_bold_font()[0], 15)
         creator.set_leading(16)

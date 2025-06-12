@@ -4,6 +4,10 @@ import traceback
 
 from data.observation import Observation, ObservationVital, CategoryError
 from data.units import VitalSignCategory
+from utils.logger import setup_logger
+
+# Set up logger
+logger = setup_logger('observation_json_parser')
 
 ## PROCESS CLINICAL RECORDS JSON DATA
 
@@ -32,7 +36,7 @@ class ObservationsData:
         ## APPLY RANGES TO CLINICAL RECORDS RESULTS
         if len(self.reference_dates) > 0:
             if verbose:
-                print("\nConsolidating ranges and validating all results where "
+                logger.info("\nConsolidating ranges and validating all results where "
                         + "ranges apply are tested for abnormality...\n")
             # Construct ranges object
             for code in sorted(self.observation_code_ids):
@@ -60,9 +64,7 @@ class ObservationsData:
                             obs = self.observations[self.date_codes[datecode]]
                             if not obs.has_reference:
                                 if verbose:
-                                    print("Found missing reference range for code "
-                                            + code + " on " + date + " - attempting "
-                                            + "to apply range from other results")
+                                    logger.info(f"Found missing reference range for code {code} on {date} - attempting to apply range from other results")
                                 obs.set_reference(skip_in_range_abnormal_results,
                                                 in_range_abnormal_boundary,
                                                 range_list, obs.unit, True)
@@ -100,7 +102,7 @@ class ObservationJSONDataParser:
         self.vital_sign_categories.insert(0, ObservationJSONDataParser.category_vital_signs)
 
     def parse(self):
-        print("Parsing clinical-records JSON...")        
+        logger.info("Parsing clinical-records JSON...")        
         for f in self.health_files:
             file_category = f[0:(f.index("-"))]
             f_addr = os.path.join(self.base_dir, f)
@@ -113,12 +115,12 @@ class ObservationJSONDataParser:
                             and subject_data["display"] is not None):
                         self.subject["name"] = subject_data["display"]
                         if self.verbose:
-                            print("Identified subject: " + self.subject["name"])
+                            logger.info(f"Identified subject: {self.subject['name']}")
                 try:
                     self.process_observation(file_data, f)
                 except Exception as e:
                     if self.verbose:
-                        print(e)
+                        logger.error(f"Error processing observation: {e}")
                     continue
             # Get data from Diagnostic Report type files
             elif file_category == "DiagnosticReport":
@@ -136,7 +138,7 @@ class ObservationJSONDataParser:
                             self.process_observation(observation, f + "[" + str(i) + "]")
                         except Exception as e:
                             if self.verbose:
-                                print(e)
+                                logger.error(f"Error processing contained observation: {e}")
                             continue
                         i += 1
                 else:
@@ -144,7 +146,7 @@ class ObservationJSONDataParser:
                         self.process_observation(file_data, f)
                     except Exception as e:
                         if self.verbose:
-                            print(e)
+                            logger.error(f"Error processing diagnostic report: {e}")
                         continue
 
         self.data.sort()
@@ -164,18 +166,18 @@ class ObservationJSONDataParser:
                                     in_range_abnormal_boundary)
         except ValueError as e:
             if self.verbose:
-                print(e)
+                logger.error(f"Value error in vital sign observation: {e}")
             pass
         except AssertionError as e:
             if self.verbose:
-                print(e)
+                logger.error(f"Assertion error in vital sign observation: {e}")
         except Exception as e:
             if self.verbose:
-                print("Exception encountered in gathering data from observation:")
-                print(obs_id)
+                logger.error("Exception encountered in gathering data from observation:")
+                logger.error(f"Observation ID: {obs_id}")
             if obs_v is not None and obs_v.datecode is not None:
                 if self.verbose:
-                    print(obs_v.datecode)
+                    logger.error(f"Datecode: {obs_v.datecode}")
             traceback.print_exc()
             raise e
         if obs_v is not None:
@@ -211,7 +213,7 @@ class ObservationJSONDataParser:
         self.data.observations_vital_signs[obs_v.date] = this_date_observations
 
         if self.verbose:
-            print(f"Vital sign observation recorded for {obs_v.code} on {obs_v.date}")
+            logger.info(f"Vital sign observation recorded for {obs_v.code} on {obs_v.date}")
 
 
     def process_observation(self, data: dict, obs_id: str):
@@ -232,14 +234,14 @@ class ObservationJSONDataParser:
             return
         except AssertionError as e:
             if self.verbose:
-                print(e)
+                logger.error(f"Assertion error in observation: {e}")
         except Exception as e:
             if self.verbose:
-                print("Exception encountered in gathering data from observation:")
-                print(obs_id)
+                logger.error("Exception encountered in gathering data from observation:")
+                logger.error(f"Observation ID: {obs_id}")
             if obs is not None and obs.datecode is not None:
                 if self.verbose:
-                    print(obs.datecode)
+                    logger.error(f"Datecode: {obs.datecode}")
             traceback.print_exc()
             raise e
         if obs is None or not obs.observation_complete:
@@ -277,7 +279,7 @@ class ObservationJSONDataParser:
             if obs.date not in self.data.abnormal_result_dates:
                 self.data.abnormal_result_dates.append(obs.date)
         if self.verbose:
-            print(f"Observation recorded for {obs.code} on {obs.date}")
+            logger.info(f"Observation recorded for {obs.code} on {obs.date}")
 
 
 

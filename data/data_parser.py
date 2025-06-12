@@ -12,6 +12,10 @@ from data.units import convert, calculate_bmi, set_stats
 from generate_diagnostic_report_files import generate_diagnostic_report_files
 from reporting.graph import VitalsStatsGraph
 from reporting.reporter import Reporter
+from utils.logger import setup_logger
+
+# Set up logger
+logger = setup_logger('data_parser')
 
 
 ### TODO get weighted severity of abnormality by code
@@ -83,8 +87,8 @@ class DataParser:
                     exit(1)
             except Exception as e:
                 if self.verbose:
-                    print(e)
-                print("Failed to assemble or analyze food data provided.")
+                    logger.error(f"Error processing food data: {e}")
+                logger.error("Failed to assemble or analyze food data provided.")
                 exit(1)
 
         if self.symptom_data_csv is not None:
@@ -103,20 +107,20 @@ class DataParser:
                         exit(1)
             except Exception as e:
                 if self.verbose:
-                    print(e)
-                print("Failed to assemble symptom data provided.")
+                    logger.error(f"Error processing symptom data: {e}")
+                logger.error("Failed to assemble symptom data provided.")
                 exit(1)
 
     def process_xml_data(self):
         ## PROCESS APPLE HEALTH XML DATA
         if self.args.only_clinical_records:
             if self.verbose:
-                print("Skipping all data present not in clinical-records folder.")
+                logger.info("Skipping all data present not in clinical-records folder.")
         elif os.path.exists(self.export_xml):
             xml_parser = AppleHealthXMLParser(self.xml_data, self.args)
             xml_parser.parse(self.export_xml)
         else:
-            print("WARNING: export.xml or export_cda.xml not found in export directory.")
+            logger.warning("export.xml or export_cda.xml not found in export directory.")
 
     def process_json_data(self):
         json_parser = ObservationJSONDataParser(self.args, self.custom_data_files, self.observations_data)
@@ -126,7 +130,7 @@ class DataParser:
     def compile_vital_signs_data(self):
         ## COMPILE VITAL SIGNS DATA
         if self.verbose:
-           print("\nCompiling vital signs data from clinical records if present...\n")
+           logger.info("\nCompiling vital signs data from clinical records if present...\n")
         current_tzinfo = timezone(datetime.now().astimezone().tzinfo.utcoffset(None))
 
         for vitals_date in sorted(self.observations_data.observations_vital_signs.keys()):
@@ -154,8 +158,7 @@ class DataParser:
                                 and obs.value is not None):
                             obs.unit = "F" if obs.value > 45 else "C"
                         else:
-                            print("Skipping obs on date " + vitals_date + " of category "
-                                + str(obs.vital_sign_category) + " because value or unit was None")
+                            logger.warning(f"Skipping obs on date {vitals_date} of category {obs.vital_sign_category} because value or unit was None")
                             continue
                     if obs.vital_sign_category is VitalSignCategory.BLOOD_PRESSURE:
                         self.xml_data.blood_pressure_stats["unit"] = obs.unit
@@ -191,7 +194,7 @@ class DataParser:
                 set_stats(self.xml_data.bmi_stats, vitals_datetime, bmi)
             except Exception as e:
                 if self.verbose:
-                    print(e)
+                    logger.error(f"Error processing vital signs data: {e}")
 
 
     def do_stats_calcs(self):
@@ -201,21 +204,20 @@ class DataParser:
                 stats_obj["list"] = sorted(
                     stats_obj["list"], key=operator.itemgetter("time"))
             except Exception:
-                print("WARNING: Encountered a problem comparing timezones between XML and clinical records JSON data."
-                    + " Vital signs output that relies on sorting may not be calculated correctly.")
+                logger.warning("Encountered a problem comparing timezones between XML and clinical records JSON data. Vital signs output that relies on sorting may not be calculated correctly.")
                 tzinfos = []
                 for obs in stats_obj["list"]:
                     date = obs["time"]
                     if date.tzinfo not in tzinfos:
                         if self.verbose:
-                            print("Found new tzinfo for date " + str(date))
-                            print(date.tzinfo)
+                            logger.info(f"Found new tzinfo for date {date}")
+                            logger.info(date.tzinfo)
                         tzinfos.append(date.tzinfo)
             if stats_obj["count"] > 0:
                 stats_obj["mostRecent"] = stats_obj["list"][-1]
                 if stats_obj["mostRecent"]["value"] is None:
                     if self.verbose:
-                        print("Stats collection for vital " + str(stats_obj["vital"]) + " failed.")
+                        logger.warning(f"Stats collection for vital {stats_obj['vital']} failed.")
                 elif type(stats_obj["mostRecent"]["value"]) == list:
                     stats_obj["stDev"] = []
                     for i in range(len(stats_obj["mostRecent"])):
@@ -236,9 +238,8 @@ class DataParser:
                         sum_sq_diffs += (obs["value"] - avg) ** 2
                     stats_obj["stDev"] = (sum_sq_diffs / stats_obj["count"]) ** (1/2)
                 if self.verbose:
-                    print("Found stats for vital sign: " + stats_obj["vital"])
-                    print(str(stats_obj["count"]) + " unique observations with average value "
-                        + str(stats_obj["avg"]) + " and standard deviation " + str(stats_obj["stDev"]))
+                    logger.info(f"Found stats for vital sign: {stats_obj['vital']}")
+                    logger.info(f"{stats_obj['count']} unique observations with average value {stats_obj['avg']} and standard deviation {stats_obj['stDev']}")
 
 
     def create_wearable_vitals_graph(self, data):
@@ -253,27 +254,27 @@ class DataParser:
                 self.vital_stats_graph.save_graph_images(self.data_export_dir)
             except Exception as e:
                 if self.verbose:
-                    print(e)
+                    logger.error(f"Error creating wearable vitals graph: {e}")
                 traceback.print_exc()
             if self.vital_stats_graph is None or not self.vital_stats_graph.to_print:
-                print("WARNING: Failed to generate pulse statistics graph, skipping print.")
+                logger.warning("Failed to generate pulse statistics graph, skipping print.")
 
         data.vitals_stats_list.remove(data.step_stats)
 
     def report(self, include_observations=True):
         ## WRITE DATA TO FILES
         if self.verbose:
-            print("\nProcessing complete, writing data to files...\n")
+            logger.info("\nProcessing complete, writing data to files...\n")
 
         if include_observations and len(self.observations_data.observations) == 0:
-            print("No relevant laboratory records found in exported Apple Health data")
+            logger.error("No relevant laboratory records found in exported Apple Health data")
             exit(1)
 
         if len(self.custom_data_files) > 0:
-            print("\nThe compiled information includes some custom data not exported from Apple Health:")
+            logger.info("\nThe compiled information includes some custom data not exported from Apple Health:")
             for filename in self.custom_data_files:
-                print(filename)
-            print("")
+                logger.info(filename)
+            logger.info("")
 
         reporter = Reporter(self.verbose)
         if include_observations:

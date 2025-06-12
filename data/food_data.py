@@ -2,7 +2,9 @@ import csv
 from datetime import datetime
 import os
 import matplotlib.pyplot as plt
+from utils.logger import setup_logger
 
+logger = setup_logger('food_data')
 
 def _get_size_count(size_str: str):
     size_str = size_str.lower()
@@ -27,10 +29,9 @@ class FoodData:
 
         if os.path.exists(self.food_data_loc) and self.food_data_loc[-4:] == ".csv":
             if verbose:
-                print("Using food data file: " + self.food_data_loc)
+                logger.info(f"Using food data file: {self.food_data_loc}")
         else:
-            print("WARNING: Food data CSV file " + self.food_data_loc
-                  + " is invalid, skipping food analysis.")
+            logger.warning(f"Food data CSV file {self.food_data_loc} is invalid, skipping food analysis.")
             return
 
         self.verbose = verbose
@@ -93,22 +94,19 @@ class FoodData:
                         time = date
                     if date is None:
                         if verbose:
-                            print(
-                                "Error collecting date from food data record for " + name)
+                            logger.error(f"Error collecting date from food data record for {name}")
                     elif date not in self.dates_recorded:
                         self.dates_recorded.append(date)
                     if time is None:
                         if verbose:
-                            print(
-                                "Error collecting date and time from food data record for " + name)
+                            logger.error(f"Error collecting date and time from food data record for {name}")
                     elif time not in self.meal_times:
                         self.meal_times.append(time)
                     self.record_count += 1
         except Exception as e:
             if verbose:
-                print(e)
-            print("WARNING: Failed to parse food data CSV file " + self.food_data_loc
-                  + ", ensure the file is consistent with sample - skipping food analysis.")
+                logger.error(str(e))
+            logger.warning(f"Failed to parse food data CSV file {self.food_data_loc}, ensure the file is consistent with sample - skipping food analysis.")
             return
 
         self.meal_times.sort()

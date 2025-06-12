@@ -4,7 +4,9 @@ from reportlab.platypus import Table, Image
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.pdfbase import ttfonts, pdfmetrics
 from reportlab.lib import utils
+from utils.logger import setup_logger
 
+logger = setup_logger('pdf_creator')
 
 class RotatedImage(Image):
 
@@ -92,15 +94,13 @@ class pdf_creator:
             self.leading -= 0.5
             table = self._get_table(data, extra_style_commands)
             if self.verbose:
-                print("Reduced leading to " + str(self.leading)
-                      + " to reach table height " + str(table._height))
+                logger.info(f"Reduced leading to {self.leading} to reach table height {table._height}")
 
         while self.leading > 4 and table._width > 550:
             self.leading -= 0.5
             table = self._get_table(data, extra_style_commands)
             if self.verbose:
-                print("Reduced leading to " + str(self.leading)
-                      + " to reach table width " + str(table._width))
+                logger.info(f"Reduced leading to {self.leading} to reach table width {table._width}")
 
         # TODO handle new page
 
@@ -110,7 +110,7 @@ class pdf_creator:
             x = self.start_x
 
         if self.verbose:
-            print("Table dims: ({}, {})".format(table._height, table._width))
+            logger.info("Table dims: ({}, {})".format(table._height, table._width))
 
         table.drawOn(self.file, x, end_y)
         self.height -= table._height

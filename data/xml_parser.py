@@ -4,7 +4,10 @@ import xml.etree.ElementTree as ET
 
 from data.units import VitalSignCategory, HeightUnit, WeightUnit, TemperatureUnit
 from data.units import convert, get_age, base_stats, set_stats
+from utils.logger import setup_logger
 
+# Set up logger
+logger = setup_logger('xml_parser')
 
 class AppleHealthXMLData:
     def __init__(self, normal_height_unit, normal_weight_unit):
@@ -65,38 +68,29 @@ class AppleHealthXMLData:
         if self.blood_pressure_stats["count"] > 0:
             self.blood_pressure_stats_preset = True
             if verbose:
-                print("Found " + str(len(blood_pressure_observations))
-                            + " blood pressure observations in XML data.")
+                logger.info(f"Found {len(blood_pressure_observations)} blood pressure observations in XML data.")
             self.blood_pressure_stats["count"] = blood_pressure_count
             self.blood_pressure_stats["sum"] = blood_pressure_sums
         if self.pulse_stats["count"] > 0:
             if verbose:
-                print("Found " + str(len(heart_rate_observations))
-                        + " heart rate observations in XML data.")
+                logger.info(f"Found {len(heart_rate_observations)} heart rate observations in XML data.")
             self.pulse_stats["count"] = heart_rate_count
             self.pulse_stats["sum"] = heart_rate_sum
         if verbose:
             if self.height_stats["count"] > 0:
-                print("Found " + str(self.height_stats["count"])
-                    + " height observations in XML data.")
+                logger.info(f"Found {self.height_stats['count']} height observations in XML data.")
             if self.weight_stats["count"] > 0:
-                print("Found " + str(self.weight_stats["count"])
-                    + " weight observations in XML data.")
+                logger.info(f"Found {self.weight_stats['count']} weight observations in XML data.")
             if self.hrv_stats["count"] > 0:
-                print("Found " + str(self.hrv_stats["count"])
-                    + " heart rate variability observations in XML data.")
+                logger.info(f"Found {self.hrv_stats['count']} heart rate variability observations in XML data.")
             if self.spo2_stats["count"] > 0:
-                print("Found " + str(self.spo2_stats["count"])
-                    + " oxygen saturation observations in XML data.")
+                logger.info(f"Found {self.spo2_stats['count']} oxygen saturation observations in XML data.")
             if self.stand_stats["count"] > 0:
-                print("Found " + str(self.stand_stats["count"])
-                    + " stand observations in XML data.")
+                logger.info(f"Found {self.stand_stats['count']} stand observations in XML data.")
             if self.step_stats["count"] > 0:
-                print("Found " + str(self.step_stats["count"])
-                    + " step observations in XML data.")
+                logger.info(f"Found {self.step_stats['count']} step observations in XML data.")
             if self.temperature_stats["count"] > 0:
-                print("Found " + str(self.temperature_stats["count"])
-                    + " temperature observations in XML data.")
+                logger.info(f"Found {self.temperature_stats['count']} temperature observations in XML data.")
 
 
 class AppleHealthXMLParser:
@@ -113,7 +107,7 @@ class AppleHealthXMLParser:
         self.start_year = args.start_year
 
     def parse(self, export_xml_file_path):
-        print("Parsing XML...")
+        logger.info("Parsing XML...")
         try:
             tree = ET.parse(export_xml_file_path)
             root = tree.getroot()
@@ -148,8 +142,7 @@ class AppleHealthXMLParser:
                                 correlation.attrib["startDate"], self.datetime_format)
                         except Exception:
                             if self.verbose:
-                                print(
-                                    "Exception on constructing date from XML observation")
+                                logger.error("Exception on constructing date from XML observation")
                         if self.start_year is not None and self.start_year > time.year:
                             continue
                     else:
@@ -165,7 +158,7 @@ class AppleHealthXMLParser:
                             diastolic = int(rec.attrib["value"])
                     if systolic is None or diastolic is None:
                         if self.verbose:
-                            print("Missing both systolic and diastolic for blood pressure observation in XML data")
+                            logger.warning("Missing both systolic and diastolic for blood pressure observation in XML data")
                         continue
                     if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
                         AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
@@ -210,7 +203,7 @@ class AppleHealthXMLParser:
                             rec.attrib["startDate"], self.datetime_format)
                     except Exception:
                         if self.verbose:
-                            print("Exception on constructing date from XML observation")
+                            logger.error("Exception on constructing date from XML observation")
                     if self.start_year is not None and self.start_year > time.year:
                         continue
                 else:
@@ -223,8 +216,8 @@ class AppleHealthXMLParser:
                                         rec.attrib["unit"]), value)
                         except Exception as e:
                             if self.verbose:
-                                print(e)
-                                print(rec.attrib["unit"])
+                                logger.error(f"Error converting height unit: {e}")
+                                logger.error(f"Unit: {rec.attrib['unit']}")
                             continue
                     else:
                         continue
@@ -238,8 +231,8 @@ class AppleHealthXMLParser:
                                         rec.attrib["unit"]), value)
                         except Exception as e:
                             if self.verbose:
-                                print(e)
-                                print(rec.attrib["unit"])
+                                logger.error(f"Error converting weight unit: {e}")
+                                logger.error(f"Unit: {rec.attrib['unit']}")
                             continue
                     else:
                         continue
@@ -301,8 +294,8 @@ class AppleHealthXMLParser:
                                     self.normal_temperature_unit, value)
                         except Exception as e:
                             if self.verbose:
-                                print(e)
-                                print(rec.attrib["unit"])
+                                logger.error(f"Error converting temperature unit: {e}")
+                                logger.error(f"Unit: {rec.attrib['unit']}")
                             continue
                     else:
                         try:
@@ -311,7 +304,7 @@ class AppleHealthXMLParser:
                                     self.normal_temperature_unit, value)
                         except Exception as e:
                             if self.verbose:
-                                print(e)
+                                logger.error(f"Error converting temperature unit: {e}")
                             continue
                     if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
                         AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
@@ -331,9 +324,9 @@ class AppleHealthXMLParser:
                 heart_rate_observations, heart_rate_count, heart_rate_sum)
 
         except Exception as e:
-            print("An exception occurred in parsing XML export files.")
+            logger.error("An exception occurred in parsing XML export files.")
             if self.verbose:
-                print(e)
+                logger.error(f"Error details: {e}")
             else:
-                print("For more detail on the error run in verbose mode.")
+                logger.error("For more detail on the error run in verbose mode.")
             exit(1)

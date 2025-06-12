@@ -8,7 +8,9 @@ import traceback
 
 from data.result import get_interpretation_keys, get_interpretation_text
 from reporting.report import Report
+from utils.logger import setup_logger
 
+logger = setup_logger('reporter')
 
 class Reporter:
     def __init__(self, verbose=False):
@@ -20,9 +22,7 @@ class Reporter:
                 with open(filepath, "w") as textfile:
                     line = "|----- Laboratory Abnormal Results from Apple Health Data by Code -----|"
                     if self.verbose:
-                        print("\n")
-                        print(line)
-                        print("\n")
+                        logger.info("\n" + line + "\n")
                     textfile.write(line)
                     textfile.write("\n\n")
                     for code in sorted(data.observation_code_ids):
@@ -31,7 +31,7 @@ class Reporter:
                                 results = data.abnormal_results[code_id]
                                 line = "Abnormal results found for code " + code + ":"
                                 if self.verbose:
-                                    print(line)
+                                    logger.info(line)
                                 textfile.write(line)
                                 textfile.write("\n")
                                 for observation in sorted(results, key=operator.attrgetter("date")):
@@ -46,21 +46,19 @@ class Reporter:
                                         line = (observation.date + ": " + interpretation
                                                 + " - observed " + value_string)
                                     if self.verbose:
-                                        print(line)
+                                        logger.info(line)
                                     textfile.write(line)
                                     textfile.write("\n")
                                 if self.verbose:
-                                    print("")
+                                    logger.info("")
                                 textfile.write("\n")
-                print("Abnormal laboratory results data from Apple Health saved to "
-                    + filepath)
+                logger.info(f"Abnormal laboratory results data from Apple Health saved to {filepath}")
             except Exception as e:
-                print("An error occurred in writing abnormal results data.")
+                logger.error("An error occurred in writing abnormal results data.")
                 if self.verbose:
-                    traceback.print_exc()
+                    logger.error(traceback.format_exc())
         else:
-            print("No abnormal results found from current data")
-
+            logger.info("No abnormal results found from current data")
 
     def report_abnormal_results_by_interpretation(self, filepath, data, args):
         # Log abnormal results by interpretation class, code, date
@@ -101,12 +99,11 @@ class Reporter:
                                     row.append("")
                             data.abnormal_result_interpretations_by_code[code] = code_interpretations
                             filewriter.writerow(row)
-                print("Abnormal laboratory results data from Apple Health sorted by "
-                    + "interpretation saved to " + filepath)
+                logger.info(f"Abnormal laboratory results data from Apple Health sorted by interpretation saved to {filepath}")
             except Exception as e:
-                print("An error occurred in writing abnormal results data.")
+                logger.error("An error occurred in writing abnormal results data.")
                 if self.verbose:
-                    traceback.print_exc()
+                    logger.error(traceback.format_exc())
 
     def report_abnormal_results_by_date(self, filepath, data):
         # Write abnormal results by datecode to spreadsheet
@@ -141,13 +138,13 @@ class Reporter:
                                 row.append("")
                         if abnormal_result_found:
                             filewriter.writerow(row)
-                print("Abnormal laboratory results data from Apple Health saved to " + filepath)
+                logger.info(f"Abnormal laboratory results data from Apple Health saved to {filepath}")
             except Exception as e:
-                print("An error occurred in writing abnormal results data to CSV.")
+                logger.error("An error occurred in writing abnormal results data to CSV.")
                 if self.verbose:
-                    traceback.print_exc()
+                    logger.error(traceback.format_exc())
         else:
-            print("No abnormal results found from current data")
+            logger.info("No abnormal results found from current data")
 
     def report_all_data_by_datecode(self, filepath, data):
         # Write all data by datecode to spreadsheet
@@ -187,11 +184,11 @@ class Reporter:
                             if date in data.reference_dates:
                                 row.append("")
                     filewriter.writerow(row)
-            print("Laboratory records data from Apple Health saved to " + filepath)
+            logger.info(f"Laboratory records data from Apple Health saved to {filepath}")
         except Exception as e:
-            print("An error occurred in writing observations data to CSV.")
+            logger.error("An error occurred in writing observations data to CSV.")
             if self.verbose:
-                traceback.print_exc()
+                logger.error(traceback.format_exc())
             exit(1)
 
     def report_all_data_json_and_pdf(self, include_observations, filepath, data_export_dir, data, xml_data, symptom_data, vital_stats_graph, food_data, custom_data_files, args):
@@ -253,13 +250,12 @@ class Reporter:
 
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(json_data, f, cls=DateTimeEncoder, ensure_ascii=False, indent=4)
-            print("Laboratory records data from Apple Health saved to " + filepath)
+            logger.info(f"Laboratory records data from Apple Health saved to {filepath}")
         except Exception as e:
-            print("An error occurred in writing observations data to JSON.")
+            logger.error("An error occurred in writing observations data to JSON.")
             if self.verbose:
-                traceback.print_exc()
-            if self.verbose:
-                print(e)
+                logger.error(traceback.format_exc())
+                logger.error(str(e))
             exit(1)
 
         # Write observations data to PDF report
@@ -270,16 +266,15 @@ class Reporter:
             report = Report(data_export_dir, args.subject, json_data["meta"]["processTime"][:10],
                             self.verbose, args.report_highlight_abnormal_results)
             report.create_pdf(json_data, data, symptom_data, vital_stats_graph, food_data)
-            print("Results report saved to " + os.path.join(data_export_dir, report.filename))
+            logger.info(f"Results report saved to {os.path.join(data_export_dir, report.filename)}")
         except Exception as e:
-            print("An error occurred in writing observations data to PDF report.")
+            logger.error("An error occurred in writing observations data to PDF report.")
             if self.verbose:
-                traceback.print_exc()
-            if self.verbose:
-                print(e)
+                logger.error(traceback.format_exc())
+                logger.error(str(e))
             exit(1)
 
         if self.verbose and len(custom_data_files) > 0:
-            print("\nThe compiled information includes some custom data not exported from Apple Health:")
+            logger.info("\nThe compiled information includes some custom data not exported from Apple Health:")
             for filename in custom_data_files:
-                print(filename)
+                logger.info(filename)

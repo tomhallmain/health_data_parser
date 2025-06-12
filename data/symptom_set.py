@@ -6,7 +6,9 @@ import matplotlib.dates as mdates
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
+from utils.logger import setup_logger
 
+logger = setup_logger('symptom_set')
 
 markers = [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p",
            "P", "*", "h", "H", "+", "x", "X", "D", "d", "|", "_",
@@ -82,10 +84,9 @@ class SymptomSet:
         if (os.path.exists(self.symptom_data_loc)
                 and self.symptom_data_loc[-4:] == ".csv"):
             if self.verbose:
-                print("Using symptom data file: " + self.symptom_data_loc)
+                logger.info(f"Using symptom data file: {self.symptom_data_loc}")
         else:
-            print("WARNING: Symptom data CSV file " + self.symptom_data_loc
-                  + " is invalid, skipping symptom analysis.")
+            logger.warning(f"Symptom data CSV file {self.symptom_data_loc} is invalid, skipping symptom analysis.")
             return
 
         try:
@@ -100,11 +101,11 @@ class SymptomSet:
                     try:
                         symptom = Symptom(row)
                         # if self.verbose:
-                        #     print("Added symptom: " + str(symptom))
+                        #     logger.info(f"Added symptom: {str(symptom)}")
                     except Exception as e:
                         all_symptom_records_valid = False
                         if self.verbose:
-                            print(e)
+                            logger.error(str(e))
                     if (symptom is None
                             or (symptom.end_date is not None
                                 and symptom.end_date.year < self.start_year)):
@@ -119,18 +120,15 @@ class SymptomSet:
                     self.record_count += 1
         except Exception as e:
             if verbose:
-                print(e)
-            print("WARNING: Failed to parse symptom data CSV file "
-                  + self.symptom_data_loc + ", ensure the file is consistent"
-                  + " with sample - skipping symptom reporting.")
+                logger.error(str(e))
+            logger.warning(f"Failed to parse symptom data CSV file {self.symptom_data_loc}, ensure the file is consistent with sample - skipping symptom reporting.")
             return
 
         self.dates_recorded.sort()
         self.severities.sort()
 
         if not all_symptom_records_valid:
-            print("WARNING: Some symptom records were invalid and could not"
-                  + " be processed - ensure file is consistent with sample.")
+            logger.warning("Some symptom records were invalid and could not be processed - ensure file is consistent with sample.")
 
     def has_both_resolved_and_unresolved_symptoms(self):
         return any([not symptom.is_resolved for symptom in self.symptoms]) \

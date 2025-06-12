@@ -10,6 +10,9 @@ import uuid
 from data.labtest import LabTest
 from data.observation import Observation
 from data.result import get_interpretation_keys, get_interpretation_text
+from utils.logger import setup_logger
+
+logger = setup_logger('diagnostic_report_generator')
 
 help_text = """
 Usage:
@@ -26,16 +29,14 @@ Usage:
 
 def validate_csv_file(observation_data_csv: str, in_script: bool):
     if observation_data_csv is None or observation_data_csv == "":
-        print("Missing custom observation results CSV file.")
+        logger.error("Missing custom observation results CSV file.")
         if in_script:
             print(help_text)
         exit(1)
     elif (not os.path.exists(observation_data_csv)
           or os.path.isdir(observation_data_csv)
           or observation_data_csv[-4:] != ".csv"):
-        print(os.path.exists(observation_data_csv))
-        print("Custom observation results CSV file \""
-              + observation_data_csv + "\" is invalid.")
+        logger.error(f"Custom observation results CSV file \"{observation_data_csv}\" is invalid.")
         if in_script:
             print(help_text)
         exit(1)
@@ -132,12 +133,11 @@ def save_reports_to_json(reports, base_dir, verbose):
         try:
             file_data = json.load(open(_file))
             if "id" in file_data and file_data["id"] in reports:
-                print(
-                    "WARNING: Removing previous version of custom DiagnosticReport: " + _file)
+                logger.warning(f"Removing previous version of custom DiagnosticReport: {_file}")
                 os.remove(_file)
         except Exception as e:
             if verbose:
-                print(e)
+                logger.error(str(e))
 
     for report_id in reports:
         try:
@@ -149,7 +149,7 @@ def save_reports_to_json(reports, base_dir, verbose):
             with open(report_path, 'w', encoding='utf-8') as f:
                 json.dump(report, f, ensure_ascii=False, indent=2)
                 if verbose:
-                    ("Saved file: " + report_path)
+                    logger.info(f"Saved file: {report_path}")
             has_saved_report = True
 
             # Validate contained observations
@@ -162,12 +162,12 @@ def save_reports_to_json(reports, base_dir, verbose):
                 i += 1
         except Exception as e:
             if verbose:
-                traceback.print_exc()
-                print(e)
+                logger.error(traceback.format_exc())
+                logger.error(str(e))
             has_error_in_report = True
 
     if not has_saved_report:
-        print("No reports were saved.")
+        logger.warning("No reports were saved.")
 
     return not has_error_in_report
 
@@ -243,15 +243,14 @@ def generate_diagnostic_report_files(observation_data_csv: str, base_dir: str,
                 reports[report_id] = report
 
             if not have_seen_past_header:
-                print("WARNING: No observations data found in "
-                      + observation_data_csv)
+                logger.warning(f"No observations data found in {observation_data_csv}")
                 return False
 
         return save_reports_to_json(reports, base_dir, verbose)
     except Exception as e:
         if verbose:
-            traceback.print_exc()
-            print(e)
+            logger.error(traceback.format_exc())
+            logger.error(str(e))
         return False
 
 
@@ -264,11 +263,11 @@ if __name__ == "__main__":
     data_export_dir = sys.argv[1]
 
     if data_export_dir == None or data_export_dir == "":
-        print("Missing Apple Health data export directory path.")
+        logger.error("Missing Apple Health data export directory path.")
         print(help_text)
         exit(1)
     elif not os.path.exists(data_export_dir) or not os.path.isdir(data_export_dir):
-        print("Apple Health data export directory path \"" + data_export_dir + "\" is invalid.")
+        logger.error("Apple Health data export directory path \"" + data_export_dir + "\" is invalid.")
         print(help_text)
         exit(1)
     '''
@@ -288,6 +287,6 @@ if __name__ == "__main__":
 
     if generate_diagnostic_report_files(observation_data_csv, base_dir, verbose, True):
         if verbose:
-            print("All requested diagnostic report files generated.")
+            logger.info("All requested diagnostic report files generated.")
     else:
-        print("An error occurred in writing custom observations data to Diagnostic Report format JSON.")
+        logger.error("An error occurred in writing custom observations data to Diagnostic Report format JSON.")

@@ -1,5 +1,8 @@
 from datetime import datetime
 from enum import Enum
+from utils.logger import setup_logger
+
+logger = setup_logger('units')
 
 
 class VitalSignCategory(Enum):
@@ -41,7 +44,7 @@ class HeightUnit(Enum):
             elif value in "CENTIMETERS" and "CENTIMETERS".index(value) == 0:
                 return HeightUnit.CM
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return None
 
 
@@ -68,7 +71,7 @@ class WeightUnit(Enum):
             elif value in "GRAMS" and "GRAMS".index(value) == 0:
                 return WeightUnit.G
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return None
 
 
@@ -97,7 +100,7 @@ class TemperatureUnit(Enum):
             elif value in "CELCIUS" and "CELCIUS".index(value) == 0:
                 return TemperatureUnit.C
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return None
 
     def convertTo(self, temperatureUnit, value):
@@ -122,8 +125,7 @@ def calculate_bmi(normalized_height: float, normalized_weight: float,
         raise Exception("Invalid height in meters provided to calculate_bmi - would create division by zero error")
     bmi = round(weight_kilos / divisor, 2)
     if verbose:
-        print(f"Calculated BMI {bmi} ({round(weight_kilos, 2)}" + \
-              f" kg / {round(height_meters, 2)} m^2)")
+        logger.info(f"Calculated BMI {bmi} ({round(weight_kilos, 2)} kg / {round(height_meters, 2)} m^2)")
     return bmi
 
 

@@ -7,6 +7,9 @@ from tkinter import ttk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
+from utils.logger import setup_logger
+
+logger = setup_logger('statistics_window')
 
 class StatisticsWindow:
     def __init__(self, parent, data_dir):
@@ -67,7 +70,7 @@ class StatisticsWindow:
                 self.abnormal_df = pd.DataFrame()
                 
         except Exception as e:
-            print(f"Error loading data: {str(e)}")
+            logger.error(f"Error loading data: {str(e)}")
             self.json_data = {}
             self.df = pd.DataFrame()
             self.abnormal_df = pd.DataFrame()
