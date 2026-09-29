@@ -1,3 +1,4 @@
+*.log
 *.swp
 __pycache__/
 data/my_data/*

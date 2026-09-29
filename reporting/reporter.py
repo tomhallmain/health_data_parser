@@ -8,6 +8,7 @@ import traceback
 
 from data.result import get_interpretation_keys, get_interpretation_text
 from reporting.report import Report
+from utils.errors import HealthDataParseError
 from utils.logger import setup_logger
 
 logger = setup_logger('reporter')
@@ -186,10 +187,9 @@ class Reporter:
                     filewriter.writerow(row)
             logger.info(f"Laboratory records data from Apple Health saved to {filepath}")
         except Exception as e:
-            logger.error("An error occurred in writing observations data to CSV.")
             if self.verbose:
                 logger.error(traceback.format_exc())
-            exit(1)
+            raise HealthDataParseError("An error occurred in writing observations data to CSV.") from e
 
     def report_all_data_json_and_pdf(self, include_observations, filepath, data_export_dir, data, xml_data, symptom_data, vital_stats_graph, food_data, custom_data_files, args):
         # Write simplified observations data to JSON
@@ -252,11 +252,9 @@ class Reporter:
                 json.dump(json_data, f, cls=DateTimeEncoder, ensure_ascii=False, indent=4)
             logger.info(f"Laboratory records data from Apple Health saved to {filepath}")
         except Exception as e:
-            logger.error("An error occurred in writing observations data to JSON.")
             if self.verbose:
                 logger.error(traceback.format_exc())
-                logger.error(str(e))
-            exit(1)
+            raise HealthDataParseError(f"An error occurred in writing observations data to JSON: {e}") from e
 
         # Write observations data to PDF report
 
@@ -268,11 +266,9 @@ class Reporter:
             report.create_pdf(json_data, data, symptom_data, vital_stats_graph, food_data)
             logger.info(f"Results report saved to {os.path.join(data_export_dir, report.filename)}")
         except Exception as e:
-            logger.error("An error occurred in writing observations data to PDF report.")
             if self.verbose:
                 logger.error(traceback.format_exc())
-                logger.error(str(e))
-            exit(1)
+            raise HealthDataParseError(f"An error occurred in writing observations data to PDF report: {e}") from e
 
         if self.verbose and len(custom_data_files) > 0:
             logger.info("\nThe compiled information includes some custom data not exported from Apple Health:")

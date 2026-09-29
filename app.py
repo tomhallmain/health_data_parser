@@ -1,14 +1,16 @@
-import os
-import json
 import csv
+import os
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
-import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from parse_data import HealthDataParseArgs, DataParser
+from ui.statistics_data import (
+    OBSERVATIONS_JSON_FILENAME, load_observations_json, summary_lines,
+    observation_counts_by_year, abnormal_counts_by_interpretation)
 from ui.statistics_window import StatisticsWindow
 from ui.symptom_window import SymptomWindow
 
@@ -172,48 +174,59 @@ class HealthDataParserUI:
             parser.run()
             
             # Update statistics and graphs
-            self.update_statistics()
+            self.update_statistics(parse_args.data_export_dir)
             
             self.show_message("Success", "Report generated successfully!")
             
         except Exception as e:
             self.show_message("Error", f"Failed to generate report: {str(e)}", "error")
             
-    def update_statistics(self):
+    def update_statistics(self, data_dir):
         # Clear existing content
         self.stats_text.delete(1.0, tk.END)
-        
+        for widget in self.graph_frame.winfo_children():
+            widget.destroy()
+
         # Read and display statistics from the generated files
         try:
-            if os.path.exists(parse_args.all_data_json):
-                with open(parse_args.all_data_json, 'r') as f:
-                    data = json.load(f)
-                    self.stats_text.insert(tk.END, "Statistics:\n\n")
-                    self.stats_text.insert(tk.END, f"Total Observations: {len(data.get('observations', []))}\n")
-                    # Add more statistics as needed
-                    
-            # Clear existing graphs
-            for widget in self.graph_frame.winfo_children():
-                widget.destroy()
-                
-            # Create and display new graphs
-            self.create_graphs()
-            
+            json_data = load_observations_json(data_dir)
+            if not json_data:
+                self.stats_text.insert(tk.END, f"No {OBSERVATIONS_JSON_FILENAME} found in {data_dir}\n")
+                return
+
+            self.stats_text.insert(tk.END, "Statistics:\n\n")
+            self.stats_text.insert(tk.END, "\n".join(summary_lines(json_data)) + "\n")
+
+            self.create_graphs(json_data)
+
         except Exception as e:
             self.stats_text.insert(tk.END, f"Error loading statistics: {str(e)}")
-            
-    def create_graphs(self):
-        # Create a sample figure with subplots
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-        
-        # Add sample data visualization
-        # This should be replaced with actual data visualization from the parsed files
-        ax1.plot([1, 2, 3, 4, 5], [2, 4, 6, 8, 10])
-        ax1.set_title("Sample Graph 1")
-        
-        ax2.plot([1, 2, 3, 4, 5], [1, 3, 5, 7, 9])
-        ax2.set_title("Sample Graph 2")
-        
+
+    def create_graphs(self, json_data):
+        counts_by_year = observation_counts_by_year(json_data)
+        abnormal_by_interpretation = abnormal_counts_by_interpretation(json_data)
+
+        # A standalone Figure is not registered with pyplot, so figures from
+        # previous report runs are freed when their canvas widget is destroyed.
+        fig = Figure(figsize=(8, 8))
+        ax1, ax2 = fig.subplots(2, 1)
+
+        ax1.bar([year for year, _ in counts_by_year], [count for _, count in counts_by_year])
+        ax1.set_title("Observations by Year")
+        ax1.set_ylabel("Observations")
+        if not counts_by_year:
+            ax1.text(0.5, 0.5, "No observations", ha="center", va="center", transform=ax1.transAxes)
+
+        ax2.bar([text for text, _ in abnormal_by_interpretation],
+                [count for _, count in abnormal_by_interpretation], color="tab:red")
+        ax2.set_title("Abnormal Results by Interpretation")
+        ax2.set_ylabel("Results")
+        ax2.tick_params(axis="x", labelrotation=20)
+        if not abnormal_by_interpretation:
+            ax2.text(0.5, 0.5, "No abnormal results", ha="center", va="center", transform=ax2.transAxes)
+
+        fig.tight_layout()
+
         # Embed the figure in the Tkinter window
         canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
         canvas.draw()
@@ -234,7 +247,7 @@ class HealthDataParserUI:
         """Open the symptom management window"""
         if not self.symptom_data.get():
             # Use default file path in data/my_data directory
-            default_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "my_data")
+            default_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "my_data")
             os.makedirs(default_dir, exist_ok=True)
             default_file = os.path.join(default_dir, "symptom_set.csv")
             self.symptom_data.set(default_file)

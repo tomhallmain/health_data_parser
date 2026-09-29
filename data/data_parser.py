@@ -12,6 +12,7 @@ from data.units import convert, calculate_bmi, set_stats
 from generate_diagnostic_report_files import generate_diagnostic_report_files
 from reporting.graph import VitalsStatsGraph
 from reporting.reporter import Reporter
+from utils.errors import HealthDataParseError
 from utils.logger import setup_logger
 
 # Set up logger
@@ -72,24 +73,22 @@ class DataParser:
         if self.args.extra_observations_csv is not None:
             self.custom_data_files.append(self.args.extra_observations_csv)
             if not generate_diagnostic_report_files(self.args.extra_observations_csv, self.base_dir, self.verbose, False):
-                exit(1)
+                raise HealthDataParseError(
+                    "Failed to convert extra observations data "
+                    f"\"{self.args.extra_observations_csv}\" to diagnostic report files.")
 
         if self.food_data_csv is not None:
             try:
                 self.food_data = FoodData(self.food_data_csv, self.verbose)
                 if self.food_data.to_print:
                     self.food_data.save_most_common_foods_chart(80, self.data_export_dir)
-                    if self.food_data.to_print:
-                        self.custom_data_files.append(self.food_data_csv)
-                    else:
-                        exit(1)
-                else:
-                    exit(1)
             except Exception as e:
                 if self.verbose:
                     logger.error(f"Error processing food data: {e}")
-                logger.error("Failed to assemble or analyze food data provided.")
-                exit(1)
+                raise HealthDataParseError("Failed to assemble or analyze food data provided.") from e
+            if not self.food_data.to_print:
+                raise HealthDataParseError("Failed to assemble or analyze food data provided.")
+            self.custom_data_files.append(self.food_data_csv)
 
         if self.symptom_data_csv is not None:
             try:
@@ -101,15 +100,14 @@ class DataParser:
                     if self.symptom_data.has_both_resolved_and_unresolved_symptoms():
                         self.symptom_data.generate_chart_data(include_historical_symptoms=False)
                         self.symptom_data.save_chart(30, self.data_export_dir, unresolved_only=True)
-                    if self.symptom_data.to_print:
-                        self.custom_data_files.append(self.symptom_data_csv)
-                    else:
-                        exit(1)
             except Exception as e:
                 if self.verbose:
                     logger.error(f"Error processing symptom data: {e}")
-                logger.error("Failed to assemble symptom data provided.")
-                exit(1)
+                raise HealthDataParseError("Failed to assemble symptom data provided.") from e
+            if len(self.symptom_data.symptoms) > 0:
+                if not self.symptom_data.to_print:
+                    raise HealthDataParseError("Failed to assemble symptom data provided.")
+                self.custom_data_files.append(self.symptom_data_csv)
 
     def process_xml_data(self):
         ## PROCESS APPLE HEALTH XML DATA
@@ -267,8 +265,7 @@ class DataParser:
             logger.info("\nProcessing complete, writing data to files...\n")
 
         if include_observations and len(self.observations_data.observations) == 0:
-            logger.error("No relevant laboratory records found in exported Apple Health data")
-            exit(1)
+            raise HealthDataParseError("No relevant laboratory records found in exported Apple Health data")
 
         if len(self.custom_data_files) > 0:
             logger.info("\nThe compiled information includes some custom data not exported from Apple Health:")

@@ -10,6 +10,7 @@ import uuid
 from data.labtest import LabTest
 from data.observation import Observation
 from data.result import get_interpretation_keys, get_interpretation_text
+from utils.errors import HealthDataParseError
 from utils.logger import setup_logger
 
 logger = setup_logger('diagnostic_report_generator')
@@ -27,19 +28,14 @@ Usage:
 """
 
 
-def validate_csv_file(observation_data_csv: str, in_script: bool):
+def validate_csv_file(observation_data_csv: str):
     if observation_data_csv is None or observation_data_csv == "":
-        logger.error("Missing custom observation results CSV file.")
-        if in_script:
-            print(help_text)
-        exit(1)
+        raise HealthDataParseError("Missing custom observation results CSV file.")
     elif (not os.path.exists(observation_data_csv)
           or os.path.isdir(observation_data_csv)
           or observation_data_csv[-4:] != ".csv"):
-        logger.error(f"Custom observation results CSV file \"{observation_data_csv}\" is invalid.")
-        if in_script:
-            print(help_text)
-        exit(1)
+        raise HealthDataParseError(
+            f"Custom observation results CSV file \"{observation_data_csv}\" is invalid.")
 
 
 def generate_report_id(subject: str, performer: str, date: str, report_desc: str):
@@ -176,7 +172,12 @@ def generate_diagnostic_report_files(observation_data_csv: str, base_dir: str,
                                      verbose: bool, in_script: bool):
     reports = {}
 
-    validate_csv_file(observation_data_csv, in_script)
+    try:
+        validate_csv_file(observation_data_csv)
+    except HealthDataParseError:
+        if in_script:
+            print(help_text)
+        raise
 
     try:
         with open(observation_data_csv, "r") as csvfile:
@@ -285,7 +286,13 @@ if __name__ == "__main__":
             elif command == "-v" or command == "--verbose":
                 verbose = True
 
-    if generate_diagnostic_report_files(observation_data_csv, base_dir, verbose, True):
+    try:
+        succeeded = generate_diagnostic_report_files(observation_data_csv, base_dir, verbose, True)
+    except HealthDataParseError as e:
+        logger.error(str(e))
+        sys.exit(1)
+
+    if succeeded:
         if verbose:
             logger.info("All requested diagnostic report files generated.")
     else:

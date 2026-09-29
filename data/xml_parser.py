@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 
 from data.units import VitalSignCategory, HeightUnit, WeightUnit, TemperatureUnit
 from data.units import convert, get_age, base_stats, set_stats
+from utils.errors import HealthDataParseError
 from utils.logger import setup_logger
 
 # Set up logger
@@ -324,9 +325,7 @@ class AppleHealthXMLParser:
                 heart_rate_observations, heart_rate_count, heart_rate_sum)
 
         except Exception as e:
-            logger.error("An exception occurred in parsing XML export files.")
             if self.verbose:
                 logger.error(f"Error details: {e}")
-            else:
-                logger.error("For more detail on the error run in verbose mode.")
-            exit(1)
+            raise HealthDataParseError(
+                f"An exception occurred in parsing XML export files: {e}") from e

@@ -5,6 +5,7 @@ import sys
 
 from data.data_parser import DataParser
 from data.units import HeightUnit, WeightUnit, TemperatureUnit, get_age
+from utils.errors import HealthDataParseError
 from utils.logger import setup_logger
 
 logger = setup_logger('parse_data')
@@ -12,13 +13,10 @@ logger = setup_logger('parse_data')
 class HealthDataParseArgs:
     def __init__(self, data_export_dir):
         if data_export_dir is None or data_export_dir == "":
-            logger.error("Missing Apple Health data export directory path.")
-            print(help_text)
-            exit(1)
+            raise HealthDataParseError("Missing Apple Health data export directory path.")
         elif not os.path.exists(data_export_dir) or not os.path.isdir(data_export_dir):
-            logger.error(f"Apple Health data export directory path \"{data_export_dir}\" is invalid.")
-            print(help_text)
-            exit(1)
+            raise HealthDataParseError(
+                f"Apple Health data export directory path \"{data_export_dir}\" is invalid.")
 
         self.data_export_dir = data_export_dir
         self.datetime_format = "%Y-%m-%d %X %z"
@@ -53,9 +51,9 @@ class HealthDataParseArgs:
         self.base_dir = os.path.join(self.data_export_dir, "clinical-records")
 
         if not os.path.exists(self.base_dir) or len(os.listdir(self.base_dir)) == 0:
-            logger.error(f"Folder \"clinical-records\" not found in export folder \"{data_export_dir}\".")
-            logger.error("Ensure data has been connected to Apple Health before export.")
-            exit(1)
+            raise HealthDataParseError(
+                f"Folder \"clinical-records\" not found in export folder \"{data_export_dir}\". "
+                "Ensure data has been connected to Apple Health before export.")
 
 
 help_text = """
@@ -127,7 +125,12 @@ if __name__ == "__main__":
         exit()
 
     data_export_dir = sys.argv[1]
-    parse_args = HealthDataParseArgs(data_export_dir)
+    try:
+        parse_args = HealthDataParseArgs(data_export_dir)
+    except HealthDataParseError as e:
+        logger.error(str(e))
+        print(help_text)
+        sys.exit(1)
     COMMANDS = sys.argv[2:]
 
 
@@ -228,7 +231,11 @@ if __name__ == "__main__":
             assert False, "unhandled option"
 
     parser = DataParser(parse_args)
-    if parse_args.custom_only:
-        parser.create_custom_report()
-    else:
-        parser.run()
+    try:
+        if parse_args.custom_only:
+            parser.create_custom_report()
+        else:
+            parser.run()
+    except HealthDataParseError as e:
+        logger.error(str(e))
+        sys.exit(1)

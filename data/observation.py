@@ -195,7 +195,7 @@ class Observation:
         out["observationId"] = _id
         out["date"] = self.date
         out["category"] = self.category
-        if self.test_index in tests:
+        if 0 <= self.test_index < len(tests):
             out["testMeta"] = tests[self.test_index].to_dict()
         result = {}
         result["valueString"] = self.value_string
