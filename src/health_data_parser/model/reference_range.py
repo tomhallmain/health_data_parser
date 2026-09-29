@@ -6,7 +6,7 @@ class Result:
                  abnormal_boundary: float, range_data: list, value,
                  value_string: str, unit: str, check_units_match: bool):
         self.range_text = range_data[0]["text"]
-        self.range_pat = r"(\d[\d,]*\.\d+|\d[\d,]+) *(-|–) *(\d[\d,]*\.\d+|\d[\d,]*)"
+        self.range_pat = r"(\d[\d,]*\.\d+|\d[\d,]*) *(-|–) *(\d[\d,]*\.\d+|\d[\d,]*)"
 
         if (self.range_text is None
                 or self.range_text == ""

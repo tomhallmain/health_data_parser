@@ -131,9 +131,6 @@ class TestObservationVital:
         assert obs.value_string == "120.0/80.0 mm[Hg]"
         assert obs.vital_sign_category is None
 
-    @pytest.mark.xfail(raises=AttributeError,
-                       reason="Known bug: value2 is never initialized, so a missing diastolic "
-                              "component raises AttributeError instead of the intended ValueError")
     def test_blood_pressure_missing_component(self, make_blood_pressure_observation):
         data = make_blood_pressure_observation()
         data["component"] = data["component"][:1]

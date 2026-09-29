@@ -83,7 +83,8 @@ class pdf_creator:
 
     def _get_table(self, data: list, extra_style_commands: list):
         style = self._get_table_style(extra_style_commands)
-        table = Table(data=data, style=style)
+        # The first row is a header, repeated when a table is split across pages
+        table = Table(data=data, style=style, repeatRows=1)
         table.wrapOn(self.file, 0, 0)
         return table
 
@@ -102,12 +103,26 @@ class pdf_creator:
             if self.verbose:
                 logger.info(f"Reduced leading to {self.leading} to reach table width {table._width}")
 
-        # TODO handle new page
-
-        end_y = self.height - table._height
-
         if x < 0:
             x = self.start_x
+
+        # Still too tall at the smallest leading: draw what fits above the
+        # bottom margin and continue on new pages
+        while self.height - table._height < 50:
+            parts = table.split(table._width, self.height - 50)
+            if len(parts) < 2:
+                if self.height == self.start_height:
+                    # Not even one row fits on an empty page
+                    break
+                self.add_page()
+                continue
+            first, table = parts
+            first.wrapOn(self.file, 0, 0)
+            first.drawOn(self.file, x, self.height - first._height)
+            self.add_page()
+            table.wrapOn(self.file, 0, 0)
+
+        end_y = self.height - table._height
 
         if self.verbose:
             logger.info("Table dims: ({}, {})".format(table._height, table._width))

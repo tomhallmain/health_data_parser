@@ -109,15 +109,10 @@ class TestAppleHealthXMLParser:
                             record("HeartRate", 70), start_year=2020)
         assert [obs["value"] for obs in data.pulse_stats["list"]] == [70.0]
 
-    @pytest.mark.xfail(reason="Known bug: a record whose startDate fails to parse reuses the "
-                              "previous record's time")
     def test_unparseable_date_after_valid_record_is_skipped(self, parse_xml):
         data, _ = parse_xml(record("HeartRate", 60), record("HeartRate", 70, date="not a date"))
         assert [obs["value"] for obs in data.pulse_stats["list"]] == [60.0]
 
-    @pytest.mark.xfail(raises=HealthDataParseError,
-                       reason="Known bug: an unparseable startDate on the first record leaves "
-                              "`time` unbound, which aborts the whole parse")
     def test_unparseable_date_on_first_record_is_skipped(self, parse_xml):
         data, _ = parse_xml(record("HeartRate", 60, date="not a date"), record("HeartRate", 70))
         assert [obs["value"] for obs in data.pulse_stats["list"]] == [70.0]

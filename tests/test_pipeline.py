@@ -65,10 +65,8 @@ def pdf_reports(monkeypatch):
 
 
 def read_csv(path):
-    # Blank rows are dropped: on Windows the reporter's CSVs contain one between
-    # every row (see test_csv_row_endings)
     with open(path, newline="", encoding="utf-8") as f:
-        return [row for row in csv.reader(f) if row]
+        return list(csv.reader(f))
 
 
 def vital(json_data, name):
@@ -120,11 +118,9 @@ class TestFullRun:
         # Per-reading lists are only kept with --json_add_all_vitals
         assert all("list" not in v for v in json_data["vitalSigns"])
 
-    @pytest.mark.xfail(reason="Known bug: clinical-records temperatures are normalized to Celsius "
-                              "but labeled with the source unit")
     def test_temperature_unit_matches_normalized_values(self, run_output):
         _, json_data = run_output
-        assert vital(json_data, "Temperature")["unit"] in ("C", "°C", "Cel", "degC")
+        assert vital(json_data, "Temperature")["unit"] == "C"
 
     def test_abnormal_results_by_code_text(self, run_output):
         export, _ = run_output
@@ -146,9 +142,6 @@ class TestFullRun:
         assert rows[0][1:] == ["2023-04-05"]
         assert rows[1:] == [["Glucose", "105 mg/dL +++"], ["Hemoglobin", "13.6 g/dL --"]]
 
-    @pytest.mark.xfail(sys.platform == "win32",
-                       reason="Known bug: Reporter opens CSVs without newline='', so on Windows "
-                              "rows end in \\r\\r\\n and show as blank lines between rows")
     @pytest.mark.parametrize("name", ["observations.csv", "abnormal_results.csv",
                                       "abnormal_results_by_interpretation.csv"])
     def test_csv_row_endings(self, run_output, name):

@@ -12,42 +12,19 @@ logger = setup_logger('report')
 # Assumes newlines not already present
 
 def _wrap_text_to_fit_length(text: str, fit_length: int):
-    if len(text) <= fit_length:
-        return text
-
-    if " " in text and text.index(" ") < len(text) - 2:
-        test_new_text = text[:fit_length]
-        if " " in test_new_text:
-            last_space_block = re.findall(" +", test_new_text)[-1]
-            last_space_block_index = test_new_text.rfind(last_space_block)
-            new_text = text[:last_space_block_index]
-            text = text[(last_space_block_index+len(last_space_block)):]
+    lines = []
+    while len(text) > fit_length:
+        # A space right after the limit still ends a full-length line
+        spaces = list(re.finditer(" +", text[:fit_length + 1]))
+        if spaces and spaces[-1].start() > 0:
+            lines.append(text[:spaces[-1].start()])
+            text = text[spaces[-1].end():].lstrip(" ")
         else:
-            new_text = test_new_text
+            lines.append(text[:fit_length])
             text = text[fit_length:]
-        while len(text) > 0:
-            new_text += "\n"
-            test_new_text = text[:fit_length]
-            if len(test_new_text) <= fit_length:
-                new_text += test_new_text
-                text = text[fit_length:]
-            elif " " in test_new_text and test_new_text.index(" ") < len(test_new_text) - 2:
-                last_space_block = re.findall(" +", test_new_text)[-1]
-                last_space_block_index = test_new_text.rfind(last_space_block)
-                new_text += text[:last_space_block_index]
-                text = text[(last_space_block_index+len(last_space_block)):]
-            else:
-                new_text += test_new_text
-                text = text[fit_length:]
-    else:
-        new_text = text[:fit_length]
-        text = text[fit_length:]
-        while len(text) > 0:
-            new_text += "\n"
-            new_text += text[:fit_length]
-            text = text[fit_length:]
-
-    return new_text
+    if text or not lines:
+        lines.append(text)
+    return "\n".join(lines)
 
 
 def _right_pad_with_spaces(text: str, length: int):
@@ -799,8 +776,9 @@ class Report:
                                                + str(round(vital["avg"], 1)), 45)
                 text3 = _right_pad_with_spaces("Pulse standard deviation: "
                                                + str(round(vital["stDev"], 1)), 45)
-                percent_in_motion = len(
-                    pulse_stats_graph.values_in_motion) / len(pulse_stats_graph.values_resting) * 100
+                in_motion_count = len(pulse_stats_graph.values_in_motion)
+                total_count = in_motion_count + len(pulse_stats_graph.values_resting)
+                percent_in_motion = in_motion_count / total_count * 100 if total_count else 0
                 creator.show_text(text1 + "Percent in motion: "
                                   + str(round(percent_in_motion)) + "%")
                 creator.show_text(text2 + "Average in motion: "

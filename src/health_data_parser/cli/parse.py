@@ -117,7 +117,7 @@ def main(argv=None):
         print(help_text)
         sys.exit(2)
 
-    if "-h" in opts or "--help" in opts:
+    if any(option in ("-h", "--help") for option, _ in opts):
         print(help_text)
         sys.exit()
 

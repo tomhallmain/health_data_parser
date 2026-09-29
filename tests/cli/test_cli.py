@@ -73,8 +73,6 @@ class TestParseDataCli:
         assert "Failed to assemble or analyze food data provided." in result.stderr
         assert "Traceback" not in result.stderr
 
-    @pytest.mark.xfail(reason="Known bug: the help check tests `\"-h\" in opts`, but opts holds "
-                              "(option, value) tuples, so -h reaches `assert False`")
     @pytest.mark.parametrize("flag", ["-h", "--help"])
     def test_help_flag(self, export_dir, flag):
         result = run_cli(PARSE, export_dir, flag)

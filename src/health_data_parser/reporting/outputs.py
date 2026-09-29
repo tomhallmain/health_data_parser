@@ -20,7 +20,7 @@ class Reporter:
     def report_abnormal_results_by_code_then_date(self, filepath, data):
         if len(data.abnormal_results) > 0:
             try:
-                with open(filepath, "w") as textfile:
+                with open(filepath, "w", encoding="utf-8") as textfile:
                     line = "|----- Laboratory Abnormal Results from Apple Health Data by Code -----|"
                     if self.verbose:
                         logger.info("\n" + line + "\n")
@@ -66,7 +66,7 @@ class Reporter:
 
         if len(data.abnormal_results) > 0:
             try:
-                with open(filepath, "w") as csvfile:
+                with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
                     filewriter = csv.writer(
                         csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
                     interpretation_keys = get_interpretation_keys(args.skip_in_range_abnormal_results)
@@ -110,7 +110,7 @@ class Reporter:
         # Write abnormal results by datecode to spreadsheet
         if len(data.abnormal_results) > 0:
             try:
-                with open(filepath, "w") as csvfile:
+                with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
                     filewriter = csv.writer(
                         csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
                     header = ["Laboratory Abnormal Results from Apple Health Data"]
@@ -151,7 +151,7 @@ class Reporter:
         # Write all data by datecode to spreadsheet
 
         try:
-            with open(filepath, "w", encoding="utf-8") as csvfile:
+            with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
                 filewriter = csv.writer(csvfile, delimiter=",",
                                         quotechar="\"", quoting=csv.QUOTE_MINIMAL)
                 header = ["Laboratory Observations from Apple Health Data"]

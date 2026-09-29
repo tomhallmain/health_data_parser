@@ -11,7 +11,8 @@ from health_data_parser.utils.logger import setup_logger
 logger = setup_logger('xml_parser')
 
 class AppleHealthXMLData:
-    def __init__(self, normal_height_unit, normal_weight_unit):
+    def __init__(self, normal_height_unit, normal_weight_unit,
+                 normal_temperature_unit=TemperatureUnit.C):
         self.blood_pressure_stats = {
             "vital": VitalSignCategory.BLOOD_PRESSURE.value, "count": 0,
             "labels": ["BP Systolic", "BP Diastolic"],
@@ -46,6 +47,7 @@ class AppleHealthXMLData:
         self.stand_stats["unit"] = "/5min"
         self.step_stats["vital"] = "Steps"
         self.temperature_stats["vital"] = VitalSignCategory.TEMPERATURE.value
+        self.temperature_stats["unit"] = normal_temperature_unit.name
         self.weight_stats["vital"] = VitalSignCategory.WEIGHT.value
         self.weight_stats["unit"] = normal_weight_unit.name.lower()
         self.xml_vitals_observations_count = 0
@@ -144,6 +146,7 @@ class AppleHealthXMLParser:
                         except Exception:
                             if self.verbose:
                                 logger.error("Exception on constructing date from XML observation")
+                            continue
                         if self.start_year is not None and self.start_year > time.year:
                             continue
                     else:
@@ -205,6 +208,7 @@ class AppleHealthXMLParser:
                     except Exception:
                         if self.verbose:
                             logger.error("Exception on constructing date from XML observation")
+                        continue
                     if self.start_year is not None and self.start_year > time.year:
                         continue
                 else:

@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -129,6 +129,7 @@ class VitalsStatsGraph:
             instances_of_heart_rate_spike[i] = 0
 
         save_minute = -1
+        save_time = None
         save_value = 0
         self.values_in_motion = []
         self.values_resting = []
@@ -149,20 +150,24 @@ class VitalsStatsGraph:
             else:
                 self.values_resting.append(value)
 
-            if (minute - save_minute < 5
-                    and value - save_value > 40
-                    and save_minute > -1):
+            # A rise of more than 40 BPM within 5 minutes, counted at the minute
+            # of day it started from
+            if (save_time is not None
+                    and timedelta(0) <= obs["time"] - save_time < timedelta(minutes=5)
+                    and value - save_value > 40):
                 instances_of_heart_rate_spike[save_minute] += 1
 
             save_minute = minute
+            save_time = obs["time"]
             save_value = value
 
         self.values_in_motion.sort()
         self.values_resting.sort()
         self.values_in_motion = np.array(self.values_in_motion)
         self.values_resting = np.array(self.values_resting)
-        self.avg_in_motion = np.average(self.values_in_motion)
-        self.avg_resting = np.average(self.values_resting)
+        # NaN when there are no readings of that kind
+        self.avg_in_motion = self.values_in_motion.mean() if len(self.values_in_motion) else np.nan
+        self.avg_resting = self.values_resting.mean() if len(self.values_resting) else np.nan
         self.minutes = np.array(self.minutes)
         self.minute_max = []
         self.minute_min = []

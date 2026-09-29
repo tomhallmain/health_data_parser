@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import warnings
 
 import numpy as np
 import pytest
@@ -143,13 +144,26 @@ class TestVitalsStatsGraphMinuteStats:
         assert graph.spikeCounts[8 * 60] == 1
         assert sum(graph.spikeCounts) == 1
 
-    @pytest.mark.xfail(reason="Known bug: spikes compare minute of day, so readings a day apart "
-                              "at nearby times of day count as a spike")
     def test_readings_on_different_days_are_not_a_spike(self):
         pulse = {"list": [reading(DAY_1, 8, 0, 60, 0), reading(DAY_2, 8, 1, 110, 0)]}
         empty = {"list": []}
         graph = VitalsStatsGraph(ordinal(DAY_1), pulse, empty, empty, empty)
         assert sum(graph.spikeCounts) == 0
+
+    def test_rise_across_midnight_is_a_spike(self):
+        pulse = {"list": [reading(DAY_1, 23, 59, 60, 0), reading(DAY_2, 0, 1, 110, 0)]}
+        empty = {"list": []}
+        graph = VitalsStatsGraph(ordinal(DAY_1), pulse, empty, empty, empty)
+        assert graph.spikeCounts[23 * 60 + 59] == 1
+
+    def test_averages_without_readings_are_nan(self):
+        pulse = {"list": [reading(DAY_1, 8, 0, 60, 0)]}
+        empty = {"list": []}
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            graph = VitalsStatsGraph(ordinal(DAY_1), pulse, empty, empty, empty)
+        assert np.isnan(graph.avg_in_motion)
+        assert graph.avg_resting == 60.0
 
 
 def test_save_graph_images(graph, tmp_path):

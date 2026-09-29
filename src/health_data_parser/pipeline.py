@@ -45,7 +45,8 @@ class DataParser:
         self.export_cda_xml = os.path.join(self.data_export_dir, "export_cda.xml")
         self.base_dir = os.path.join(self.data_export_dir, "clinical-records")
 
-        self.xml_data = AppleHealthXMLData(self.normal_height_unit, self.normal_weight_unit)
+        self.xml_data = AppleHealthXMLData(self.normal_height_unit, self.normal_weight_unit,
+                                           args.normal_temperature_unit)
         self.custom_data_files = []
         self.food_data = None
         self.symptom_data = None
@@ -176,7 +177,6 @@ class DataParser:
                             self.args.normal_temperature_unit, obs.value), 2)
                         set_stats(self.xml_data.temperature_stats, vitals_datetime,
                                 normalized_temperature)
-                        self.xml_data.temperature_stats["unit"] = obs.unit
                 if this_date_height is not None and this_date_height_unit is not None:
                     normalized_height = convert(self.args.normal_height_unit,
                         HeightUnit.from_value(this_date_height_unit), this_date_height)

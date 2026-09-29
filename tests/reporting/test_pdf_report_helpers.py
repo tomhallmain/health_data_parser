@@ -19,8 +19,6 @@ class TestWrapTextToFitLength:
         wrapped = _wrap_text_to_fit_length("Comprehensive Metabolic Panel With eGFR", 15)
         assert all(len(line) <= 15 for line in wrapped.split("\n"))
 
-    @pytest.mark.xfail(reason="Known bug: only the first line breaks at a space; later lines are "
-                              "cut at the limit, splitting words")
     def test_later_lines_also_break_at_spaces(self):
         assert _wrap_text_to_fit_length("one two three four", 9) == "one two\nthree\nfour"
 

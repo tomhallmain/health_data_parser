@@ -40,15 +40,11 @@ PULSE_JSON = {"vitalSigns": [{"vital": "Pulse", "count": 4, "avg": 80.0, "stDev"
 
 
 class TestHeartStatsSection:
-    @pytest.mark.xfail(reason="Known bug: percent in motion is in-motion / resting, not "
-                              "in-motion / all readings")
     def test_percent_in_motion(self, report):
         canvas = RecordingCanvas()
         report.add_heart_stats(canvas, PULSE_JSON, pulse_graph([110], [60, 70, 80]))
         assert any("Percent in motion: 25%" in line for line in canvas.lines)
 
-    @pytest.mark.xfail(raises=ZeroDivisionError,
-                       reason="Known bug: percent in motion divides by the resting count")
     def test_no_resting_readings(self, report):
         canvas = RecordingCanvas()
         report.add_heart_stats(canvas, PULSE_JSON, pulse_graph([110, 120], []))
@@ -58,8 +54,6 @@ class TestHeartStatsSection:
 @pytest.mark.skipif(sys.platform != "win32",
                     reason="pdf_creator only defines fonts for Windows and macOS, and the macOS "
                            "font (MesloLGS NF) is not installed by default")
-@pytest.mark.xfail(reason="Known bug: show_table draws a table taller than the space left on the "
-                          "page past the bottom margin instead of continuing on a new page")
 def test_tall_table_stays_above_bottom_margin(tmp_path):
     from health_data_parser.reporting.pdf.canvas import get_font, pdf_creator
     creator = pdf_creator(800, 50, str(tmp_path / "table.pdf"), "footer", False)

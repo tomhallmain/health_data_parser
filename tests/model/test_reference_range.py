@@ -46,8 +46,6 @@ class TestRangeResults:
     def test_lower_bound_of_zero_is_not_low_in_range(self):
         assert not make_result("0.0-10.0", 0.5).is_abnormal
 
-    @pytest.mark.xfail(reason="Known bug: the range regex needs 2+ characters for an integer "
-                              "lower bound, so single-digit lower bounds never match")
     @pytest.mark.parametrize("range_text, value", [("0-5", 7), ("4-10", 12), ("4 - 10 mg/dL", 12)])
     def test_single_digit_integer_lower_bound(self, range_text, value):
         result = make_result(range_text, value)

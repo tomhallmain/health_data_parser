@@ -99,6 +99,7 @@ class Observation:
     def set_value_and_value_string(self, data):
         self.unit = None
         self.value = None
+        self.value2 = None
 
         if "valueString" in data:
             self.value_string = data["valueString"]
