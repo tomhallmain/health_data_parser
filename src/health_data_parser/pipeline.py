@@ -1,45 +1,39 @@
-from datetime import datetime, timezone
-import operator
 import os
 import traceback
 
-from health_data_parser.ingest.fhir_json import ObservationsData, ObservationJSONDataParser
-from health_data_parser.ingest.apple_xml import AppleHealthXMLData, AppleHealthXMLParser
-from health_data_parser.model.food import FoodData
-from health_data_parser.model.symptom import SymptomSet
-from health_data_parser.model.units import VitalSignCategory, HeightUnit, WeightUnit, TemperatureUnit
-from health_data_parser.model.units import convert, calculate_bmi, set_stats
+from health_data_parser.analysis.abnormal import apply_shared_reference_ranges
+from health_data_parser.analysis.vitals import add_clinical_vitals, sort_vital_signs
+from health_data_parser.errors import HealthDataParseError
+from health_data_parser.ingest.apple_xml import AppleHealthXMLParser
 from health_data_parser.ingest.custom_observations import generate_diagnostic_report_files
+from health_data_parser.ingest.fhir_json import ClinicalRecordsParser, ObservationRules
+from health_data_parser.model.food import FoodData
+from health_data_parser.model.observation_store import ObservationStore
+from health_data_parser.model.symptom import SymptomSet
+from health_data_parser.model.vitals import VitalSigns
 from health_data_parser.reporting.charts.vitals import VitalsStatsGraph
 from health_data_parser.reporting.outputs import Reporter
-from health_data_parser.errors import HealthDataParseError
 from health_data_parser.utils.logger import setup_logger
 
-# Set up logger
 logger = setup_logger('data_parser')
 
 
-### TODO get weighted severity of abnormality by code
-
-
 class DataParser:
-    def __init__(self, args):
-        self.args = args
-        self.verbose = args.verbose
-        self.food_data_csv = args.food_data_csv
-        self.symptom_data_csv = args.symptom_data_csv
-        self.json_add_all_vitals = args.json_add_all_vitals
-        self.outputs = args.output_paths
-        self.output_dir = self.outputs.directory
-        self.export_xml = args.export_xml
-        self.base_dir = args.base_dir
+    """Runs a parse: custom CSVs -> export.xml -> clinical records -> abnormal
+    results -> vital signs -> wearable charts -> output files."""
 
-        self.xml_data = AppleHealthXMLData(args.normal_height_unit, args.normal_weight_unit,
-                                           args.normal_temperature_unit)
+    def __init__(self, options):
+        self.options = options
+        self.verbose = options.verbose
+        self.outputs = options.output_paths
+        self.output_dir = self.outputs.directory
+
+        self.store = ObservationStore()
+        self.vital_signs = VitalSigns(options.normal_height_unit, options.normal_weight_unit,
+                                      options.normal_temperature_unit)
         self.custom_data_files = []
         self.food_data = None
         self.symptom_data = None
-        self.observations_data = ObservationsData()
         self.vital_stats_graph = None
 
     def create_custom_report(self):
@@ -52,26 +46,26 @@ class DataParser:
         self.process_custom_data()
         self.process_xml_data()
         self.process_json_data()
-        self.observations_data.determine_abnormal_results(self.verbose,
-                self.args.skip_in_range_abnormal_results,
-                self.args.in_range_abnormal_boundary)
-        self.compile_vital_signs_data()
-        self.do_stats_calcs()
-        self.create_wearable_vitals_graph(self.xml_data)
+        apply_shared_reference_ranges(self.store, ObservationRules.from_options(self.options),
+                                      self.verbose)
+        add_clinical_vitals(self.store, self.vital_signs, self.options, self.verbose)
+        sort_vital_signs(self.vital_signs, self.verbose)
+        self.create_wearable_vitals_graph()
         self.report()
 
     def process_custom_data(self):
-        ## PROCESS CUSTOM DATA FILES
-        if self.args.extra_observations_csv is not None:
-            self.custom_data_files.append(self.args.extra_observations_csv)
-            if not generate_diagnostic_report_files(self.args.extra_observations_csv, self.base_dir, self.verbose, False):
+        options = self.options
+        if options.extra_observations_csv is not None:
+            self.custom_data_files.append(options.extra_observations_csv)
+            if not generate_diagnostic_report_files(options.extra_observations_csv, options.base_dir,
+                                                    self.verbose, False):
                 raise HealthDataParseError(
                     "Failed to convert extra observations data "
-                    f"\"{self.args.extra_observations_csv}\" to diagnostic report files.")
+                    f"\"{options.extra_observations_csv}\" to diagnostic report files.")
 
-        if self.food_data_csv is not None:
+        if options.food_data_csv is not None:
             try:
-                self.food_data = FoodData(self.food_data_csv, self.verbose)
+                self.food_data = FoodData(options.food_data_csv, self.verbose)
                 if self.food_data.to_print:
                     self.food_data.save_most_common_foods_chart(80, self.output_dir)
             except Exception as e:
@@ -80,11 +74,11 @@ class DataParser:
                 raise HealthDataParseError("Failed to assemble or analyze food data provided.") from e
             if not self.food_data.to_print:
                 raise HealthDataParseError("Failed to assemble or analyze food data provided.")
-            self.custom_data_files.append(self.food_data_csv)
+            self.custom_data_files.append(options.food_data_csv)
 
-        if self.symptom_data_csv is not None:
+        if options.symptom_data_csv is not None:
             try:
-                self.symptom_data = SymptomSet(self.symptom_data_csv, self.verbose, self.args.start_year)
+                self.symptom_data = SymptomSet(options.symptom_data_csv, self.verbose, options.start_year)
                 if len(self.symptom_data.symptoms) > 0:
                     self.symptom_data.set_chart_start_date()
                     self.symptom_data.generate_chart_data()
@@ -99,177 +93,55 @@ class DataParser:
             if len(self.symptom_data.symptoms) > 0:
                 if not self.symptom_data.to_print:
                     raise HealthDataParseError("Failed to assemble symptom data provided.")
-                self.custom_data_files.append(self.symptom_data_csv)
+                self.custom_data_files.append(options.symptom_data_csv)
 
     def process_xml_data(self):
-        ## PROCESS APPLE HEALTH XML DATA
-        if self.args.only_clinical_records:
+        if self.options.only_clinical_records:
             if self.verbose:
                 logger.info("Skipping all data present not in clinical-records folder.")
-        elif os.path.exists(self.export_xml):
-            xml_parser = AppleHealthXMLParser(self.xml_data, self.args)
-            xml_parser.parse(self.export_xml)
+        elif os.path.exists(self.options.export_xml):
+            AppleHealthXMLParser(self.vital_signs, self.options).parse(self.options.export_xml)
         else:
-            logger.warning("export.xml or export_cda.xml not found in export directory.")
+            logger.warning("export.xml not found in export directory.")
 
     def process_json_data(self):
-        json_parser = ObservationJSONDataParser(self.args, self.custom_data_files, self.observations_data)
-        json_parser.parse()
+        ClinicalRecordsParser(self.options, self.custom_data_files, self.store).parse()
 
-
-    def compile_vital_signs_data(self):
-        ## COMPILE VITAL SIGNS DATA
-        if self.verbose:
-           logger.info("\nCompiling vital signs data from clinical records if present...\n")
-        current_tzinfo = timezone(datetime.now().astimezone().tzinfo.utcoffset(None))
-
-        for vitals_date in sorted(self.observations_data.observations_vital_signs.keys()):
-            vitals_datetime = datetime.fromisoformat(vitals_date)
-            vitals_datetime = vitals_datetime.replace(tzinfo=current_tzinfo)
-            this_date_observations = self.observations_data.observations_vital_signs[vitals_date]
-            this_date_height = None
-            this_date_height_unit = None
-            normalized_height = None
-            this_date_weight = None
-            this_date_weight_unit = None
-            normalized_weight = None
-            try:
-                for obs in this_date_observations:
-                    if obs.vital_sign_category is VitalSignCategory.HEIGHT:
-                        this_date_height = obs.value
-                        this_date_height_unit = obs.unit
-                        continue
-                    elif obs.vital_sign_category is VitalSignCategory.WEIGHT:
-                        this_date_weight = obs.value
-                        this_date_weight_unit = obs.unit
-                        continue
-                    elif obs.value is None or obs.unit is None:
-                        if (obs.vital_sign_category is VitalSignCategory.TEMPERATURE
-                                and obs.value is not None):
-                            obs.unit = "F" if obs.value > 45 else "C"
-                        else:
-                            logger.warning(f"Skipping obs on date {vitals_date} of category {obs.vital_sign_category} because value or unit was None")
-                            continue
-                    if obs.vital_sign_category is VitalSignCategory.BLOOD_PRESSURE:
-                        self.xml_data.blood_pressure_stats["unit"] = obs.unit
-                        set_stats(self.xml_data.blood_pressure_stats, vitals_datetime,
-                                [obs.value, obs.value2])
-                    elif obs.vital_sign_category is VitalSignCategory.PULSE:
-                        self.xml_data.pulse_stats["unit"] = obs.unit
-                        set_stats(self.xml_data.pulse_stats, vitals_datetime, obs.value)
-                        self.xml_data.pulse_stats["list"][-1]["motion"] = 0
-                        # Assume heart rate observations in clinical-records are not in motion
-                    elif obs.vital_sign_category is VitalSignCategory.RESPIRATION:
-                        self.xml_data.respiration_stats["unit"] = obs.unit
-                        set_stats(self.xml_data.respiration_stats, vitals_datetime, obs.value)
-                    elif obs.vital_sign_category is VitalSignCategory.TEMPERATURE:
-                        this_temp_unit = TemperatureUnit.from_value(obs.unit)
-                        normalized_temperature = round(this_temp_unit.convertTo(
-                            self.args.normal_temperature_unit, obs.value), 2)
-                        set_stats(self.xml_data.temperature_stats, vitals_datetime,
-                                normalized_temperature)
-                if this_date_height is not None and this_date_height_unit is not None:
-                    normalized_height = convert(self.args.normal_height_unit,
-                        HeightUnit.from_value(this_date_height_unit), this_date_height)
-                    set_stats(self.xml_data.height_stats, vitals_datetime, normalized_height)
-                if this_date_weight is not None and this_date_weight_unit is not None:
-                    normalized_weight = convert(self.args.normal_weight_unit,
-                        WeightUnit.from_value(this_date_weight_unit), this_date_weight)
-                    set_stats(self.xml_data.weight_stats, vitals_datetime, normalized_weight)
-                if normalized_height is None or normalized_weight is None:
-                    continue
-                bmi = calculate_bmi(normalized_height, normalized_weight,
-                                    self.args.normal_height_unit, self.args.normal_weight_unit, self.verbose)
-                set_stats(self.xml_data.bmi_stats, vitals_datetime, bmi)
-            except Exception as e:
-                if self.verbose:
-                    logger.error(f"Error processing vital signs data: {e}")
-
-
-    def do_stats_calcs(self):
-        # TODO refactor this logic into a function in a Stats class
-        for stats_obj in self.xml_data.vitals_stats_list:
-            try:
-                stats_obj["list"] = sorted(
-                    stats_obj["list"], key=operator.itemgetter("time"))
-            except Exception:
-                logger.warning("Encountered a problem comparing timezones between XML and clinical records JSON data. Vital signs output that relies on sorting may not be calculated correctly.")
-                tzinfos = []
-                for obs in stats_obj["list"]:
-                    date = obs["time"]
-                    if date.tzinfo not in tzinfos:
-                        if self.verbose:
-                            logger.info(f"Found new tzinfo for date {date}")
-                            logger.info(date.tzinfo)
-                        tzinfos.append(date.tzinfo)
-            if stats_obj["count"] > 0:
-                stats_obj["mostRecent"] = stats_obj["list"][-1]
-                if stats_obj["mostRecent"]["value"] is None:
-                    if self.verbose:
-                        logger.warning(f"Stats collection for vital {stats_obj['vital']} failed.")
-                elif type(stats_obj["mostRecent"]["value"]) == list:
-                    stats_obj["stDev"] = []
-                    for i in range(len(stats_obj["mostRecent"])):
-                        avg = stats_obj["sum"][i] / stats_obj["count"]
-                        stats_obj["avg"][i] = avg
-                        sum_sq_diffs = 0
-                        for obs in stats_obj["list"]:
-                            sum_sq_diffs += (obs["value"][i] - avg) ** 2
-                        stats_obj["stDev"].append(
-                            (sum_sq_diffs / stats_obj["count"]) ** (1/2))
-                    del stats_obj["sum"]
-                else:
-                    avg = stats_obj["sum"] / stats_obj["count"]
-                    stats_obj["avg"] = avg
-                    del stats_obj["sum"]
-                    sum_sq_diffs = 0
-                    for obs in stats_obj["list"]:
-                        sum_sq_diffs += (obs["value"] - avg) ** 2
-                    stats_obj["stDev"] = (sum_sq_diffs / stats_obj["count"]) ** (1/2)
-                if self.verbose:
-                    logger.info(f"Found stats for vital sign: {stats_obj['vital']}")
-                    logger.info(f"{stats_obj['count']} unique observations with average value {stats_obj['avg']} and standard deviation {stats_obj['stDev']}")
-
-
-    def create_wearable_vitals_graph(self, data):
-        ## WEARABLE VITALS GRAPH CALCS
-        # If no wearable data is present, there will not be enough data for a usable graph
-        data.pulse_stats["graphEligible"] = data.pulse_stats["count"] > 10000
-
-        if data.pulse_stats["graphEligible"]:
-            try:
-                self.vital_stats_graph = VitalsStatsGraph(
-                    AppleHealthXMLParser.min_xml_ordinal, data.pulse_stats, data.hrv_stats, data.step_stats, data.stand_stats)
-                self.vital_stats_graph.save_graph_images(self.output_dir)
-            except Exception as e:
-                if self.verbose:
-                    logger.error(f"Error creating wearable vitals graph: {e}")
-                traceback.print_exc()
-            if self.vital_stats_graph is None or not self.vital_stats_graph.to_print:
-                logger.warning("Failed to generate pulse statistics graph, skipping print.")
-
-        data.vitals_stats_list.remove(data.step_stats)
+    def create_wearable_vitals_graph(self):
+        # Without a wearable there isn't enough heart rate data for usable charts
+        if not self.vital_signs.wearable_heart_rate_detected:
+            return
+        vitals = self.vital_signs
+        try:
+            self.vital_stats_graph = VitalsStatsGraph(
+                vitals.earliest_xml_ordinal, vitals.pulse, vitals.hrv, vitals.steps, vitals.stand)
+            self.vital_stats_graph.save_graph_images(self.output_dir)
+        except Exception as e:
+            logger.error(f"Error creating wearable vitals graph: {e!r}")
+            if self.verbose:
+                logger.error(traceback.format_exc())
+        if self.vital_stats_graph is None or not self.vital_stats_graph.to_print:
+            logger.warning("Failed to generate pulse statistics graph, skipping print.")
 
     def report(self, include_observations=True):
-        ## WRITE DATA TO FILES
         if self.verbose:
-            logger.info("\nProcessing complete, writing data to files...\n")
+            logger.info("Processing complete, writing data to files...")
 
-        if include_observations and len(self.observations_data.observations) == 0:
+        if include_observations and len(self.store.observations) == 0:
             raise HealthDataParseError("No relevant laboratory records found in exported Apple Health data")
 
         if len(self.custom_data_files) > 0:
-            logger.info("\nThe compiled information includes some custom data not exported from Apple Health:")
+            logger.info("The compiled information includes some custom data not exported from Apple Health:")
             for filename in self.custom_data_files:
                 logger.info(filename)
-            logger.info("")
 
         reporter = Reporter(self.verbose)
         if include_observations:
-            reporter.report_abnormal_results_by_code_then_date(self.outputs.abnormal_results_by_code_text, self.observations_data)
-            reporter.report_abnormal_results_by_interpretation(self.outputs.abnormal_results_by_interpretation_csv, self.observations_data, self.args)
-            reporter.report_abnormal_results_by_date(self.outputs.abnormal_results_csv, self.observations_data)
-            reporter.report_all_data_by_datecode(self.outputs.all_data_csv, self.observations_data)
+            reporter.report_abnormal_results_by_code_then_date(self.outputs.abnormal_results_by_code_text, self.store)
+            reporter.report_abnormal_results_by_interpretation(
+                self.outputs.abnormal_results_by_interpretation_csv, self.store, self.options)
+            reporter.report_abnormal_results_by_date(self.outputs.abnormal_results_csv, self.store)
+            reporter.report_all_data_by_datecode(self.outputs.all_data_csv, self.store)
         reporter.report_all_data_json_and_pdf(
-            include_observations, self.outputs.all_data_json, self.output_dir, self.observations_data, self.xml_data,
-            self.symptom_data, self.vital_stats_graph, self.food_data, self.custom_data_files, self.args)
+            include_observations, self.outputs.all_data_json, self.output_dir, self.store, self.vital_signs,
+            self.symptom_data, self.vital_stats_graph, self.food_data, self.custom_data_files, self.options)

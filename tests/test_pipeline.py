@@ -5,6 +5,7 @@ test_real_pdf_report: pdf_creator only defines fonts for Windows and macOS,
 and those tests pin down the data files the PDF is built from.
 """
 import csv
+from datetime import date, datetime
 import json
 import sys
 
@@ -87,7 +88,10 @@ class TestFullRun:
     def test_json_meta(self, run_output):
         _, json_data = run_output
         meta = json_data["meta"]
+        assert meta["schemaVersion"] == 1
         assert meta["observationCount"] == 3
+        # Pulse, height, weight, temperature and blood pressure observations
+        assert meta["vitalSignsObservationCount"] == 5
         assert meta["mostRecentResult"] == "2023-04-05"
         assert meta["earliestResult"] == "2023-01-10"
         assert meta["heartRateMonitoringWearableDetected"] is False
@@ -117,6 +121,26 @@ class TestFullRun:
         assert "Steps" not in {v["vital"] for v in json_data["vitalSigns"]}
         # Per-reading lists are only kept with --json_add_all_vitals
         assert all("list" not in v for v in json_data["vitalSigns"])
+
+    def test_vital_signs_share_one_shape(self, run_output):
+        _, json_data = run_output
+        keys = {"vital", "unit", "count", "avg", "max", "min", "stDev", "mostRecent"}
+        for vital_sign in json_data["vitalSigns"]:
+            assert set(vital_sign) - {"labels"} == keys, vital_sign["vital"]
+        empty = vital(json_data, "Respiration")
+        assert (empty["count"], empty["avg"], empty["mostRecent"]) == (0, None, None)
+
+    def test_times_are_iso_8601(self, run_output):
+        _, json_data = run_output
+        most_recent = vital(json_data, "Pulse")["mostRecent"]
+        assert datetime.fromisoformat(most_recent["time"]).date() == date(2023, 4, 5)
+        assert most_recent["motion"] == 0
+
+    def test_all_vitals_option_includes_readings(self, pipeline_export, pdf_reports):
+        DataParser(ParseOptions(str(pipeline_export), json_add_all_vitals=True)).run()
+        json_data = json.loads((pipeline_export / "observations.json").read_text(encoding="utf-8"))
+        assert [r["value"] for r in vital(json_data, "Pulse")["list"]] == [62.0]
+        assert [r["value"] for r in vital(json_data, "Blood Pressure")["list"]] == [[120.0, 80.0]]
 
     def test_temperature_unit_matches_normalized_values(self, run_output):
         _, json_data = run_output

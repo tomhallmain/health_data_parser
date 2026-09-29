@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 import os
 
-from health_data_parser.model.reference_range import get_interpretation_keys, get_interpretation_text
+from health_data_parser.model.reference_range import Interpretation
 
 OBSERVATIONS_JSON_FILENAME = "observations.json"
 
@@ -135,7 +135,7 @@ def abnormal_counts_by_interpretation(json_data: dict):
         reference_range = _reference_range(observation)
         if reference_range.get("isAbnormal"):
             counts[reference_range.get("interpretation") or "Unclassified"] += 1
-    ordered = [get_interpretation_text(key) for key in get_interpretation_keys(False)]
+    ordered = [interpretation.text for interpretation in Interpretation]
     ordered = [text for text in ordered if text in counts]
     ordered += sorted(text for text in counts if text not in ordered)
     return [(text, counts[text]) for text in ordered]

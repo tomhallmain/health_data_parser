@@ -1,14 +1,16 @@
 import pytest
 
-from health_data_parser.model.reference_range import Result, get_interpretation_keys, get_interpretation_text
+from health_data_parser.model.reference_range import (
+    Interpretation, InvalidReferenceRange, ReferenceRange, reference_range_or_none)
 
 
 def make_result(range_text, value, value_string=None, unit=None,
                 skip_in_range=False, boundary=0.15, check_units_match=False):
     if value_string is None:
         value_string = str(value)
-    return Result(skip_in_range, boundary, [{"text": range_text}], value,
-                  value_string, unit, check_units_match)
+    return ReferenceRange(range_text, value, value_string, unit,
+                          skip_in_range_abnormal_results=skip_in_range, abnormal_boundary=boundary,
+                          check_units_match=check_units_match)
 
 
 class TestRangeResults:
@@ -22,12 +24,12 @@ class TestRangeResults:
         result = make_result("10-20", value)
         assert result.is_abnormal
         assert result.is_range_type
-        assert result.interpretation == interpretation
+        assert result.tag == interpretation
 
     def test_mid_range_value_is_normal(self):
         result = make_result("10-20", 15)
         assert not result.is_abnormal
-        assert result.interpretation == ""
+        assert result.tag == ""
         assert (result.range_lower, result.range_upper) == (10.0, 20.0)
 
     def test_skip_in_range_abnormal_results(self):
@@ -41,7 +43,7 @@ class TestRangeResults:
     def test_decimal_range_with_units(self):
         result = make_result("3.5-5.0 mmol/L", 5.5, unit="mmol/L")
         assert result.is_abnormal
-        assert result.interpretation == "+++"
+        assert result.tag == "+++"
 
     def test_lower_bound_of_zero_is_not_low_in_range(self):
         assert not make_result("0.0-10.0", 0.5).is_abnormal
@@ -50,13 +52,13 @@ class TestRangeResults:
     def test_single_digit_integer_lower_bound(self, range_text, value):
         result = make_result(range_text, value)
         assert result.is_range_type
-        assert result.interpretation == "+++"
+        assert result.tag == "+++"
 
     def test_none_range_flags_positive_value(self):
         result = make_result("None", 2)
         assert result.is_abnormal
         assert result.is_binary_type
-        assert result.interpretation == "+"
+        assert result.tag == "+"
 
     def test_none_range_accepts_zero(self):
         assert not make_result("None", 0).is_abnormal
@@ -67,7 +69,7 @@ class TestBinaryResults:
         result = make_result("NEG", None, value_string="POSITIVE")
         assert result.is_abnormal
         assert result.is_binary_type
-        assert result.interpretation == "+"
+        assert result.tag == "+"
 
     def test_negative_against_negative_range(self):
         assert not make_result("Negative", None, value_string="NEG").is_abnormal
@@ -119,13 +121,37 @@ class TestToDict:
 
 
 class TestInterpretations:
-    @pytest.mark.parametrize("key, text", [
-        ("---", "LOW OUT OF RANGE"), ("--", "Low in range"), ("+", "Non-negative result"),
-        ("++", "High in range"), ("+++", "HIGH OUT OF RANGE"), ("", ""),
+    @pytest.mark.parametrize("interpretation, tag, text", [
+        (Interpretation.LOW_OUT_OF_RANGE, "---", "LOW OUT OF RANGE"),
+        (Interpretation.LOW_IN_RANGE, "--", "Low in range"),
+        (Interpretation.NON_NEGATIVE, "+", "Non-negative result"),
+        (Interpretation.HIGH_IN_RANGE, "++", "High in range"),
+        (Interpretation.HIGH_OUT_OF_RANGE, "+++", "HIGH OUT OF RANGE"),
     ])
-    def test_interpretation_text(self, key, text):
-        assert get_interpretation_text(key) == text
+    def test_tag_and_text(self, interpretation, tag, text):
+        assert interpretation.value == tag
+        assert interpretation.text == text
 
-    def test_keys_exclude_in_range_when_skipped(self):
-        assert get_interpretation_keys(True) == ["---", "+", "+++"]
-        assert get_interpretation_keys(False) == ["---", "--", "+", "++", "+++"]
+    def test_severity_order(self):
+        assert [i.value for i in Interpretation.ordered()] == ["---", "--", "+", "++", "+++"]
+        assert [i.value for i in Interpretation.ordered(include_in_range=False)] == ["---", "+", "+++"]
+
+    def test_normal_result_has_no_interpretation(self):
+        result = make_result("10-20", 15)
+        assert result.interpretation is None
+        assert result.tag == ""
+
+    def test_abnormal_result_interpretation(self):
+        assert make_result("10-20", 25).interpretation is Interpretation.HIGH_OUT_OF_RANGE
+
+
+class TestReferenceRangeOrNone:
+    def test_valid_range(self):
+        assert reference_range_or_none("10-20", 25, "25", None).is_abnormal
+
+    @pytest.mark.parametrize("range_text", [None, "", "Not established"])
+    def test_invalid_range(self, range_text):
+        assert reference_range_or_none(range_text, 25, "25", None) is None
+
+    def test_invalid_range_error_is_a_value_error(self):
+        assert issubclass(InvalidReferenceRange, ValueError)

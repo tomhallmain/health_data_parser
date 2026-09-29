@@ -1,11 +1,10 @@
-from copy import deepcopy
 from datetime import datetime
 
 import pytest
 
 import health_data_parser.model.units as units
 from health_data_parser.model.units import (HeightUnit, WeightUnit, TemperatureUnit, VitalSignCategory,
-                        base_stats, calculate_bmi, convert, get_age, set_stats)
+                        calculate_bmi, convert, get_age)
 
 
 class TestConvert:
@@ -88,33 +87,6 @@ class TestCalculateBmi:
     def test_zero_height_raises(self):
         with pytest.raises(Exception, match="division by zero"):
             calculate_bmi(0, 81, HeightUnit.CM, WeightUnit.KG, False)
-
-
-class TestSetStats:
-    def test_scalar_values(self):
-        stats = deepcopy(base_stats)
-        for value in [5, 10, 3]:
-            set_stats(stats, None, value)
-        assert stats["count"] == 3
-        assert stats["sum"] == 18
-        assert stats["max"] == 10
-        assert stats["min"] == 3
-        assert stats["list"] == [5, 10, 3]
-
-    def test_timed_values_are_recorded_with_time(self):
-        stats = deepcopy(base_stats)
-        time = datetime(2023, 1, 1)
-        set_stats(stats, time, 60)
-        assert stats["list"] == [{"time": time, "value": 60}]
-
-    def test_list_values_track_each_component(self):
-        stats = {"count": 0, "sum": [0, 0], "max": [None, None], "min": [None, None], "list": []}
-        for value in [[120, 80], [130, 75], [110, 85]]:
-            set_stats(stats, None, value)
-        assert stats["count"] == 3
-        assert stats["sum"] == [360, 240]
-        assert stats["max"] == [130, 85]
-        assert stats["min"] == [110, 75]
 
 
 class _FixedToday(datetime):

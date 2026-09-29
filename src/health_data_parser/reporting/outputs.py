@@ -1,4 +1,3 @@
-from copy import deepcopy
 import csv
 from datetime import datetime
 import json
@@ -6,184 +5,143 @@ import operator
 import os
 import traceback
 
-from health_data_parser.model.reference_range import get_interpretation_keys, get_interpretation_text
-from health_data_parser.reporting.pdf.report import Report
 from health_data_parser.errors import HealthDataParseError
+from health_data_parser.model.reference_range import Interpretation
+from health_data_parser.reporting.pdf.report import Report
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('reporter')
+
+# Version of the observations.json layout; bump when consumers need to adapt
+SCHEMA_VERSION = 1
+
+
+def find_result(store, code, date):
+    """The result for test description `code` on `date`, from whichever of its
+    code ids has one."""
+    for code_id in store.code_ids(code):
+        observation = store.find(date, code_id)
+        if observation is not None:
+            return observation
+    return None
+
+
+def _csv_writer(csvfile):
+    return csv.writer(csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
+
 
 class Reporter:
     def __init__(self, verbose=False):
         self.verbose = verbose
 
-    def report_abnormal_results_by_code_then_date(self, filepath, data):
-        if len(data.abnormal_results) > 0:
-            try:
-                with open(filepath, "w", encoding="utf-8") as textfile:
-                    line = "|----- Laboratory Abnormal Results from Apple Health Data by Code -----|"
+    def report_abnormal_results_by_code_then_date(self, filepath, store):
+        abnormal_results = store.abnormal_results
+        if len(abnormal_results) == 0:
+            logger.info("No abnormal results found from current data")
+            return
+        try:
+            with open(filepath, "w", encoding="utf-8") as textfile:
+                lines = ["|----- Laboratory Abnormal Results from Apple Health Data by Code -----|", ""]
+                for code in store.codes:
+                    for code_id in store.code_ids(code):
+                        if code_id not in abnormal_results:
+                            continue
+                        lines.append("Abnormal results found for code " + code + ":")
+                        for observation in sorted(abnormal_results[code_id], key=operator.attrgetter("date")):
+                            reference = observation.reference
+                            line = (observation.date + ": " + reference.interpretation.text
+                                    + " - observed " + observation.value_string)
+                            if reference.is_range_type:
+                                line += " - range " + reference.range
+                            lines.append(line)
+                        lines.append("")
+                for line in lines:
                     if self.verbose:
-                        logger.info("\n" + line + "\n")
-                    textfile.write(line)
-                    textfile.write("\n\n")
-                    for code in sorted(data.observation_code_ids):
-                        for code_id in data.observation_code_ids[code]:
-                            if code_id in data.abnormal_results:
-                                results = data.abnormal_results[code_id]
-                                line = "Abnormal results found for code " + code + ":"
-                                if self.verbose:
-                                    logger.info(line)
-                                textfile.write(line)
-                                textfile.write("\n")
-                                for observation in sorted(results, key=operator.attrgetter("date")):
-                                    data.total_abnormal_results += 1
-                                    interpretation = observation.result.get_result_interpretation_text()
-                                    value_string = observation.value_string
-                                    if observation.result.is_range_type:
-                                        line = (observation.date + ": " + interpretation
-                                                + " - observed " + value_string
-                                                + " - range " + observation.result.range)
-                                    else:
-                                        line = (observation.date + ": " + interpretation
-                                                + " - observed " + value_string)
-                                    if self.verbose:
-                                        logger.info(line)
-                                    textfile.write(line)
-                                    textfile.write("\n")
-                                if self.verbose:
-                                    logger.info("")
-                                textfile.write("\n")
-                logger.info(f"Abnormal laboratory results data from Apple Health saved to {filepath}")
-            except Exception as e:
-                logger.error("An error occurred in writing abnormal results data.")
-                if self.verbose:
-                    logger.error(traceback.format_exc())
-        else:
-            logger.info("No abnormal results found from current data")
+                        logger.info(line)
+                    textfile.write(line + "\n")
+            logger.info(f"Abnormal laboratory results data from Apple Health saved to {filepath}")
+        except Exception:
+            logger.error("An error occurred in writing abnormal results data.")
+            if self.verbose:
+                logger.error(traceback.format_exc())
 
-    def report_abnormal_results_by_interpretation(self, filepath, data, args):
-        # Log abnormal results by interpretation class, code, date
-
-        if len(data.abnormal_results) > 0:
-            try:
-                with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
-                    filewriter = csv.writer(
-                        csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
-                    interpretation_keys = get_interpretation_keys(args.skip_in_range_abnormal_results)
-                    header = [
-                        "Laboratory Abnormal Results by Interpretation from Apple Health Data"]
-                    interpretations = list(
-                        map(lambda key: get_interpretation_text(key), interpretation_keys))
-                    header.extend(interpretations)
-                    filewriter.writerow(header)
-                    for code in sorted(data.observation_code_ids):
-                        abnormal_result_found = False
-                        row = [code]
-                        code_interpretation_keys = []
-                        for code_id in data.observation_code_ids[code]:
-                            if code_id in data.abnormal_results:
-                                results = data.abnormal_results[code_id]
-                                abnormal_result_found = True
-                                for observation in results:
-                                    interpretation_key = observation.result.interpretation
-                                    if interpretation_key not in code_interpretation_keys:
-                                        code_interpretation_keys.append(
-                                            interpretation_key)
-                        if abnormal_result_found:
-                            code_interpretations = []
-                            for interpretation_key in interpretation_keys:
-                                if interpretation_key in code_interpretation_keys:
-                                    row.append(interpretation_key)
-                                    code_interpretations.append(
-                                        get_interpretation_text(interpretation_key))
-                                else:
-                                    row.append("")
-                            data.abnormal_result_interpretations_by_code[code] = code_interpretations
-                            filewriter.writerow(row)
-                logger.info(f"Abnormal laboratory results data from Apple Health sorted by interpretation saved to {filepath}")
-            except Exception as e:
-                logger.error("An error occurred in writing abnormal results data.")
-                if self.verbose:
-                    logger.error(traceback.format_exc())
-
-    def report_abnormal_results_by_date(self, filepath, data):
-        # Write abnormal results by datecode to spreadsheet
-        if len(data.abnormal_results) > 0:
-            try:
-                with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
-                    filewriter = csv.writer(
-                        csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
-                    header = ["Laboratory Abnormal Results from Apple Health Data"]
-                    for date in data.abnormal_result_dates:
-                        header.append(date)
-                    filewriter.writerow(header)
-                    for code in sorted(data.observation_code_ids):
-                        row = [code]
-                        abnormal_result_found = False
-                        for date in data.abnormal_result_dates:
-                            date_found = False
-                            for code_id in data.observation_code_ids[code]:
-                                if code_id in data.abnormal_results:
-                                    abnormal_result_found = True
-                                    results = data.abnormal_results[code_id]
-                                    for observation in results:
-                                        if (observation.date == date and date + code_id in data.date_codes):
-                                            date_found = True
-                                            row.append(observation.value_string + " "
-                                                    + observation.result.interpretation)
-                                            break
-                                    else:
-                                        continue
-                                    break
-                            if not date_found:
-                                row.append("")
-                        if abnormal_result_found:
-                            filewriter.writerow(row)
-                logger.info(f"Abnormal laboratory results data from Apple Health saved to {filepath}")
-            except Exception as e:
-                logger.error("An error occurred in writing abnormal results data to CSV.")
-                if self.verbose:
-                    logger.error(traceback.format_exc())
-        else:
-            logger.info("No abnormal results found from current data")
-
-    def report_all_data_by_datecode(self, filepath, data):
-        # Write all data by datecode to spreadsheet
-
+    def report_abnormal_results_by_interpretation(self, filepath, store, options):
+        abnormal_results = store.abnormal_results
+        if len(abnormal_results) == 0:
+            return
         try:
             with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
-                filewriter = csv.writer(csvfile, delimiter=",",
-                                        quotechar="\"", quoting=csv.QUOTE_MINIMAL)
+                filewriter = _csv_writer(csvfile)
+                interpretations = Interpretation.ordered(
+                    include_in_range=not options.skip_in_range_abnormal_results)
+                filewriter.writerow(["Laboratory Abnormal Results by Interpretation from Apple Health Data"]
+                                    + [i.text for i in interpretations])
+                for code in store.codes:
+                    found = {observation.reference.interpretation
+                             for code_id in store.code_ids(code)
+                             for observation in abnormal_results.get(code_id, [])}
+                    if found:
+                        filewriter.writerow([code] + [i.value if i in found else "" for i in interpretations])
+            logger.info(f"Abnormal laboratory results data from Apple Health sorted by interpretation saved to {filepath}")
+        except Exception:
+            logger.error("An error occurred in writing abnormal results data.")
+            if self.verbose:
+                logger.error(traceback.format_exc())
+
+    def report_abnormal_results_by_date(self, filepath, store):
+        abnormal_results = store.abnormal_results
+        if len(abnormal_results) == 0:
+            logger.info("No abnormal results found from current data")
+            return
+        try:
+            with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
+                filewriter = _csv_writer(csvfile)
+                abnormal_dates = store.abnormal_dates
+                filewriter.writerow(["Laboratory Abnormal Results from Apple Health Data"] + abnormal_dates)
+                for code in store.codes:
+                    code_ids = [code_id for code_id in store.code_ids(code) if code_id in abnormal_results]
+                    if not code_ids:
+                        continue
+                    row = [code]
+                    for date in abnormal_dates:
+                        observation = next((o for code_id in code_ids for o in abnormal_results[code_id]
+                                            if o.date == date), None)
+                        row.append("" if observation is None
+                                   else observation.value_string + " " + observation.reference.tag)
+                    filewriter.writerow(row)
+            logger.info(f"Abnormal laboratory results data from Apple Health saved to {filepath}")
+        except Exception:
+            logger.error("An error occurred in writing abnormal results data to CSV.")
+            if self.verbose:
+                logger.error(traceback.format_exc())
+
+    def report_all_data_by_datecode(self, filepath, store):
+        try:
+            with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
+                filewriter = _csv_writer(csvfile)
+                dates = store.dates
+                reference_dates = set(store.reference_dates)
                 header = ["Laboratory Observations from Apple Health Data"]
-                for date in data.observation_dates:
-                    if date in data.reference_dates:
+                for date in dates:
+                    if date in reference_dates:
                         header.append(date + " range")
                     header.append(date + " result")
                 filewriter.writerow(header)
-                for code in sorted(data.observation_code_ids):
+                for code in store.codes:
                     row = [code]
-                    for date in data.observation_dates:
-                        date_found = False
-                        for code_id in data.observation_code_ids[code]:
-                            datecode = date + code_id
-                            if datecode in data.date_codes:
-                                date_found = True
-                                observation = data.observations[data.date_codes[datecode]]
-                                if date in data.reference_dates:
-                                    if observation.has_reference:
-                                        row.append(" " + observation.result.range_text)
-                                        # Excel formats as date without space here
-                                    else:
-                                        row.append("")
-                                abnormal_result_tag = " " + \
-                                    observation.result.interpretation if observation.has_reference else ""
-                                row.append(observation.value_string
-                                        + abnormal_result_tag)
-                                break
-                        if not date_found:
+                    for date in dates:
+                        observation = find_result(store, code, date)
+                        if observation is None:
                             row.append("")
-                            if date in data.reference_dates:
+                            if date in reference_dates:
                                 row.append("")
+                            continue
+                        if date in reference_dates:
+                            # The leading space stops Excel reading a range like "1-5" as a date
+                            row.append(" " + observation.reference.range_text
+                                       if observation.has_reference else "")
+                        tag = " " + observation.reference.tag if observation.has_reference else ""
+                        row.append(observation.value_string + tag)
                     filewriter.writerow(row)
             logger.info(f"Laboratory records data from Apple Health saved to {filepath}")
         except Exception as e:
@@ -191,79 +149,22 @@ class Reporter:
                 logger.error(traceback.format_exc())
             raise HealthDataParseError("An error occurred in writing observations data to CSV.") from e
 
-    def report_all_data_json_and_pdf(self, include_observations, filepath, output_dir, data, xml_data, symptom_data, vital_stats_graph, food_data, custom_data_files, args):
-        # Write simplified observations data to JSON
-
-        json_data = {}
-        save_stats_objs = {}
-
+    def report_all_data_json_and_pdf(self, include_observations, filepath, output_dir, store, vital_signs,
+                                     symptom_data, vital_stats_graph, food_data, custom_data_files, options):
         try:
-            meta = {}
-            meta["description"] = "Health Records Report"
-            meta["processTime"] = str(datetime.now())
-            if include_observations:
-                meta["observationCount"] = len(data.observations)
-                meta["vitalSignsObservationCount"] = (
-                    len(data.observations_vital_signs) + xml_data.xml_vitals_observations_count)
-                meta["mostRecentResult"] = data.observation_dates[0]
-                meta["earliestResult"] = data.observation_dates[-1]
-                meta["heartRateMonitoringWearableDetected"] = xml_data.pulse_stats["graphEligible"]
-            json_data["meta"] = meta
-            if include_observations:
-                if meta["vitalSignsObservationCount"] > 0:
-                    vital_signs = {}
-                    if args.json_add_all_vitals:
-                        json_data["vitalSigns"] = xml_data.vitals_stats_list
-                    else:
-                        save_stats_objs = deepcopy(xml_data.vitals_stats_list)
-                        json_data["vitalSigns"] = []
-                        for stats_obj in save_stats_objs:
-                            new_obj = stats_obj.copy()
-                            del new_obj["list"]
-                            if "graph" in new_obj:
-                                del new_obj["graph"]
-                            json_data["vitalSigns"].append(new_obj)
-                if data.total_abnormal_results > 0:
-                    abnormal_results_data = {}
-                    meta = {}
-                    meta["codesWithAbnormalResultsCount"] = len(data.abnormal_results)
-                    meta["totalAbnormalResultsCount"] = data.total_abnormal_results
-                    meta["includesInRangeAbnormalities"] = (args.in_range_abnormal_boundary > 0
-                                                            and not args.skip_in_range_abnormal_results)
-                    meta["inRangeAbnormalBoundary"] = args.in_range_abnormal_boundary
-                    abnormal_results_data["meta"] = meta
-                    abnormal_results_data["codesWithAbnormalResults"] = data.abnormal_result_interpretations_by_code
-                    json_data["abnormalResults"] = abnormal_results_data
-                observations_list = []
-                for obs_id in data.observations:
-                    observations_list.append(data.observations[obs_id].to_dict(obs_id, data.tests))
-                observations_list.sort(key=lambda obs: obs.get("date"))
-                observations_list.reverse()
-                json_data["observations"] = observations_list
-
-            class DateTimeEncoder(json.JSONEncoder):
-                def default(self, z):
-                    if isinstance(z, datetime):
-                        return (datetime.strftime(z, args.datetime_format))
-                    else:
-                        return super().default(z)
-
+            json_data = build_json_data(include_observations, store, vital_signs, options)
             with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(json_data, f, cls=DateTimeEncoder, ensure_ascii=False, indent=4)
+                json.dump(json_data, f, cls=_DateTimeEncoder, ensure_ascii=False, indent=4)
             logger.info(f"Laboratory records data from Apple Health saved to {filepath}")
         except Exception as e:
             if self.verbose:
                 logger.error(traceback.format_exc())
             raise HealthDataParseError(f"An error occurred in writing observations data to JSON: {e}") from e
 
-        # Write observations data to PDF report
-
         try:
-            if include_observations and not args.json_add_all_vitals:
-                json_data["vitalSigns"] = save_stats_objs
-            report = Report(output_dir, args.subject, json_data["meta"]["processTime"][:10],
-                            self.verbose, args.report_highlight_abnormal_results)
-            report.create_pdf(json_data, data, symptom_data, vital_stats_graph, food_data)
+            report = Report(output_dir, options.subject, json_data["meta"]["processTime"][:10],
+                            self.verbose, options.report_highlight_abnormal_results)
+            report.create_pdf(json_data, store, symptom_data, vital_stats_graph, food_data)
             logger.info(f"Results report saved to {os.path.join(output_dir, report.filename)}")
         except Exception as e:
             if self.verbose:
@@ -271,6 +172,57 @@ class Reporter:
             raise HealthDataParseError(f"An error occurred in writing observations data to PDF report: {e}") from e
 
         if self.verbose and len(custom_data_files) > 0:
-            logger.info("\nThe compiled information includes some custom data not exported from Apple Health:")
+            logger.info("The compiled information includes some custom data not exported from Apple Health:")
             for filename in custom_data_files:
                 logger.info(filename)
+
+
+def build_json_data(include_observations, store, vital_signs, options):
+    """The observations.json content. Datetimes are left as datetime objects
+    (the PDF uses them); the JSON encoder writes them as ISO 8601."""
+    meta = {
+        "schemaVersion": SCHEMA_VERSION,
+        "description": "Health Records Report",
+        "processTime": str(datetime.now()),
+    }
+    json_data = {"meta": meta}
+    if not include_observations:
+        return json_data
+
+    dates = store.dates
+    meta["observationCount"] = len(store.observations)
+    meta["vitalSignsObservationCount"] = vital_signs.observation_count
+    meta["mostRecentResult"] = dates[0]
+    meta["earliestResult"] = dates[-1]
+    meta["heartRateMonitoringWearableDetected"] = vital_signs.wearable_heart_rate_detected
+
+    if vital_signs.observation_count > 0:
+        json_data["vitalSigns"] = [series.to_dict(include_readings=options.json_add_all_vitals)
+                                   for series in vital_signs.reported_series]
+
+    abnormal_count = store.abnormal_count
+    if abnormal_count > 0:
+        json_data["abnormalResults"] = {
+            "meta": {
+                "codesWithAbnormalResultsCount": len(store.abnormal_results),
+                "totalAbnormalResultsCount": abnormal_count,
+                "includesInRangeAbnormalities": (options.in_range_abnormal_boundary > 0
+                                                 and not options.skip_in_range_abnormal_results),
+                "inRangeAbnormalBoundary": options.in_range_abnormal_boundary,
+            },
+            "codesWithAbnormalResults": store.interpretations_by_code(
+                include_in_range=not options.skip_in_range_abnormal_results),
+        }
+
+    observations = [observation.to_dict() for observation in store.observations.values()]
+    observations.sort(key=lambda obs: obs.get("date"))
+    observations.reverse()
+    json_data["observations"] = observations
+    return json_data
+
+
+class _DateTimeEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        return super().default(o)

@@ -1,287 +1,281 @@
+from dataclasses import dataclass
 import json
 import os
+import re
 import traceback
 
-from health_data_parser.model.observation import Observation, ObservationVital, CategoryError
+from health_data_parser.model.lab_test import LabTest
+from health_data_parser.model.observation import Observation, SkipObservation
+from health_data_parser.model.observation_store import ObservationStore
+from health_data_parser.model.reference_range import reference_range_or_none
 from health_data_parser.model.units import VitalSignCategory
 from health_data_parser.utils.logger import setup_logger
 
-# Set up logger
 logger = setup_logger('observation_json_parser')
 
-## PROCESS CLINICAL RECORDS JSON DATA
+VITAL_SIGNS_CATEGORY = "Vital Signs"
+# Observation categories handled as vital signs rather than lab results
+VITAL_SIGN_CATEGORIES = [VITAL_SIGNS_CATEGORY] + [c.value for c in VitalSignCategory]
+DISALLOWED_CODES = ["NARRATIVE", "REQUEST PROBLEM"]
+
+_LOINC = "http://loinc.org"
+_SYSTOLIC_CODE = "8480-6"
+_DIASTOLIC_CODE = "8462-4"
+_LONG_VALUE_LENGTH = 200
 
 
-class ObservationsData:
-    def __init__(self):
-        self.observations = {}
-        self.observations_vital_signs = {}
-        self.observation_dates = []
-        self.reference_dates = []
-        self.observation_codes = {}
-        self.observation_code_ids = {}
-        self.tests = []
-        self.date_codes = {}
-        self.ranges = {}
-        self.abnormal_results = {}
-        self.abnormal_result_dates = []
-        self.total_abnormal_results = 0
-        self.abnormal_result_interpretations_by_code = {}
+@dataclass(frozen=True)
+class ObservationRules:
+    """The options that decide whether and how an observation is recorded."""
+    start_year: int | None = None
+    skip_long_values: bool = False
+    skip_in_range_abnormal_results: bool = False
+    in_range_abnormal_boundary: float = 0.15
 
-    def sort(self):
-        self.observation_dates.sort()
-        self.observation_dates.reverse()
+    @classmethod
+    def from_options(cls, options):
+        return cls(options.start_year, options.skip_long_values,
+                   options.skip_in_range_abnormal_results, options.in_range_abnormal_boundary)
 
-    def determine_abnormal_results(self, verbose, skip_in_range_abnormal_results, in_range_abnormal_boundary):
-        ## APPLY RANGES TO CLINICAL RECORDS RESULTS
-        if len(self.reference_dates) > 0:
-            if verbose:
-                logger.info("\nConsolidating ranges and validating all results where "
-                        + "ranges apply are tested for abnormality...\n")
-            # Construct ranges object
-            for code in sorted(self.observation_code_ids):
-                range_found = False
-                for date in self.observation_dates:
-                    if range_found:
-                        break
-                    for code_id in self.observation_code_ids[code]:
-                        datecode = date + code_id
-                        if datecode in self.date_codes:
-                            observation = self.observations[self.date_codes[datecode]]
-                            if date in self.reference_dates and observation.has_reference:
-                                self.ranges[code] = observation.result.range_text
-                                range_found = True
-                                break
-            for code in sorted(self.observation_code_ids):
-                if code not in self.ranges:
-                    continue
-                code_range = self.ranges[code]
-                range_list = [{"text": code_range}]
-                for date in self.observation_dates:
-                    for code_id in self.observation_code_ids[code]:
-                        datecode = date + code_id
-                        if datecode in self.date_codes:
-                            obs = self.observations[self.date_codes[datecode]]
-                            if not obs.has_reference:
-                                if verbose:
-                                    logger.info(f"Found missing reference range for code {code} on {date} - attempting to apply range from other results")
-                                obs.set_reference(skip_in_range_abnormal_results,
-                                                in_range_abnormal_boundary,
-                                                range_list, obs.unit, True)
-                                if obs.has_reference:
-                                    if obs.date not in self.reference_dates:
-                                        self.reference_dates.append(obs.date)
-                                    if obs.result.is_abnormal:
-                                        if obs.primary_code_id not in self.abnormal_results:
-                                            self.abnormal_results[obs.primary_code_id] = []
-                                        results = self.abnormal_results[obs.primary_code_id]
-                                        results.append(obs)
-                                        self.abnormal_results[obs.primary_code_id] = results
-                                        if obs.date not in self.abnormal_result_dates:
-                                            self.abnormal_result_dates.append(obs.date)
-
-        self.abnormal_result_dates.sort()
-        self.abnormal_result_dates.reverse()
-        self.reference_dates.sort()
+    def reference_range(self, range_text, value, value_string, unit, check_units_match=False):
+        return reference_range_or_none(
+            range_text, value, value_string, unit,
+            skip_in_range_abnormal_results=self.skip_in_range_abnormal_results,
+            abnormal_boundary=self.in_range_abnormal_boundary,
+            check_units_match=check_units_match)
 
 
-class ObservationJSONDataParser:
-    category_vital_signs = "Vital Signs"
-    disallowed_codes = ["NARRATIVE", "REQUEST PROBLEM"]
+def observation_category(data: dict):
+    if "text" in data["category"]:
+        return data["category"]["text"]
+    return data["category"]["coding"][0]["code"]
 
-    def __init__(self, args, custom_data_files, observations_data):
-        self.args = args
-        self.verbose = args.verbose
-        self.base_dir = args.base_dir
-        self.subject = args.subject
-        self.health_files = os.listdir(self.base_dir)
+
+def parse_observation(data: dict, obs_id: str, store: ObservationStore, rules: ObservationRules,
+                      disallowed_codes=DISALLOWED_CODES):
+    """Build an Observation from a FHIR Observation resource.
+
+    Raises SkipObservation for results the report leaves out: no value, before
+    the start year, a disallowed code, a date + test already recorded in
+    `store`, or an unusable value. Malformed resources raise other errors
+    (KeyError for missing fields, ValueError from LabTest for a code with no
+    description or id). When the test matches one already in `store` (a
+    shared coding), the observation uses that LabTest and adds its codings to
+    it.
+    """
+    if "valueString" not in data and "valueQuantity" not in data and "component" not in data:
+        raise SkipObservation("Observation value not found")
+
+    category = observation_category(data)
+    date = data["effectiveDateTime"][0:10]
+    if rules.start_year is not None and int(date[0:4]) < rules.start_year:
+        raise SkipObservation("Observation year is before start year")
+
+    test = LabTest(data["code"].get("text"), data["code"])
+    if test.test_desc.upper() in disallowed_codes:
+        raise SkipObservation("Skipping observation for code " + test.test_desc)
+    test = _saved_test(test, data["code"], store)
+    if store.is_recorded(date + test.primary_id):
+        raise SkipObservation(f"Datecode {date + test.primary_id} for code {test.test_desc} already recorded")
+
+    value, value2, value_string, unit = _parse_value(data)
+    value_string = _clean_value_string(value_string, date, test.test_desc, rules.skip_long_values)
+
+    reference = None
+    if "referenceRange" in data:
+        reference = rules.reference_range(data["referenceRange"][0].get("text"), value,
+                                          value_string, unit)
+
+    return Observation(obs_id=obs_id, date=date, category=category, test=test, value=value,
+                       value_string=value_string, unit=unit, value2=value2, reference=reference,
+                       comment=data.get("comments"))
+
+
+def _saved_test(test: LabTest, code: dict, store: ObservationStore):
+    """The test already in `store` that `test` matches (with `code`'s codings
+    added to it), or `test` itself if it's new."""
+    for saved_test in store.tests:
+        if test.matches(saved_test):
+            saved_test.add_coding(code)
+            return saved_test
+    return test
+
+
+def _parse_value(data: dict):
+    """(value, value2, value_string, unit) from a FHIR Observation's value."""
+    if "valueString" in data:
+        return None, None, data["valueString"], None
+
+    if "valueQuantity" in data:
+        value_quantity = data["valueQuantity"]
+        raw_value = value_quantity["value"]
+        number = None
+        if isinstance(raw_value, str):
+            match = re.search(r"(\d+\.\d+|\d+)", raw_value)
+            if match:
+                number = match.group(1)
+        elif raw_value is not None:
+            number = raw_value
+        value = float(number) if number is not None else None
+        value_string = str(raw_value)
+        unit = value_quantity.get("unit")
+        if unit is not None:
+            value_string += " " + unit
+        return value, None, value_string, unit
+
+    # Blood pressure: systolic and diastolic LOINC components
+    systolic = diastolic = unit = None
+    for component in data["component"]:
+        if not ("code" in component
+                and "valueQuantity" in component
+                and "value" in component["valueQuantity"]
+                and "coding" in component["code"]
+                and len(component["code"]["coding"]) > 0
+                and component["code"]["coding"][0].get("system") == _LOINC
+                and "code" in component["code"]["coding"][0]):
+            continue
+        component_code = component["code"]["coding"][0]["code"]
+        if component_code == _SYSTOLIC_CODE:
+            systolic = float(component["valueQuantity"]["value"])
+        elif component_code == _DIASTOLIC_CODE:
+            diastolic = float(component["valueQuantity"]["value"])
+        if "unit" in component["valueQuantity"]:
+            unit = component["valueQuantity"]["unit"]
+    if systolic is None or diastolic is None:
+        raise SkipObservation("Systolic or Diastolic value not found for assumed blood pressure observation.")
+    value_string = f"{systolic}/{diastolic} {unit if unit is not None else 'mm[Hg]'}"
+    return systolic, diastolic, value_string, unit
+
+
+def _clean_value_string(value_string, date, code, skip_long_values):
+    """`value_string` without a "SEE BELOW" pointer to text elsewhere in the
+    report; raises SkipObservation if nothing usable is left or it's too long."""
+    unparseable = SkipObservation(
+        f"Skipping observation with unparseable value for [date / code] {date} / {code}")
+    if value_string is None or value_string == "" or not re.search("[A-z0-9]", value_string):
+        raise unparseable
+    if "SEE BELOW" in value_string or "See Below" in value_string:
+        for marker in ["SEE BELOW\n\n", "SEE BELOW\n", "SEE BELOW",
+                       "See Below\n\n", "See Below\n", "See Below"]:
+            value_string = value_string.replace(marker, "")
+        if not re.search("[A-z0-9]", value_string):
+            raise unparseable
+    elif skip_long_values and len(value_string) > _LONG_VALUE_LENGTH:
+        raise SkipObservation(
+            f"Skipping observation with excessively long value for [date / code] {date} / {code}")
+    return value_string
+
+
+class ClinicalRecordsParser:
+    """Reads the FHIR Observation and DiagnosticReport files in an export's
+    clinical-records folder into an ObservationStore."""
+
+    def __init__(self, options, custom_data_files, store=None):
+        self.options = options
+        self.verbose = options.verbose
+        self.base_dir = options.base_dir
+        self.subject = options.subject
+        self.skip_dates = options.skip_dates
+        self.rules = ObservationRules.from_options(options)
         self.custom_data_files = custom_data_files
-        self.data = observations_data if observations_data else ObservationsData()
-        self.vital_sign_categories = [
-            member.value for name, member in VitalSignCategory.__members__.items()]
-        self.vital_sign_categories.insert(0, ObservationJSONDataParser.category_vital_signs)
+        self.store = store if store is not None else ObservationStore()
 
     def parse(self):
-        logger.info("Parsing clinical-records JSON...")        
-        for f in self.health_files:
+        logger.info("Parsing clinical-records JSON...")
+        for f in os.listdir(self.base_dir):
             # Records are named "<ResourceType>-<id>.json"; anything else (e.g.
             # .DS_Store) gets a category matching neither branch and is skipped
             file_category = f.split("-", 1)[0]
             f_addr = os.path.join(self.base_dir, f)
-            # Get data from Observation files
             if file_category == "Observation":
-                file_data = json.load(open(f_addr))
-                if "name" not in self.subject and "subject" in file_data:
-                    subject_data = file_data["subject"]
-                    if (subject_data is not None and "display" in subject_data
-                            and subject_data["display"] is not None):
-                        self.subject["name"] = subject_data["display"]
-                        if self.verbose:
-                            logger.info(f"Identified subject: {self.subject['name']}")
-                try:
-                    self.process_observation(file_data, f)
-                except Exception as e:
-                    if self.verbose:
-                        logger.error(f"Error processing observation: {e}")
-                    continue
-            # Get data from Diagnostic Report type files
+                with open(f_addr, encoding="utf-8") as file:
+                    file_data = json.load(file)
+                self._note_subject(file_data)
+                self._process_safely(file_data, f)
             elif file_category == "DiagnosticReport":
                 if "-CUSTOM" in f_addr:
                     self.custom_data_files.append(f_addr)
-                file_data = json.load(open(f_addr))
-                data_category = file_data["category"]["coding"][0]["code"]
-                if data_category not in ["Lab", "LAB"]:
+                with open(f_addr, encoding="utf-8") as file:
+                    file_data = json.load(file)
+                if file_data["category"]["coding"][0]["code"] not in ["Lab", "LAB"]:
                     continue
-                # Some Diagnostic Report files have multiple results contained
+                # Some Diagnostic Report files have multiple results contained.
+                # Their ids number them in order, but an index is reused after
+                # a result that failed, was on a skipped date, or was an
+                # unidentified vital sign.
                 if "contained" in file_data:
                     i = 0
                     for observation in file_data["contained"]:
-                        try:
-                            self.process_observation(observation, f + "[" + str(i) + "]")
-                        except Exception as e:
-                            if self.verbose:
-                                logger.error(f"Error processing contained observation: {e}")
-                            continue
-                        i += 1
+                        if self._process_safely(observation, f + "[" + str(i) + "]"):
+                            i += 1
                 else:
-                    try:
-                        self.process_observation(file_data, f)
-                    except Exception as e:
-                        if self.verbose:
-                            logger.error(f"Error processing diagnostic report: {e}")
-                        continue
+                    self._process_safely(file_data, f)
+        return self.store
 
-        self.data.sort()
-        return self.data
-
-
-
-    def handle_vital_sign_category_observation(self, data: dict, obs_id: str,
-                                            start_year: int, skip_long_values: bool,
-                                            skip_in_range_abnormal_results: bool,
-                                            in_range_abnormal_boundary: float):
-        obs_v = None
-
-        try:
-            obs_v = ObservationVital(data, obs_id, self.data.tests, self.data.date_codes,
-                                    start_year, skip_long_values, skip_in_range_abnormal_results,
-                                    in_range_abnormal_boundary)
-        except ValueError as e:
-            if self.verbose:
-                logger.error(f"Value error in vital sign observation: {e}")
-            pass
-        except AssertionError as e:
-            if self.verbose:
-                logger.error(f"Assertion error in vital sign observation: {e}")
-        except Exception as e:
-            if self.verbose:
-                logger.error("Exception encountered in gathering data from observation:")
-                logger.error(f"Observation ID: {obs_id}")
-            if obs_v is not None and obs_v.datecode is not None:
+    def _note_subject(self, file_data):
+        if "name" not in self.subject and "subject" in file_data:
+            subject_data = file_data["subject"]
+            if subject_data is not None and subject_data.get("display") is not None:
+                self.subject["name"] = subject_data["display"]
                 if self.verbose:
-                    logger.error(f"Datecode: {obs_v.datecode}")
-            traceback.print_exc()
-            raise e
-        if obs_v is not None:
-            force_presence = str(obs_v.observation_complete)
-        if obs_v is None or not obs_v.observation_complete:
-            return
-        if obs_v.date is not None and obs_v.date in self.args.skip_dates:
-            raise Exception("Skipping observation on date " + obs_v.date)
+                    logger.info(f"Identified subject: {self.subject['name']}")
 
-        if obs_v.category == ObservationJSONDataParser.category_vital_signs:
-            for category in list(VitalSignCategory):
-                if obs_v.code and category.matches(obs_v.code):
-                    obs_v.set_vital_sign_category(category)
-                    break
-            if obs_v.vital_sign_category is None:
-                raise AssertionError("Vital sign observation category not identified: "
-                                    + obs_v.category)
-        else:
-            for category in list(VitalSignCategory):
-                if category.matches(obs_v.category):
-                    obs_v.set_vital_sign_category(category)
-                    break
-            if obs_v.vital_sign_category is None:
-                raise AssertionError("Vital sign observation category not identified: "
-                                    + obs_v.category)
-
-        if obs_v.date in self.data.observations_vital_signs:
-            this_date_observations = self.data.observations_vital_signs[obs_v.date]
-        else:
-            this_date_observations = []
-
-        this_date_observations.append(obs_v)
-        self.data.observations_vital_signs[obs_v.date] = this_date_observations
-
-        if self.verbose:
-            logger.info(f"Vital sign observation recorded for {obs_v.code} on {obs_v.date}")
-
+    def _process_safely(self, data, obs_id):
+        """Process one observation; returns whether its id is used (see parse)."""
+        try:
+            return self.process_observation(data, obs_id)
+        except Exception as e:
+            logger.error(f"Error processing observation {obs_id}: {e!r}")
+            if self.verbose:
+                logger.error(traceback.format_exc())
+            return False
 
     def process_observation(self, data: dict, obs_id: str):
-        obs = None
+        """Record one observation if the report includes it.
+
+        Returns False when the observation is on a skipped date or is an
+        unidentified vital sign, the cases that don't use up a contained
+        result's id; True otherwise, whether or not it was recorded.
+        """
+        if observation_category(data) in VITAL_SIGN_CATEGORIES:
+            return self._process_vital_sign(data, obs_id)
         try:
-            obs = Observation(data, obs_id, self.data.tests, self.data.date_codes, self.args.start_year,
-                    self.args.skip_long_values, self.args.skip_in_range_abnormal_results,
-                    self.args.in_range_abnormal_boundary, self.vital_sign_categories,
-                    ObservationJSONDataParser.disallowed_codes)
-        except ValueError:
-            pass
-        except CategoryError:
-            self.handle_vital_sign_category_observation(data, obs_id,
-                    self.args.start_year,
-                    self.args.skip_long_values,
-                    self.args.skip_in_range_abnormal_results,
-                    self.args.in_range_abnormal_boundary)
-            return
-        except AssertionError as e:
+            obs = parse_observation(data, obs_id, self.store, self.rules)
+        except SkipObservation as e:
             if self.verbose:
-                logger.error(f"Assertion error in observation: {e}")
-        except Exception as e:
+                logger.info(f"Skipped observation {obs_id}: {e}")
+            return True
+        if obs.date in self.skip_dates:
             if self.verbose:
-                logger.error("Exception encountered in gathering data from observation:")
-                logger.error(f"Observation ID: {obs_id}")
-            if obs is not None and obs.datecode is not None:
-                if self.verbose:
-                    logger.error(f"Datecode: {obs.datecode}")
-            traceback.print_exc()
-            raise e
-        if obs is None or not obs.observation_complete:
-            return
-        if obs.date is not None and obs.date in self.args.skip_dates:
-            raise Exception("Skipping observation on date " + obs.date)
-
-        self.data.observations[obs_id] = obs
-        if obs.is_seen_test:
-            self.data.tests[obs.test_index] = obs.test
-        else:
-            self.data.tests.append(obs.test)
-        if obs.primary_code_id not in self.data.observation_codes:
-            self.data.observation_codes[obs.primary_code_id] = obs.code
-        if obs.code not in self.data.observation_code_ids:
-            self.data.observation_code_ids[obs.code] = []
-        code_ids = self.data.observation_code_ids[obs.code]
-        if obs.primary_code_id not in code_ids:
-            code_ids.append(obs.primary_code_id)
-            self.data.observation_code_ids[obs.code] = code_ids
-        if obs.date is not None:
-            if obs.date not in self.data.observation_dates:
-                self.data.observation_dates.append(obs.date)
-            if obs.has_reference and obs.date not in self.data.reference_dates:
-                self.data.reference_dates.append(obs.date)
-
-        self.data.date_codes[obs.datecode] = obs_id
-
-        if obs.has_reference and obs.result and obs.result.is_abnormal:
-            if obs.primary_code_id not in self.data.abnormal_results:
-                self.data.abnormal_results[obs.primary_code_id] = []
-            results = self.data.abnormal_results[obs.primary_code_id]
-            results.append(obs)
-            self.data.abnormal_results[obs.primary_code_id] = results
-            if obs.date not in self.data.abnormal_result_dates:
-                self.data.abnormal_result_dates.append(obs.date)
+                logger.info(f"Skipping observation on date {obs.date}")
+            return False
+        self.store.add(obs)
         if self.verbose:
             logger.info(f"Observation recorded for {obs.code} on {obs.date}")
+        return True
 
+    def _process_vital_sign(self, data: dict, obs_id: str):
+        try:
+            obs = parse_observation(data, obs_id, self.store, self.rules, disallowed_codes=())
+        except SkipObservation as e:
+            if self.verbose:
+                logger.info(f"Skipped vital sign observation {obs_id}: {e}")
+            return True
+        if obs.date in self.skip_dates:
+            if self.verbose:
+                logger.info(f"Skipping observation on date {obs.date}")
+            return False
 
+        # "Vital Signs" observations name the vital in their code; others in their category
+        text = obs.code if obs.category == VITAL_SIGNS_CATEGORY else obs.category
+        obs.vital_sign_category = next(
+            (category for category in VitalSignCategory if text and category.matches(text)), None)
+        if obs.vital_sign_category is None:
+            if self.verbose:
+                logger.info(f"Vital sign observation category not identified: {obs.category} / {obs.code}")
+            return False
 
+        self.store.add_vital(obs)
+        if self.verbose:
+            logger.info(f"Vital sign observation recorded for {obs.code} on {obs.date}")
+        return True

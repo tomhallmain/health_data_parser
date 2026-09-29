@@ -6,10 +6,9 @@ import os
 import traceback
 import uuid
 
-from health_data_parser.model.lab_test import LabTest
-from health_data_parser.model.observation import Observation
-from health_data_parser.model.reference_range import get_interpretation_keys, get_interpretation_text
 from health_data_parser.errors import HealthDataParseError
+from health_data_parser.ingest.fhir_json import ObservationRules, parse_observation
+from health_data_parser.model.observation_store import ObservationStore
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('diagnostic_report_generator')
@@ -120,8 +119,6 @@ def construct_observation(_id, subject, date, code_description, loinc_code, _ran
 def save_reports_to_json(reports, base_dir, verbose):
     has_saved_report = False
     has_error_in_report = False
-    tests = []
-    date_codes = {}
 
     # If file is already saved for this report, delete the previous version
     for _file in glob(os.path.join(base_dir, "*-CUSTOM.json")):
@@ -147,14 +144,13 @@ def save_reports_to_json(reports, base_dir, verbose):
                     logger.info(f"Saved file: {report_path}")
             has_saved_report = True
 
-            # Validate contained observations
-            file_data = json.load(open(report_path))
-            data_category = file_data["category"]["coding"][0]["code"]
-            i = 0
-            for observation in file_data["contained"]:
-                obs = Observation(observation, report_filename + "[" + str(i) + "]",
-                                  tests, date_codes, None, False, False, 0.15, [], [])
-                i += 1
+            # Validate contained observations: each must parse as a recordable
+            # lab result (SkipObservation or any other error fails the report)
+            with open(report_path, encoding="utf-8") as f:
+                file_data = json.load(f)
+            for i, observation in enumerate(file_data["contained"]):
+                parse_observation(observation, report_filename + "[" + str(i) + "]",
+                                  ObservationStore(), ObservationRules(), disallowed_codes=())
         except Exception as e:
             if verbose:
                 logger.error(traceback.format_exc())

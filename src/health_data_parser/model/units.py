@@ -126,45 +126,6 @@ def calculate_bmi(normalized_height: float, normalized_weight: float,
     return bmi
 
 
-base_stats = {
-    "count": 0,
-    "sum": 0,
-    "avg": None,
-    "max": None,
-    "min": None,
-    "mostRecent": None,
-    "unit": None,
-    "list": []}
-
-
-def set_stats(stats: dict, time, value):
-    if time is None:
-        stats["list"].append(value)
-    else:
-        stats["list"].append({"time": time, "value": value})
-    stats["count"] += 1
-    if type(value) == list:
-        for i in range(len(value)):
-            c_value = value[i]
-            stats["sum"][i] += c_value
-            if stats["max"][i] is None:
-                stats["max"][i] = c_value
-                stats["min"][i] = c_value
-            elif stats["max"][i] < c_value:
-                stats["max"][i] = c_value
-            elif stats["min"][i] > c_value:
-                stats["min"][i] = c_value
-    else:
-        stats["sum"] += value
-        if stats["max"] is None:
-            stats["max"] = value
-            stats["min"] = value
-        elif stats["max"] < value:
-            stats["max"] = value
-        elif stats["min"] > value:
-            stats["min"] = value
-
-
 def get_age(birth_date):
     today = datetime.today()
     age = today.year - birth_date.year

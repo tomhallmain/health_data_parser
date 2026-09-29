@@ -24,7 +24,7 @@ class LabTest:
             code_id = code_desc
 
         if code_desc is None or code_id is None:
-            raise Exception("Code description or ID is None")
+            raise ValueError("Code description or ID is None")
 
         self.test_desc = code_desc
         self.primary_id = code_id

@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 import pytest
 
+from health_data_parser.model.vitals import Reading, VitalSeries
 from health_data_parser.reporting.charts.vitals import VitalsStatsGraph, smooth
 
 
@@ -56,10 +57,13 @@ DAY_1, DAY_2, DAY_3 = 1, 2, 3
 
 
 def reading(day, hour, minute, value, motion=None):
-    obs = {"time": datetime(2023, 1, day, hour, minute), "value": value}
-    if motion is not None:
-        obs["motion"] = motion
-    return obs
+    return Reading(datetime(2023, 1, day, hour, minute), value, motion)
+
+
+def series(readings):
+    vital = VitalSeries("test")
+    vital.readings = list(readings)
+    return vital
 
 
 def ordinal(day):
@@ -73,11 +77,11 @@ def graph():
     Pulse, day 1: 60 at 08:00, 110 at 08:02 (a spike), 70 at 12:00 in motion.
     Pulse, day 3: 80 at 08:00.
     """
-    pulse = {"list": [reading(DAY_1, 8, 0, 60, 0), reading(DAY_1, 8, 2, 110, 0),
-                      reading(DAY_1, 12, 0, 70, 1), reading(DAY_3, 8, 0, 80, 0)]}
-    hrv = {"list": [reading(DAY_1, 9, 0, 50)]}
-    steps = {"list": [reading(DAY_1, 10, 0, 100), reading(DAY_1, 11, 0, 200), reading(DAY_3, 10, 0, 50)]}
-    stand = {"list": [reading(DAY_1, 10, 0, 2), reading(DAY_3, 10, 0, 4)]}
+    pulse = series([reading(DAY_1, 8, 0, 60, 0), reading(DAY_1, 8, 2, 110, 0),
+                      reading(DAY_1, 12, 0, 70, 1), reading(DAY_3, 8, 0, 80, 0)])
+    hrv = series([reading(DAY_1, 9, 0, 50)])
+    steps = series([reading(DAY_1, 10, 0, 100), reading(DAY_1, 11, 0, 200), reading(DAY_3, 10, 0, 50)])
+    stand = series([reading(DAY_1, 10, 0, 2), reading(DAY_3, 10, 0, 4)])
     return VitalsStatsGraph(ordinal(DAY_1), pulse, hrv, steps, stand)
 
 
@@ -109,16 +113,16 @@ class TestVitalsStatsGraphDailyStats:
         assert graph.pulse_stand_ratios == [40.0, 0, 20.0]
 
     def test_readings_before_min_ordinal_are_ignored(self):
-        pulse = {"list": [reading(DAY_1, 8, 0, 60, 0), reading(DAY_2, 8, 0, 70, 0)]}
-        empty = {"list": []}
+        pulse = series([reading(DAY_1, 8, 0, 60, 0), reading(DAY_2, 8, 0, 70, 0)])
+        empty = series([])
         graph = VitalsStatsGraph(ordinal(DAY_2), pulse, empty, empty, empty)
         assert graph.pulse_dates == [ordinal(DAY_2)]
         assert graph.pulse_date_stats["count"] == [1]
 
     def test_no_readings_raises(self):
-        empty = {"list": []}
+        empty = series([])
         with pytest.raises(AssertionError, match="Error collecting dates"):
-            VitalsStatsGraph(0, {"list": []}, empty, empty, empty)
+            VitalsStatsGraph(0, series([]), empty, empty, empty)
 
 
 class TestVitalsStatsGraphMinuteStats:
@@ -145,20 +149,20 @@ class TestVitalsStatsGraphMinuteStats:
         assert sum(graph.spikeCounts) == 1
 
     def test_readings_on_different_days_are_not_a_spike(self):
-        pulse = {"list": [reading(DAY_1, 8, 0, 60, 0), reading(DAY_2, 8, 1, 110, 0)]}
-        empty = {"list": []}
+        pulse = series([reading(DAY_1, 8, 0, 60, 0), reading(DAY_2, 8, 1, 110, 0)])
+        empty = series([])
         graph = VitalsStatsGraph(ordinal(DAY_1), pulse, empty, empty, empty)
         assert sum(graph.spikeCounts) == 0
 
     def test_rise_across_midnight_is_a_spike(self):
-        pulse = {"list": [reading(DAY_1, 23, 59, 60, 0), reading(DAY_2, 0, 1, 110, 0)]}
-        empty = {"list": []}
+        pulse = series([reading(DAY_1, 23, 59, 60, 0), reading(DAY_2, 0, 1, 110, 0)])
+        empty = series([])
         graph = VitalsStatsGraph(ordinal(DAY_1), pulse, empty, empty, empty)
         assert graph.spikeCounts[23 * 60 + 59] == 1
 
     def test_averages_without_readings_are_nan(self):
-        pulse = {"list": [reading(DAY_1, 8, 0, 60, 0)]}
-        empty = {"list": []}
+        pulse = series([reading(DAY_1, 8, 0, 60, 0)])
+        empty = series([])
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             graph = VitalsStatsGraph(ordinal(DAY_1), pulse, empty, empty, empty)

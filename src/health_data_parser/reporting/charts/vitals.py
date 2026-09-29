@@ -1,23 +1,19 @@
-from copy import deepcopy
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from health_data_parser.model.units import base_stats
+MINUTES_PER_DAY = 24 * 60
 
 
-def set_stats(stats: dict, value):
-    stats["list"].append(value)
-    stats["count"] += 1
-    stats["sum"] += value
-    if stats["max"] is None:
-        stats["max"] = value
-        stats["min"] = value
-    elif stats["max"] < value:
-        stats["max"] = value
-    elif stats["min"] > value:
-        stats["min"] = value
+def _summary(values):
+    """(count, max, min, mean, population stdev) of values; NaN stats for none."""
+    count = len(values)
+    if count == 0:
+        return 0, np.nan, np.nan, np.nan, np.nan
+    mean = sum(values) / count
+    stdev = (sum((value - mean) ** 2 for value in values) / count) ** (1 / 2)
+    return count, max(values), min(values), mean, stdev
 
 
 def smooth(data, smoothing_factor: int, pad_with_zeros=False):
@@ -53,55 +49,67 @@ def smooth(data, smoothing_factor: int, pad_with_zeros=False):
 
 
 class VitalsStatsGraph:
-    def __init__(self, min_xml_ordinal, pulse_stats, hrv_stats, step_stats, stand_stats):
+    """Daily and time-of-day statistics from wearable heart rate, HRV, step and
+    stand readings, and the charts drawn from them.
+
+    Each series argument is a VitalSeries. Daily stats ignore readings dated
+    before `min_xml_ordinal` (a date ordinal; None for no limit) and cover
+    each date from the first heart rate reading to the last reading of any
+    series.
+    """
+
+    def __init__(self, min_xml_ordinal, pulse, hrv, steps, stand):
         self.to_print = False
         self.min_xml_ordinal = min_xml_ordinal
-        self.collect_daily_stats(
-            pulse_stats, hrv_stats, step_stats, stand_stats)
+        self.collect_daily_stats(pulse, hrv, steps, stand)
         self.calculate_pulse_stand_ratio()
-        self.collect_minute_pulse_stats(pulse_stats, hrv_stats)
+        self.collect_minute_pulse_stats(pulse)
 
-    # For each date in the series, calculate statistics about readings
-    def collect_daily_stats(self, pulse_stats, hrv_stats, step_stats, stand_stats):
-        self.min_ordinal = 99999999
-        self.max_ordinal = 0
-        date_pulse_readings = {}
-        date_pulse_hrv_readings = {}
-        date_step_readings = {}
-        date_stand_readings = {}
-        self.pulse_dates = []
-        self.hrv_dates = []
-        self.step_dates = []
-        self.stand_dates = []
-        self.pulse_date_stats = {"max": [], "min": [], "count": [],
-                                 "stdevs": [], "avgs": [], "sums": []}
-        self.hrv_date_stats = deepcopy(self.pulse_date_stats)
-        self.step_date_stats = deepcopy(self.pulse_date_stats)
-        self.stand_date_stats = deepcopy(self.pulse_date_stats)
+    def collect_daily_stats(self, pulse, hrv, steps, stand):
+        pulse_by_date, hrv_by_date, step_by_date, stand_by_date = by_date = [
+            self._values_by_date(series) for series in (pulse, hrv, steps, stand)]
+        self.pulse_dates = list(pulse_by_date)
+        self.hrv_dates = list(hrv_by_date)
+        self.step_dates = list(step_by_date)
+        self.stand_dates = list(stand_by_date)
 
-        self.set_daily_stats(
-            pulse_stats, date_pulse_readings, self.pulse_dates)
-        self.min_pulse_ordinal = self.min_ordinal
-        self.set_daily_stats(
-            hrv_stats, date_pulse_hrv_readings, self.hrv_dates)
-        self.set_daily_stats(
-            step_stats, date_step_readings, self.step_dates)
-        self.set_daily_stats(
-            stand_stats, date_stand_readings, self.stand_dates)
-
-        if self.max_ordinal == 0:
+        all_dates = [date for dates in by_date for date in dates]
+        if not all_dates:
             raise AssertionError("Error collecting dates from pulse, HRV,"
                                  + " step, or stand observations data")
+        self.max_ordinal = max(all_dates)
+        # With no heart rate dates the date range is empty
+        self.min_pulse_ordinal = min(pulse_by_date) if pulse_by_date else self.max_ordinal + 1
 
+        self.pulse_date_stats = self._daily_stats(pulse_by_date)
+        self.hrv_date_stats = self._daily_stats(hrv_by_date)
+        self.step_date_stats = self._daily_stats(step_by_date)
+        self.stand_date_stats = self._daily_stats(stand_by_date)
+
+    def _values_by_date(self, series):
+        """Date ordinal -> reading values, dates in the order first seen."""
+        by_date = {}
+        for reading in series.readings:
+            date = reading.time.toordinal()
+            if self.min_xml_ordinal is not None and date < self.min_xml_ordinal:
+                continue
+            by_date.setdefault(date, []).append(reading.value)
+        return by_date
+
+    def _daily_stats(self, values_by_date):
+        """Per-date lists over the graph's date range, NaN (0 for sums) on dates
+        without readings."""
+        stats = {"max": [], "min": [], "count": [], "stdevs": [], "avgs": [], "sums": []}
         for date in range(self.min_pulse_ordinal, self.max_ordinal + 1):
-            self.set_final_date_stats(
-                date, date_pulse_readings, self.pulse_date_stats)
-            self.set_final_date_stats(
-                date, date_pulse_hrv_readings, self.hrv_date_stats)
-            self.set_final_date_stats(
-                date, date_step_readings, self.step_date_stats, True)
-            self.set_final_date_stats(
-                date, date_stand_readings, self.stand_date_stats, True)
+            values = values_by_date.get(date, [])
+            count, maximum, minimum, mean, stdev = _summary(values)
+            stats["count"].append(count)
+            stats["max"].append(maximum)
+            stats["min"].append(minimum)
+            stats["avgs"].append(mean)
+            stats["stdevs"].append(stdev)
+            stats["sums"].append(sum(values))
+        return stats
 
     def calculate_pulse_stand_ratio(self):
         self.pulse_stand_ratios = []
@@ -116,59 +124,39 @@ class VitalsStatsGraph:
 
     # For each day in the series, split it into minute increments and
     # calculate the average pulse during this minute
-    def collect_minute_pulse_stats(self, pulse_stats, hrv_stats):
-        day_minute_readings = {}
-        day_minute_motion_readings = {}
-        instances_of_heart_rate_spike = {}
-        self.minutes = []
+    def collect_minute_pulse_stats(self, pulse):
+        minute_values = [[] for _ in range(MINUTES_PER_DAY)]
+        minute_motions = [[] for _ in range(MINUTES_PER_DAY)]
+        spike_counts = [0] * MINUTES_PER_DAY
+        values_in_motion = []
+        values_resting = []
 
-        for i in range(60 * 24):
-            self.minutes.append(i)
-            day_minute_readings[i] = deepcopy(base_stats)
-            day_minute_motion_readings[i] = deepcopy(base_stats)
-            instances_of_heart_rate_spike[i] = 0
+        previous = None
+        for reading in pulse.readings:
+            minute = reading.time.hour * 60 + reading.time.minute
+            motion = reading.motion or 0
+            minute_values[minute].append(reading.value)
+            minute_motions[minute].append(motion)
 
-        save_minute = -1
-        save_time = None
-        save_value = 0
-        self.values_in_motion = []
-        self.values_resting = []
-        self.max_in_motion = None
-        self.min_in_motion = None
-        self.max_resting = None
-        self.min_resting = None
-
-        for obs in pulse_stats["list"]:
-            minute = obs["time"].hour * 60 + obs["time"].minute
-            value = obs["value"]
-            motion = obs["motion"]
-            set_stats(day_minute_readings[minute], value)
-            set_stats(day_minute_motion_readings[minute], motion)
-
-            if motion > 0 or value > 105:
-                self.values_in_motion.append(value)
+            if motion > 0 or reading.value > 105:
+                values_in_motion.append(reading.value)
             else:
-                self.values_resting.append(value)
+                values_resting.append(reading.value)
 
             # A rise of more than 40 BPM within 5 minutes, counted at the minute
             # of day it started from
-            if (save_time is not None
-                    and timedelta(0) <= obs["time"] - save_time < timedelta(minutes=5)
-                    and value - save_value > 40):
-                instances_of_heart_rate_spike[save_minute] += 1
+            if (previous is not None
+                    and timedelta(0) <= reading.time - previous.time < timedelta(minutes=5)
+                    and reading.value - previous.value > 40):
+                spike_counts[previous.time.hour * 60 + previous.time.minute] += 1
+            previous = reading
 
-            save_minute = minute
-            save_time = obs["time"]
-            save_value = value
-
-        self.values_in_motion.sort()
-        self.values_resting.sort()
-        self.values_in_motion = np.array(self.values_in_motion)
-        self.values_resting = np.array(self.values_resting)
+        self.values_in_motion = np.array(sorted(values_in_motion))
+        self.values_resting = np.array(sorted(values_resting))
         # NaN when there are no readings of that kind
         self.avg_in_motion = self.values_in_motion.mean() if len(self.values_in_motion) else np.nan
         self.avg_resting = self.values_resting.mean() if len(self.values_resting) else np.nan
-        self.minutes = np.array(self.minutes)
+        self.minutes = np.arange(MINUTES_PER_DAY)
         self.minute_max = []
         self.minute_min = []
         self.minute_count = []
@@ -179,91 +167,23 @@ class VitalsStatsGraph:
         self.motion_count = []
         self.motion_stdevs = []
         self.motion_avgs = []
-        self.spikeCounts = []
+        self.spikeCounts = spike_counts
 
-        for minute in sorted(day_minute_readings.keys()):
-            self.set_final_minute_stats(minute, day_minute_readings,
-                                        self.minute_avgs, self.minute_stdevs,
-                                        self.minute_count, self.minute_max,
-                                        self.minute_min)
-            self.set_final_minute_stats(minute, day_minute_motion_readings,
-                                        self.motion_avgs, self.motion_stdevs,
-                                        self.motion_count, self.motion_max,
-                                        self.motion_min)
+        for minute in range(MINUTES_PER_DAY):
+            count, maximum, minimum, mean, stdev = _summary(minute_values[minute])
+            self.minute_count.append(count)
+            self.minute_max.append(maximum)
+            self.minute_min.append(minimum)
+            self.minute_avgs.append(mean)
+            self.minute_stdevs.append(stdev)
+            count, maximum, minimum, mean, stdev = _summary(minute_motions[minute])
+            self.motion_count.append(count)
+            self.motion_max.append(maximum)
+            self.motion_min.append(minimum)
+            self.motion_avgs.append(mean)
+            self.motion_stdevs.append(stdev)
             # self.set_final_minute_stats(minute, day_minute_hrv_readings,
             #                             self.hrv_avgs, self.hrv_stdevs)
-            self.spikeCounts.append(instances_of_heart_rate_spike[minute])
-
-    def set_daily_stats(self, vital_stats, date_vital_stats, dates_list):
-        for obs in vital_stats["list"]:
-            date = obs["time"].toordinal()
-            if date < self.min_xml_ordinal:
-                continue
-            elif date not in dates_list:
-                dates_list.append(date)
-            if self.min_ordinal > date:
-                self.min_ordinal = date
-            if self.max_ordinal < date:
-                self.max_ordinal = date
-            if date in date_vital_stats:
-                date_stats = date_vital_stats[date]
-            else:
-                date_stats = deepcopy(base_stats)
-            set_stats(date_stats, obs["value"])
-            date_vital_stats[date] = date_stats
-
-    def set_final_date_stats(self, date, data, final_stats, keep_sums=False):
-        count = data[date]["count"] if (date in data) else 0
-        final_stats["count"].append(count)
-        if count == 0:
-            final_stats["max"].append(np.nan)
-            final_stats["min"].append(np.nan)
-            final_stats["avgs"].append(np.nan)
-            final_stats["stdevs"].append(np.nan)
-            if keep_sums:
-                final_stats["sums"].append(0)
-        else:
-            date_stats = data[date]
-            final_stats["max"].append(date_stats["max"])
-            final_stats["min"].append(date_stats["min"])
-            avg = date_stats["sum"] / count
-            final_stats["avgs"].append(avg)
-            if keep_sums:
-                final_stats["sums"].append(date_stats["sum"])
-            else:
-                del date_stats["sum"]
-                sum_sq_diffs = 0
-                for value in date_stats["list"]:
-                    sum_sq_diffs += (value - avg) ** 2
-                final_stats["stdevs"].append(
-                    (sum_sq_diffs / count) ** (1/2))
-            del data[date]
-
-    def set_final_minute_stats(self, minute, minute_readings, avgs, stdevs,
-                               counts=None, maxs=None, mins=None):
-        minute_stats = minute_readings[minute]
-        count = minute_stats["count"]
-        if counts is not None:
-            counts.append(count)
-        if count == 0:
-            if maxs is not None:
-                maxs.append(np.nan)
-            if mins is not None:
-                mins.append(np.nan)
-            avgs.append(np.nan)
-            stdevs.append(np.nan)
-        else:
-            if maxs is not None:
-                maxs.append(minute_stats["max"])
-            if mins is not None:
-                mins.append(minute_stats["min"])
-            avg = minute_stats["sum"] / count
-            avgs.append(avg)
-            del minute_stats["sum"]
-            sum_sq_diffs = 0
-            for value in minute_stats["list"]:
-                sum_sq_diffs += (value - avg) ** 2
-            stdevs.append((sum_sq_diffs / count) ** (1/2))
 
     def save_graph_images(self, base_dir: str):
         self.save_loc_minutes_data = os.path.join(

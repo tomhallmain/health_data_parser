@@ -1,15 +1,16 @@
+import logging
 from pathlib import Path
 
-from health_data_parser.ingest.fhir_json import ObservationJSONDataParser, ObservationsData
+import pytest
+
+from health_data_parser.ingest.fhir_json import ClinicalRecordsParser
 from health_data_parser.model.units import VitalSignCategory
 
 GLUCOSE_ID = "http://loinc.org2345-7"
 
 
 def parse(args, custom_data_files=None):
-    parser = ObservationJSONDataParser(args, [] if custom_data_files is None else custom_data_files,
-                                       ObservationsData())
-    return parser.parse()
+    return ClinicalRecordsParser(args, [] if custom_data_files is None else custom_data_files).parse()
 
 
 def diagnostic_report(contained, category_code="LAB"):
@@ -29,8 +30,9 @@ class TestParse:
         data = parse(json_parser_args)
 
         assert len(data.observations) == 2
-        assert data.observation_dates == ["2023-04-05", "2023-01-10"]
-        assert data.observation_code_ids == {"Glucose": [GLUCOSE_ID]}
+        assert data.dates == ["2023-04-05", "2023-01-10"]
+        assert data.codes == ["Glucose"]
+        assert data.code_ids("Glucose") == [GLUCOSE_ID]
         assert len(data.tests) == 1
         assert [obs.date for obs in data.abnormal_results[GLUCOSE_ID]] == ["2023-04-05"]
         assert json_parser_args.subject["name"] == "Test Subject"
@@ -47,7 +49,7 @@ class TestParse:
         data = parse(json_parser_args)
 
         assert set(data.observations) == {"DiagnosticReport-1.json[0]", "DiagnosticReport-1.json[1]"}
-        assert set(data.observation_code_ids) == {"Glucose", "Hemoglobin"}
+        assert data.codes == ["Glucose", "Hemoglobin"]
 
     def test_non_lab_diagnostic_report_is_ignored(self, json_parser_args, write_json, make_lab_observation):
         write_json(Path(json_parser_args.base_dir) / "DiagnosticReport-1.json",
@@ -69,7 +71,7 @@ class TestParse:
 
         data = parse(json_parser_args)
 
-        assert data.observation_dates == ["2023-04-05"]
+        assert data.dates == ["2023-04-05"]
 
     def test_start_year(self, json_parser_args, write_json, make_lab_observation):
         base_dir = Path(json_parser_args.base_dir)
@@ -77,7 +79,7 @@ class TestParse:
         write_json(base_dir / "Observation-2.json", make_lab_observation(date="2023-04-05"))
         json_parser_args.start_year = 2020
 
-        assert parse(json_parser_args).observation_dates == ["2023-04-05"]
+        assert parse(json_parser_args).dates == ["2023-04-05"]
 
     def test_vital_sign_observations_are_kept_separately(self, json_parser_args, write_json,
                                                          make_lab_observation):
@@ -88,7 +90,7 @@ class TestParse:
         data = parse(json_parser_args)
 
         assert data.observations == {}
-        [obs] = data.observations_vital_signs["2023-04-05"]
+        [obs] = data.vitals_by_date["2023-04-05"]
         assert obs.vital_sign_category is VitalSignCategory.PULSE
         assert obs.value == 62.0
 
@@ -100,31 +102,58 @@ class TestParse:
 
         assert len(parse(json_parser_args).observations) == 1
 
+    def test_vital_sign_named_by_category(self, json_parser_args, write_json, make_lab_observation):
+        write_json(Path(json_parser_args.base_dir) / "Observation-1.json",
+                   make_lab_observation(display="Body temperature", code="8310-5", value=98.6,
+                                        unit="[degF]", range_text=None, category="Temperature"))
 
-class TestDetermineAbnormalResults:
-    def test_range_is_applied_to_results_without_one(self, json_parser_args, write_json,
-                                                    make_lab_observation):
-        base_dir = Path(json_parser_args.base_dir)
-        write_json(base_dir / "Observation-1.json", make_lab_observation(date="2023-04-05", value=90))
-        write_json(base_dir / "Observation-2.json",
-                   make_lab_observation(date="2023-01-10", value=150, range_text=None))
-        data = parse(json_parser_args)
-        assert GLUCOSE_ID not in data.abnormal_results
+        [obs] = parse(json_parser_args).vitals
+        assert obs.vital_sign_category is VitalSignCategory.TEMPERATURE
 
-        data.determine_abnormal_results(False, False, 0.15)
+    def test_unidentified_vital_sign_is_skipped(self, json_parser_args, write_json, make_lab_observation):
+        write_json(Path(json_parser_args.base_dir) / "Observation-1.json",
+                   make_lab_observation(display="Heart rate", code="8867-4", value=62, unit="/min",
+                                        range_text=None, category="Vital Signs"))
 
-        assert [obs.date for obs in data.abnormal_results[GLUCOSE_ID]] == ["2023-01-10"]
-        assert data.ranges == {"Glucose": "70-99 mg/dL"}
-        assert data.reference_dates == ["2023-01-10", "2023-04-05"]
+        assert parse(json_parser_args).vitals == []
 
-    def test_range_with_mismatched_units_is_not_applied(self, json_parser_args, write_json,
-                                                        make_lab_observation):
-        base_dir = Path(json_parser_args.base_dir)
-        write_json(base_dir / "Observation-1.json", make_lab_observation(date="2023-04-05", value=90))
-        write_json(base_dir / "Observation-2.json",
-                   make_lab_observation(date="2023-01-10", value=8.3, unit="mmol/L", range_text=None))
-        data = parse(json_parser_args)
+    def test_vital_signs_on_skipped_dates(self, json_parser_args, write_json, make_lab_observation):
+        write_json(Path(json_parser_args.base_dir) / "Observation-1.json",
+                   make_lab_observation(display="Pulse", code="8867-4", value=62, unit="/min",
+                                        range_text=None, category="Vital Signs"))
+        json_parser_args.skip_dates = ["2023-04-05"]
 
-        data.determine_abnormal_results(False, False, 0.15)
+        assert parse(json_parser_args).vitals == []
 
-        assert GLUCOSE_ID not in data.abnormal_results
+    @pytest.mark.parametrize("first_result, uses_index", [
+        ({"date": "2019-01-01"}, True),                    # before start year: index used
+        ({"date": "2023-01-10"}, False),                   # skipped date: index reused
+        ({"category": "Vital Signs", "display": "Heart rate"}, False),  # unidentified vital
+        ({"broken": True}, False),                         # malformed: index reused
+    ])
+    def test_contained_result_ids(self, json_parser_args, write_json, make_lab_observation,
+                                  first_result, uses_index):
+        json_parser_args.start_year = 2020
+        json_parser_args.skip_dates = ["2023-01-10"]
+        first = make_lab_observation(date=first_result.get("date", "2023-04-05"),
+                                     display=first_result.get("display", "Ferritin"), code="2276-4",
+                                     category=first_result.get("category", "Laboratory"))
+        if first_result.get("broken"):
+            del first["effectiveDateTime"]
+        write_json(Path(json_parser_args.base_dir) / "DiagnosticReport-1.json", diagnostic_report([
+            first, make_lab_observation(display="Hemoglobin", code="718-7", value=14, unit="g/dL",
+                                        range_text="13.5-17.5 g/dL")]))
+
+        expected_id = "DiagnosticReport-1.json[1]" if uses_index else "DiagnosticReport-1.json[0]"
+        assert set(parse(json_parser_args).observations) == {expected_id}
+
+    def test_malformed_observation_is_logged_without_verbose(self, json_parser_args, write_json,
+                                                             make_lab_observation, caplog):
+        broken = make_lab_observation()
+        del broken["effectiveDateTime"]
+        write_json(Path(json_parser_args.base_dir) / "Observation-1.json", broken)
+
+        with caplog.at_level(logging.ERROR):
+            assert parse(json_parser_args).observations == {}
+        assert any("Error processing observation Observation-1.json" in r.getMessage()
+                   for r in caplog.records)

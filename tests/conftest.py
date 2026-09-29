@@ -5,7 +5,6 @@ project module or matplotlib is imported. Project modules create their loggers
 locations once, at import. Any nested conftest.py must not import either
 ahead of this file.
 """
-from copy import deepcopy
 import json
 import logging
 import os
@@ -104,31 +103,12 @@ def mpl_config_dir():
     return MPL_CONFIG_DIR
 
 
-@pytest.fixture(scope="session")
-def _app_global_defaults():
-    """Import-time values of process-wide state that code mutates in place."""
-    from health_data_parser.ingest import apple_xml
-    from health_data_parser.model import units
-    return {
-        "base_stats": deepcopy(units.base_stats),
-        "min_xml_ordinal": apple_xml.AppleHealthXMLParser.min_xml_ordinal,
-    }
-
-
 @pytest.fixture(autouse=True)
-def reset_app_globals(_app_global_defaults):
+def reset_app_globals():
     """Reset process-wide state before each test so one test's leftovers don't
     pollute the next; the teardown reset keeps a failing test's state from
     leaking too."""
     def _reset():
-        from health_data_parser.ingest import apple_xml
-        from health_data_parser.model import units
-        # Restored in place: ingest.apple_xml and reporting.charts.vitals bind
-        # this same dict by name
-        units.base_stats.clear()
-        units.base_stats.update(deepcopy(_app_global_defaults["base_stats"]))
-        # Lowered by every XML parse to the earliest record seen
-        apple_xml.AppleHealthXMLParser.min_xml_ordinal = _app_global_defaults["min_xml_ordinal"]
         # Chart code creates figures through pyplot and never closes them
         if "matplotlib.pyplot" in sys.modules:
             sys.modules["matplotlib.pyplot"].close("all")
@@ -197,7 +177,7 @@ def export_dir(tmp_path, write_json):
 
 @pytest.fixture
 def json_parser_args(tmp_path):
-    """The subset of ParseOptions that ObservationJSONDataParser reads."""
+    """The subset of ParseOptions that ClinicalRecordsParser reads."""
     base_dir = tmp_path / "clinical-records"
     base_dir.mkdir()
     return SimpleNamespace(

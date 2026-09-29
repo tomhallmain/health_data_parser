@@ -1,335 +1,179 @@
-from copy import deepcopy
 from datetime import datetime
 import xml.etree.ElementTree as ET
 
-from health_data_parser.model.units import VitalSignCategory, HeightUnit, WeightUnit, TemperatureUnit
-from health_data_parser.model.units import convert, get_age, base_stats, set_stats
 from health_data_parser.errors import HealthDataParseError
+from health_data_parser.model.units import HeightUnit, WeightUnit, TemperatureUnit, convert, get_age
 from health_data_parser.utils.logger import setup_logger
 
-# Set up logger
 logger = setup_logger('xml_parser')
 
-class AppleHealthXMLData:
-    def __init__(self, normal_height_unit, normal_weight_unit,
-                 normal_temperature_unit=TemperatureUnit.C):
-        self.blood_pressure_stats = {
-            "vital": VitalSignCategory.BLOOD_PRESSURE.value, "count": 0,
-            "labels": ["BP Systolic", "BP Diastolic"],
-            "sum": [0, 0],
-            "avg": [None, None],
-            "max": [None, None],
-            "min": [None, None],
-            "mostRecent": [None, None],
-            "unit": "mmHg",
-            "list": []}
-        self.bmi_stats = deepcopy(base_stats)
-        self.height_stats = deepcopy(base_stats)
-        self.hrv_stats = deepcopy(base_stats)
-        self.pulse_stats = deepcopy(base_stats)
-        self.respiration_stats = deepcopy(base_stats)
-        self.spo2_stats = deepcopy(base_stats)
-        self.stand_stats = deepcopy(base_stats)
-        self.step_stats = deepcopy(base_stats)
-        self.temperature_stats = deepcopy(base_stats)
-        self.weight_stats = deepcopy(base_stats)
-        self.bmi_stats["vital"] = "BMI"
-        self.bmi_stats["unit"] = "BMI"
-        self.height_stats["vital"] = VitalSignCategory.HEIGHT.value
-        self.height_stats["unit"] = normal_height_unit.name.lower()
-        self.hrv_stats["vital"] = "Heart rate variability"
-        self.hrv_stats["unit"] = "HRV"
-        self.respiration_stats["vital"] = VitalSignCategory.RESPIRATION.value
-        self.pulse_stats["vital"] = VitalSignCategory.PULSE.value
-        self.spo2_stats["vital"] = VitalSignCategory.SPO2.value
-        self.spo2_stats["unit"] = "%"
-        self.stand_stats["vital"] = "Apple stand minutes"
-        self.stand_stats["unit"] = "/5min"
-        self.step_stats["vital"] = "Steps"
-        self.temperature_stats["vital"] = VitalSignCategory.TEMPERATURE.value
-        self.temperature_stats["unit"] = normal_temperature_unit.name
-        self.weight_stats["vital"] = VitalSignCategory.WEIGHT.value
-        self.weight_stats["unit"] = normal_weight_unit.name.lower()
-        self.xml_vitals_observations_count = 0
-        self.blood_pressure_stats_preset = False
-        self.motion_data_found = False
-
-        self.vitals_stats_list = [
-            self.height_stats, self.weight_stats, self.bmi_stats,
-            self.temperature_stats, self.pulse_stats, self.respiration_stats,
-            self.blood_pressure_stats, self.hrv_stats, self.stand_stats, self.step_stats]
-
-
-    def set_observations_count(self, blood_pressure_count, heart_rate_count):
-        self.xml_vitals_observations_count = (blood_pressure_count + heart_rate_count
-            + self.hrv_stats["count"] + self.temperature_stats["count"])
-
-    def finalize(self, verbose,
-            blood_pressure_observations, blood_pressure_count, blood_pressure_sums,
-            heart_rate_observations, heart_rate_count, heart_rate_sum):
-
-        if self.blood_pressure_stats["count"] > 0:
-            self.blood_pressure_stats_preset = True
-            if verbose:
-                logger.info(f"Found {len(blood_pressure_observations)} blood pressure observations in XML data.")
-            self.blood_pressure_stats["count"] = blood_pressure_count
-            self.blood_pressure_stats["sum"] = blood_pressure_sums
-        if self.pulse_stats["count"] > 0:
-            if verbose:
-                logger.info(f"Found {len(heart_rate_observations)} heart rate observations in XML data.")
-            self.pulse_stats["count"] = heart_rate_count
-            self.pulse_stats["sum"] = heart_rate_sum
-        if verbose:
-            if self.height_stats["count"] > 0:
-                logger.info(f"Found {self.height_stats['count']} height observations in XML data.")
-            if self.weight_stats["count"] > 0:
-                logger.info(f"Found {self.weight_stats['count']} weight observations in XML data.")
-            if self.hrv_stats["count"] > 0:
-                logger.info(f"Found {self.hrv_stats['count']} heart rate variability observations in XML data.")
-            if self.spo2_stats["count"] > 0:
-                logger.info(f"Found {self.spo2_stats['count']} oxygen saturation observations in XML data.")
-            if self.stand_stats["count"] > 0:
-                logger.info(f"Found {self.stand_stats['count']} stand observations in XML data.")
-            if self.step_stats["count"] > 0:
-                logger.info(f"Found {self.step_stats['count']} step observations in XML data.")
-            if self.temperature_stats["count"] > 0:
-                logger.info(f"Found {self.temperature_stats['count']} temperature observations in XML data.")
+_TYPE_PREFIX = "HKQuantityTypeIdentifier"
 
 
 class AppleHealthXMLParser:
-    min_xml_ordinal = 99999999
+    """Reads an Apple Health export.xml into a VitalSigns and the subject's
+    details into options.subject."""
 
-    def __init__(self, apple_health_data, args):
-        self.data = apple_health_data
-        self.subject = args.subject
-        self.verbose = args.verbose
-        self.normal_height_unit = args.normal_height_unit
-        self.normal_weight_unit = args.normal_weight_unit
-        self.normal_temperature_unit = args.normal_temperature_unit
-        self.datetime_format = args.datetime_format
-        self.start_year = args.start_year
+    def __init__(self, vital_signs, options):
+        self.vital_signs = vital_signs
+        self.subject = options.subject
+        self.verbose = options.verbose
+        self.normal_height_unit = options.normal_height_unit
+        self.normal_weight_unit = options.normal_weight_unit
+        self.normal_temperature_unit = options.normal_temperature_unit
+        self.datetime_format = options.datetime_format
+        self.start_year = options.start_year
 
     def parse(self, export_xml_file_path):
         logger.info("Parsing XML...")
         try:
-            tree = ET.parse(export_xml_file_path)
-            root = tree.getroot()
-            me = root.find("Me").attrib
-            if "birthDate" not in self.subject:
-                birth_date_str = me["HKCharacteristicTypeIdentifierDateOfBirth"]
-                birth_date = datetime.fromisoformat(birth_date_str)
-                self.subject["birthDate"] = birth_date_str
-                self.subject["age"] = get_age(birth_date)
-            self.subject["sex"] = me["HKCharacteristicTypeIdentifierBiologicalSex"].replace(
-                "HKBiologicalSex", "")
-            self.subject["bloodType"] = me["HKCharacteristicTypeIdentifierBloodType"].replace(
-                "HKBloodType", "")
-            blood_pressure_observations = []
-            blood_pressure_sums = [0, 0]
-            blood_pressure_count = 0
-            blood_pressure_max = [None, None]
-            blood_pressure_min = [None, None]
-            heart_rate_observations = []
-            heart_rate_sum = 0
-            heart_rate_count = 0
-            heart_rate_max = None
-            heart_rate_min = None
-
-            for correlation in root.iter("Correlation"):
-                if "type" not in correlation.attrib:
-                    continue
-                if correlation.attrib["type"] == "HKCorrelationTypeIdentifierBloodPressure":
-                    if "startDate" in correlation.attrib:
-                        try:
-                            time = datetime.strptime(
-                                correlation.attrib["startDate"], self.datetime_format)
-                        except Exception:
-                            if self.verbose:
-                                logger.error("Exception on constructing date from XML observation")
-                            continue
-                        if self.start_year is not None and self.start_year > time.year:
-                            continue
-                    else:
-                        continue
-
-                    blood_pressure_obs = {}
-                    systolic = None
-                    diastolic = None
-                    for rec in correlation.iter("Record"):
-                        if rec.attrib["type"] == "HKQuantityTypeIdentifierBloodPressureSystolic":
-                            systolic = int(rec.attrib["value"])
-                        elif rec.attrib["type"] == "HKQuantityTypeIdentifierBloodPressureDiastolic":
-                            diastolic = int(rec.attrib["value"])
-                    if systolic is None or diastolic is None:
-                        if self.verbose:
-                            logger.warning("Missing both systolic and diastolic for blood pressure observation in XML data")
-                        continue
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    blood_pressure_obs["value"] = [systolic, diastolic]
-                    blood_pressure_obs["time"] = time
-                    blood_pressure_observations.append(blood_pressure_obs)
-                    blood_pressure_count += 1
-                    blood_pressure_sums[0] += systolic
-                    blood_pressure_sums[1] += diastolic
-                    if blood_pressure_max[0] is None:
-                        blood_pressure_max[0] = systolic
-                        blood_pressure_max[1] = diastolic
-                        blood_pressure_min[0] = systolic
-                        blood_pressure_min[1] = diastolic
-                    else:
-                        if blood_pressure_max[0] < systolic:
-                            blood_pressure_max[0] = systolic
-                        elif blood_pressure_min[0] > systolic:
-                            blood_pressure_min[0] = systolic
-                        if blood_pressure_max[1] < diastolic:
-                            blood_pressure_max[1] = diastolic
-                        elif blood_pressure_min[1] > diastolic:
-                            blood_pressure_min[1] = diastolic
-            for rec in root.iter("Record"):
-                if "type" not in rec.attrib:
-                    continue
-
-                rec_type = rec.attrib["type"]
-                obs = {}
-
-                if "value" in rec.attrib:
-                    try:
-                        value = float(rec.attrib["value"])
-                    except Exception:
-                        continue
-                    obs["value"] = value
-                else:
-                    continue
-                if "startDate" in rec.attrib:
-                    try:
-                        time = datetime.strptime(
-                            rec.attrib["startDate"], self.datetime_format)
-                    except Exception:
-                        if self.verbose:
-                            logger.error("Exception on constructing date from XML observation")
-                        continue
-                    if self.start_year is not None and self.start_year > time.year:
-                        continue
-                else:
-                    continue
-
-                if rec_type == "HKQuantityTypeIdentifierHeight":
-                    if "unit" in rec.attrib:
-                        try:
-                            value = convert(self.normal_height_unit, HeightUnit.from_value(
-                                        rec.attrib["unit"]), value)
-                        except Exception as e:
-                            if self.verbose:
-                                logger.error(f"Error converting height unit: {e}")
-                                logger.error(f"Unit: {rec.attrib['unit']}")
-                            continue
-                    else:
-                        continue
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    set_stats(self.data.height_stats, time, value)
-                elif rec_type == "HKQuantityTypeIdentifierBodyMass":
-                    if "unit" in rec.attrib:
-                        try:
-                            value = convert(self.normal_weight_unit, WeightUnit.from_value(
-                                        rec.attrib["unit"]), value)
-                        except Exception as e:
-                            if self.verbose:
-                                logger.error(f"Error converting weight unit: {e}")
-                                logger.error(f"Unit: {rec.attrib['unit']}")
-                            continue
-                    else:
-                        continue
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    set_stats(self.data.weight_stats, time, value)
-                elif rec_type == "HKQuantityTypeIdentifierHeartRate":
-                    metadataentry = rec.find("MetadataEntry")
-                    if (metadataentry is not None
-                            and "key" in metadataentry.attrib
-                            and metadataentry.attrib["key"] == "HKMetadataKeyHeartRateMotionContext"):
-                        obs["motion"] = int(metadataentry.attrib["value"])
-                        self.data.motion_data_found = True
-                    else:
-                        obs["motion"] = 0
-                    if value > 155:
-                        continue
-                    elif value > 140 and obs["motion"] != 0:
-                        continue
-                    elif value < 35:
-                        continue
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    obs["time"] = time
-                    heart_rate_observations.append(obs)
-                    heart_rate_count += 1
-                    heart_rate_sum += value
-                    heart_rate_most_recent = value
-                    if heart_rate_max is None:
-                        heart_rate_max = value
-                        heart_rate_min = value
-                    elif value > heart_rate_max:
-                        heart_rate_max = value
-                    elif value < heart_rate_min:
-                        heart_rate_min = value
-                elif rec_type == "HKQuantityTypeIdentifierHeartRateVariabilitySDNN":
-                    if value > 160:
-                        continue
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    set_stats(self.data.hrv_stats, time, value)
-                elif rec_type == "HKQuantityTypeIdentifierOxygenSaturation":
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    set_stats(self.data.spo2_stats, time, value)
-                elif rec_type == "HKQuantityTypeIdentifierAppleStandTime":
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    set_stats(self.data.stand_stats, time, value)
-                elif rec_type == "HKQuantityTypeIdentifierStepCount":
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    set_stats(self.data.step_stats, time, value)
-                elif rec_type == "HKQuantityTypeIdentifierBodyTemperature":
-                    if "unit" in rec.attrib:
-                        try:
-                            value = TemperatureUnit.from_value(
-                                rec.attrib["unit"]).convertTo(
-                                    self.normal_temperature_unit, value)
-                        except Exception as e:
-                            if self.verbose:
-                                logger.error(f"Error converting temperature unit: {e}")
-                                logger.error(f"Unit: {rec.attrib['unit']}")
-                            continue
-                    else:
-                        try:
-                            value = TemperatureUnit.from_value(
-                                "F" if value > 45 else "C").convertTo(
-                                    self.normal_temperature_unit, value)
-                        except Exception as e:
-                            if self.verbose:
-                                logger.error(f"Error converting temperature unit: {e}")
-                            continue
-                    if time.toordinal() < AppleHealthXMLParser.min_xml_ordinal:
-                        AppleHealthXMLParser.min_xml_ordinal = time.toordinal()
-                    set_stats(self.data.temperature_stats, time, value)
-
-            self.data.blood_pressure_stats["count"] = blood_pressure_count
-            self.data.blood_pressure_stats["list"] = blood_pressure_observations
-            self.data.blood_pressure_stats["max"] = blood_pressure_max
-            self.data.blood_pressure_stats["min"] = blood_pressure_min
-            self.data.pulse_stats["count"] = heart_rate_count
-            self.data.pulse_stats["list"] = heart_rate_observations
-            self.data.pulse_stats["max"] = heart_rate_max
-            self.data.pulse_stats["min"] = heart_rate_min
-            self.data.set_observations_count(blood_pressure_count, heart_rate_count)
-            self.data.finalize(self.verbose,
-                blood_pressure_observations, blood_pressure_count, blood_pressure_sums,
-                heart_rate_observations, heart_rate_count, heart_rate_sum)
-
+            root = ET.parse(export_xml_file_path).getroot()
+            self._parse_subject(root.find("Me").attrib)
+            blood_pressure_count = self._parse_blood_pressure(root)
+            heart_rate_count = self._parse_records(root)
         except Exception as e:
             if self.verbose:
                 logger.error(f"Error details: {e}")
             raise HealthDataParseError(
                 f"An exception occurred in parsing XML export files: {e}") from e
+
+        vitals = self.vital_signs
+        vitals.xml_observation_count = (blood_pressure_count + heart_rate_count
+                                        + vitals.hrv.count + vitals.temperature.count)
+        if self.verbose:
+            for series in [vitals.blood_pressure, vitals.pulse, vitals.height, vitals.weight,
+                           vitals.hrv, vitals.spo2, vitals.stand, vitals.steps, vitals.temperature]:
+                if series.count > 0:
+                    logger.info(f"Found {series.count} {series.name} observations in XML data.")
+
+    def _parse_subject(self, me):
+        if "birthDate" not in self.subject:
+            birth_date_str = me["HKCharacteristicTypeIdentifierDateOfBirth"]
+            self.subject["birthDate"] = birth_date_str
+            self.subject["age"] = get_age(datetime.fromisoformat(birth_date_str))
+        self.subject["sex"] = me["HKCharacteristicTypeIdentifierBiologicalSex"].replace(
+            "HKBiologicalSex", "")
+        self.subject["bloodType"] = me["HKCharacteristicTypeIdentifierBloodType"].replace(
+            "HKBloodType", "")
+
+    def _record_time(self, element):
+        """The element's start time, or None when it's missing, unparseable, or
+        before the start year."""
+        if "startDate" not in element.attrib:
+            return None
+        try:
+            time = datetime.strptime(element.attrib["startDate"], self.datetime_format)
+        except Exception:
+            if self.verbose:
+                logger.error("Exception on constructing date from XML observation")
+            return None
+        if self.start_year is not None and self.start_year > time.year:
+            return None
+        return time
+
+    def _parse_blood_pressure(self, root):
+        count = 0
+        for correlation in root.iter("Correlation"):
+            if correlation.attrib.get("type") != "HKCorrelationTypeIdentifierBloodPressure":
+                continue
+            time = self._record_time(correlation)
+            if time is None:
+                continue
+            systolic = None
+            diastolic = None
+            for rec in correlation.iter("Record"):
+                if rec.attrib["type"] == _TYPE_PREFIX + "BloodPressureSystolic":
+                    systolic = int(rec.attrib["value"])
+                elif rec.attrib["type"] == _TYPE_PREFIX + "BloodPressureDiastolic":
+                    diastolic = int(rec.attrib["value"])
+            if systolic is None or diastolic is None:
+                if self.verbose:
+                    logger.warning("Missing systolic or diastolic for blood pressure observation in XML data")
+                continue
+            self.vital_signs.note_xml_date(time)
+            self.vital_signs.blood_pressure.add(time, systolic, diastolic)
+            count += 1
+        return count
+
+    def _parse_records(self, root):
+        """Adds single-value records to their series; returns the heart rate count."""
+        vitals = self.vital_signs
+        heart_rate_count = 0
+        for rec in root.iter("Record"):
+            if "type" not in rec.attrib or "value" not in rec.attrib:
+                continue
+            rec_type = rec.attrib["type"]
+            try:
+                value = float(rec.attrib["value"])
+            except Exception:
+                continue
+            time = self._record_time(rec)
+            if time is None:
+                continue
+
+            if rec_type == _TYPE_PREFIX + "Height":
+                value = self._converted(rec, value, "height", lambda unit: convert(
+                    self.normal_height_unit, HeightUnit.from_value(unit), value))
+                series = vitals.height
+            elif rec_type == _TYPE_PREFIX + "BodyMass":
+                value = self._converted(rec, value, "weight", lambda unit: convert(
+                    self.normal_weight_unit, WeightUnit.from_value(unit), value))
+                series = vitals.weight
+            elif rec_type == _TYPE_PREFIX + "HeartRate":
+                motion = self._motion(rec)
+                # Implausible readings: too high, too high while not at rest, too low
+                if value > 155 or (value > 140 and motion != 0) or value < 35:
+                    continue
+                vitals.note_xml_date(time)
+                vitals.pulse.add(time, value, motion)
+                heart_rate_count += 1
+                continue
+            elif rec_type == _TYPE_PREFIX + "HeartRateVariabilitySDNN":
+                if value > 160:
+                    continue
+                series = vitals.hrv
+            elif rec_type == _TYPE_PREFIX + "OxygenSaturation":
+                series = vitals.spo2
+            elif rec_type == _TYPE_PREFIX + "AppleStandTime":
+                series = vitals.stand
+            elif rec_type == _TYPE_PREFIX + "StepCount":
+                series = vitals.steps
+            elif rec_type == _TYPE_PREFIX + "BodyTemperature":
+                # Without a unit, assume Fahrenheit for values too high to be Celsius
+                value = self._converted(
+                    rec, value, "temperature",
+                    lambda unit: TemperatureUnit.from_value(unit).convertTo(
+                        self.normal_temperature_unit, value),
+                    default_unit="F" if value > 45 else "C")
+                series = vitals.temperature
+            else:
+                continue
+
+            if value is None:
+                continue
+            vitals.note_xml_date(time)
+            series.add(time, value)
+        return heart_rate_count
+
+    def _converted(self, rec, value, kind, convert_from, default_unit=None):
+        """`value` converted from the record's unit to the normal unit, or None
+        when the record has no unit (and there's no default) or it can't be
+        converted."""
+        unit = rec.attrib.get("unit", default_unit)
+        if unit is None:
+            return None
+        try:
+            return convert_from(unit)
+        except Exception as e:
+            if self.verbose:
+                logger.error(f"Error converting {kind} unit: {e}")
+                logger.error(f"Unit: {unit}")
+            return None
+
+    def _motion(self, rec):
+        metadata_entry = rec.find("MetadataEntry")
+        if (metadata_entry is not None
+                and metadata_entry.attrib.get("key") == "HKMetadataKeyHeartRateMotionContext"):
+            self.vital_signs.motion_data_found = True
+            return int(metadata_entry.attrib["value"])
+        return 0

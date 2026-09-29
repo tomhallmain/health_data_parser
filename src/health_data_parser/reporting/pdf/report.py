@@ -192,7 +192,7 @@ class Report:
 
                 for vital in json_data["vitalSigns"]:
                     if vital["count"] > 0:
-                        most_recent_obs = vital["list"][-1]
+                        most_recent_obs = vital["mostRecent"]
                         if type(vital["mostRecent"]["value"]) == list:
                             for i in range(len(vital["mostRecent"]["value"])):
                                 row = [vital["labels"][i], vital["unit"]]
@@ -427,13 +427,16 @@ class Report:
 
     def add_abnormal_observations_by_date_tables(self, creator, data):
         header = self.get_header(data)
+        abnormal_results = data.abnormal_results
+        abnormal_dates = data.abnormal_dates
+        has_reference_dates = len(data.reference_dates) > 0
         header_dates_tables = []
         header_dates = []
         table_counter = 0
         date_counter = 0
         has_unappended_row = False
 
-        for date in data.abnormal_result_dates:
+        for date in abnormal_dates:
             header_dates.append(date)
             date_counter += 1
             has_unappended_row = True
@@ -456,10 +459,10 @@ class Report:
 
         code_ranges_table = []
 
-        for code in sorted(data.observation_code_ids):
-            for code_id in data.observation_code_ids[code]:
-                if code_id in data.abnormal_results:
-                    if len(data.reference_dates) > 0:
+        for code in data.codes:
+            for code_id in data.code_ids(code):
+                if code_id in abnormal_results:
+                    if has_reference_dates:
                         if code in data.ranges:
                             row = [_wrap_text_to_fit_length(
                                 code, 20), _wrap_text_to_fit_length(data.ranges[code], 15)]
@@ -474,7 +477,7 @@ class Report:
         # results with columsn of up to n_dates_in_table_per_page per page
         abnormal_results_tables = []
 
-        for code in sorted(data.observation_code_ids):
+        for code in data.codes:
             date_counter = 0
             table_counter = 0
             table = abnormal_results_tables[table_counter] if len(
@@ -483,21 +486,21 @@ class Report:
             has_unappended_row = False
             abnormal_result_found = False
 
-            for date in data.abnormal_result_dates:
+            for date in abnormal_dates:
                 date_counter += 1
                 date_found = False
                 has_unappended_row = True
 
-                for code_id in data.observation_code_ids[code]:
-                    if code_id in data.abnormal_results:
+                for code_id in data.code_ids(code):
+                    if code_id in abnormal_results:
                         abnormal_result_found = True
-                        results = data.abnormal_results[code_id]
+                        results = abnormal_results[code_id]
                         for observation in results:
-                            if observation.date == date and date + code_id in data.date_codes:
+                            if observation.date == date:
                                 date_found = True
                                 value = observation.value_string[:15]
                                 if observation.has_reference:
-                                    abnormal_result_tag = observation.result.interpretation
+                                    abnormal_result_tag = observation.reference.tag
                                 else:
                                     abnormal_result_tag = ""
                                 row.append(_wrap_text_to_fit_length(
@@ -600,13 +603,15 @@ class Report:
             logger.info("Writing all observations detail tables...")
 
         header = self.get_header(data)
+        dates = data.dates
+        has_reference_dates = len(data.reference_dates) > 0
         header_dates_tables = []
         header_dates = []
         table_counter = 0
         date_counter = 0
         has_unappended_row = False
 
-        for date in data.observation_dates:
+        for date in dates:
             header_dates.append(date)
             date_counter += 1
             has_unappended_row = True
@@ -629,8 +634,8 @@ class Report:
 
         code_ranges_table = []
 
-        for code in sorted(data.observation_code_ids):
-            if len(data.reference_dates) > 0:
+        for code in data.codes:
+            if has_reference_dates:
                 if code in data.ranges:
                     row = [_wrap_text_to_fit_length(
                         code, 20), _wrap_text_to_fit_length(data.ranges[code], 15)]
@@ -645,7 +650,7 @@ class Report:
         # of up to n_dates_in_table_per_page per page
         results_tables = []
 
-        for code in sorted(data.observation_code_ids):
+        for code in data.codes:
             date_counter = 0
             table_counter = 0
             table = results_tables[table_counter] if len(
@@ -653,18 +658,17 @@ class Report:
             row = []
             has_unappended_row = False
 
-            for date in data.observation_dates:
+            for date in dates:
                 date_counter += 1
                 date_found = False
                 has_unappended_row = True
 
-                for code_id in data.observation_code_ids[code]:
-                    datecode = date + code_id
-                    if datecode in data.date_codes:
+                for code_id in data.code_ids(code):
+                    observation = data.find(date, code_id)
+                    if observation is not None:
                         date_found = True
-                        observation = data.observations[data.date_codes[datecode]]
                         if observation.has_reference:
-                            abnormal_result_tag = observation.result.interpretation
+                            abnormal_result_tag = observation.reference.tag
                         else:
                             abnormal_result_tag = ""
                         value = observation.value_string[:15]

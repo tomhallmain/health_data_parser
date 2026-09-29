@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from health_data_parser.ingest.fhir_json import ObservationJSONDataParser, ObservationsData
+from health_data_parser.ingest.fhir_json import ClinicalRecordsParser
 from health_data_parser.ingest.custom_observations import (
     construct_observation, generate_diagnostic_report_files, generate_report_id)
 from health_data_parser.errors import HealthDataParseError
@@ -59,9 +59,9 @@ class TestGenerateDiagnosticReportFiles:
         generate_diagnostic_report_files(str(observations_csv), str(base_dir), False, False)
         json_parser_args.base_dir = str(base_dir)
 
-        data = ObservationJSONDataParser(json_parser_args, [], ObservationsData()).parse()
+        data = ClinicalRecordsParser(json_parser_args, []).parse()
 
-        assert set(data.observation_code_ids) == {"Intrinsic Factor", "Custom Marker"}
+        assert data.codes == ["Custom Marker", "Intrinsic Factor"]
         assert list(data.abnormal_results) == ["CUSTOMCustom Marker"]
 
     def test_header_only_csv_returns_false(self, tmp_path, base_dir):
