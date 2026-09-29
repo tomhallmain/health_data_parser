@@ -21,62 +21,35 @@ def set_stats(stats: dict, value):
 
 
 def smooth(data, smoothing_factor: int, pad_with_zeros=False):
-    start_padding = []
-    end_padding = []
-    pad_value = 0 if pad_with_zeros else np.nan
+    """Moving average over a window of smoothing_factor points around each point.
 
-    if data[0] is None or np.isnan(data[0]):
-        start_nan_counter = 0
-        data_len = len(data)
-        while start_nan_counter < data_len:
-            end_nan_counter += 1
-            if data[start_nan_counter] is None or np.isnan(data[start_nan_counter]):
-                start_padding.append(pad_value)
-            else:
-                start_padding.append(pad_value)
-                break
-        data = data[start_nan_counter:]
+    Gaps (None/NaN) before the first and after the last value stay gaps in the
+    output (zeros with pad_with_zeros); gaps between values are filled by linear
+    interpolation before averaging. The output has the same length as data.
+    """
+    values = np.array([np.nan if v is None else v for v in data], dtype=float)
+    pad_value = 0.0 if pad_with_zeros else np.nan
+    present = np.flatnonzero(~np.isnan(values))
+    if len(present) == 0:
+        return np.full(len(values), pad_value)
+    first, last = present[0], present[-1]
 
-    if data[-1] is None or np.isnan(data[-1]):
-        end_nan_counter = -1
-        data_len = len(data)
-        while end_nan_counter * -1 < data_len:
-            end_nan_counter -= 1
-            if data[end_nan_counter] is None or np.isnan(data[end_nan_counter]):
-                end_padding.append(pad_value)
-            else:
-                end_padding.append(pad_value)
-                break
-        data = data[:end_nan_counter+1]
+    values = values[first:last + 1]
+    gaps = np.isnan(values)
+    if gaps.any():
+        indexes = np.arange(len(values))
+        values[gaps] = np.interp(indexes[gaps], indexes[~gaps], values[~gaps])
 
-    data = np.array(data)
-
-    if None in data or np.isnan(np.sum(data)):
-        i = 0
-        nans = []
-        save_value = None
-        is_nans = np.isnan(data)
-
-        while i < len(data):
-            value = data[i]
-            if value is None or is_nans[i]:
-                nans.append(i)
-            elif len(nans) > 0:
-                step = (value - save_value) / len(nans)
-                for j in range(len(nans)):
-                    nan_index = nans[j]
-                    estimated_value = save_value + step * (j+1)
-                    data[nan_index] = estimated_value
-                nans = []
-                save_value = value
-            else:
-                save_value = value
-            i += 1
-
-    data = np.pad(data, (smoothing_factor//2, smoothing_factor - smoothing_factor//2), mode="edge")
-    cumsum = np.cumsum(data)
+    # The window for point i covers values[i - left : i + right + 1], with the
+    # series edges extended to fill it
+    left = smoothing_factor // 2
+    right = smoothing_factor - 1 - left
+    padded = np.pad(values, (left, right), mode="edge")
+    cumsum = np.concatenate([[0.0], np.cumsum(padded)])
     smoothed = (cumsum[smoothing_factor:] - cumsum[:-smoothing_factor]) / smoothing_factor
-    return np.append(np.append(start_padding, smoothed), end_padding)
+
+    return np.concatenate([np.full(first, pad_value), smoothed,
+                           np.full(len(data) - 1 - last, pad_value)])
 
 
 class VitalsStatsGraph:
