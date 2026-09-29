@@ -81,27 +81,24 @@ class TemperatureUnit(Enum):
 
     @staticmethod
     def from_value(value: str):
+        # Covers "degF" (XML export), "[degF]"/"Cel" (UCUM, clinical records),
+        # "°F", "degrees C", and prefixes of the full names
         value = value.upper()
-        value.replace("DEGREES", "").replace("°", "").replace(" ", "")
+        for noise in ["DEGREES", "DEG", "°", "[", "]", " "]:
+            value = value.replace(noise, "")
+        if value == "":
+            return None
 
-        # XML export units
-        if value == "DEGF":
-            return TemperatureUnit.F
-        elif value == "DEGC":
-            return TemperatureUnit.C
-
-        for name, unit in WeightUnit.__members__.items():
+        for name, unit in TemperatureUnit.__members__.items():
             if name == value:
                 return unit
 
-        try:
-            if value in "FAHRENHEIT" and "FAHRENHEIT".index(value) == 0:
-                return TemperatureUnit.F
-            elif value in "CELCIUS" and "CELCIUS".index(value) == 0:
-                return TemperatureUnit.C
-        except Exception as e:
-            logger.error(str(e))
-            return None
+        if "FAHRENHEIT".startswith(value):
+            return TemperatureUnit.F
+        # "CELCIUS" is a common misspelling
+        elif "CELSIUS".startswith(value) or "CELCIUS".startswith(value):
+            return TemperatureUnit.C
+        return None
 
     def convertTo(self, temperatureUnit, value):
         if self is temperatureUnit:
@@ -171,6 +168,10 @@ def set_stats(stats: dict, time, value):
 def get_age(birth_date):
     today = datetime.today()
     age = today.year - birth_date.year
-    test_date = datetime(today.year, birth_date.month, birth_date.day, 0, 0, 0)
+    try:
+        test_date = datetime(today.year, birth_date.month, birth_date.day, 0, 0, 0)
+    except ValueError:
+        # Feb 29 birth date in a non-leap year: count the birthday as Feb 28
+        test_date = datetime(today.year, 2, 28, 0, 0, 0)
     age += round((today - test_date).days / 365, 1)
     return age

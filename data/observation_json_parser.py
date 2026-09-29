@@ -104,7 +104,9 @@ class ObservationJSONDataParser:
     def parse(self):
         logger.info("Parsing clinical-records JSON...")        
         for f in self.health_files:
-            file_category = f[0:(f.index("-"))]
+            # Records are named "<ResourceType>-<id>.json"; anything else (e.g.
+            # .DS_Store) gets a category matching neither branch and is skipped
+            file_category = f.split("-", 1)[0]
             f_addr = os.path.join(self.base_dir, f)
             # Get data from Observation files
             if file_category == "Observation":

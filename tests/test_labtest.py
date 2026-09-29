@@ -50,7 +50,7 @@ class TestLabTest:
         assert LabTest(None, loinc_code()).to_dict() == {
             "testDescription": "Glucose", "codings": {LOINC: "2345-7"}}
 
-    @pytest.mark.xfail(raises=AttributeError,
-                       reason="Known bug: get_code_ids reads self.coding instead of self.codings")
     def test_get_code_ids(self):
-        assert LabTest(None, loinc_code()).get_code_ids() == {"2345-7"}
+        test = LabTest(None, loinc_code())
+        test.add_coding({"coding": [{"system": "urn:other", "code": "GLU"}]})
+        assert test.get_code_ids() == {"2345-7", "GLU"}

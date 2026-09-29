@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 from data.observation_json_parser import ObservationJSONDataParser, ObservationsData
 from data.units import VitalSignCategory
 
@@ -94,12 +92,11 @@ class TestParse:
         assert obs.vital_sign_category is VitalSignCategory.PULSE
         assert obs.value == 62.0
 
-    @pytest.mark.xfail(raises=ValueError,
-                       reason="Known bug: file names without '-' (e.g. .DS_Store) abort the parse")
     def test_unrelated_files_are_ignored(self, json_parser_args, write_json, make_lab_observation):
         base_dir = Path(json_parser_args.base_dir)
         write_json(base_dir / "Observation-1.json", make_lab_observation())
         (base_dir / ".DS_Store").write_bytes(b"")
+        (base_dir / "Patient-1.json").write_text("{}", encoding="utf-8")
 
         assert len(parse(json_parser_args).observations) == 1
 

@@ -44,13 +44,17 @@ class TestUnitFromValue:
     def test_temperature(self, value, expected):
         assert TemperatureUnit.from_value(value) is expected
 
-    @pytest.mark.xfail(reason="Known bug: from_value only accepts the misspelling 'celcius', and "
-                              "its strip of 'DEGREES'/'°'/spaces discards the result")
     @pytest.mark.parametrize("value, expected", [
-        ("Celsius", TemperatureUnit.C), ("°F", TemperatureUnit.F), ("degrees C", TemperatureUnit.C),
+        ("Celsius", TemperatureUnit.C), ("celcius", TemperatureUnit.C),
+        ("°F", TemperatureUnit.F), ("degrees C", TemperatureUnit.C),
+        ("[degF]", TemperatureUnit.F), ("Cel", TemperatureUnit.C),
     ])
     def test_temperature_common_spellings(self, value, expected):
         assert TemperatureUnit.from_value(value) is expected
+
+    @pytest.mark.parametrize("value", ["", "deg", "G", "K", "kelvin"])
+    def test_temperature_unrecognized(self, value):
+        assert TemperatureUnit.from_value(value) is None
 
 
 class TestTemperatureConvert:
@@ -131,7 +135,14 @@ class TestGetAge:
         # 183 days short of the 26th birthday
         assert get_age(datetime(2000, 12, 15)) == pytest.approx(25.5)
 
-    @pytest.mark.xfail(raises=ValueError,
-                       reason="Known bug: a Feb 29 birth date builds datetime(<non-leap year>, 2, 29)")
-    def test_leap_day_birth_date(self):
+    def test_leap_day_birth_date_in_non_leap_year(self):
+        # Birthday counted as Feb 28: 107 days before Jun 15
         assert get_age(datetime(2000, 2, 29)) == pytest.approx(26.3)
+
+    def test_leap_day_birth_date_in_leap_year(self, monkeypatch):
+        class _LeapYearToday(datetime):
+            @classmethod
+            def today(cls):
+                return cls(2028, 2, 29)
+        monkeypatch.setattr(units, "datetime", _LeapYearToday)
+        assert get_age(datetime(2000, 2, 29)) == 28

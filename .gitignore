@@ -1,4 +1,45 @@
-*.log
-*.swp
+# Python
 __pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Logs (including test_results.log / git_*_output.log shared with agents)
+*.log
+
+# Editors and OS files
+*.swp
+*~
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Personal health data -- never commit.
+# User-supplied CSVs and the default symptom file created by the GUI
 data/my_data/*
+# An Apple Health export (default folder/archive names) placed in the repo
+apple_health_export/
+export.zip
+# Report outputs, which are written next to the export data they summarize
+HealthReport*.pdf
+observations.json
+observations.csv
+abnormal_results*.csv
+abnormal_results_by_code.txt
+most_common_foods.png
+symptoms.png
+symptoms_unresolved.png

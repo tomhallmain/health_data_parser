@@ -53,7 +53,7 @@ class LabTest:
         return False
 
     def get_code_ids(self):
-        return set(self.coding.values())
+        return set(self.codings.values())
 
     def to_dict(self):
         out = {}
