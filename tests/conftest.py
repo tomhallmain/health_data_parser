@@ -153,9 +153,27 @@ def lab_observation(display="Glucose", code="2345-7", date="2023-04-05", value=1
     return observation
 
 
+def blood_pressure_observation(systolic=120, diastolic=80, date="2023-04-05"):
+    """A FHIR vital-signs Observation carrying systolic/diastolic LOINC components."""
+    def component(code, value):
+        return {"code": {"coding": [{"system": "http://loinc.org", "code": code}]},
+                "valueQuantity": {"value": value, "unit": "mm[Hg]"}}
+    return {
+        "category": {"text": "Vital Signs"},
+        "code": {"text": "Blood Pressure"},
+        "effectiveDateTime": date + "T08:00:00Z",
+        "component": [component("8480-6", systolic), component("8462-4", diastolic)],
+    }
+
+
 @pytest.fixture
 def make_lab_observation():
     return lab_observation
+
+
+@pytest.fixture
+def make_blood_pressure_observation():
+    return blood_pressure_observation
 
 
 @pytest.fixture

@@ -123,21 +123,9 @@ class TestObservationToDict:
         assert "testMeta" not in obs.to_dict("obs-1", [])
 
 
-def blood_pressure_observation(systolic=120, diastolic=80):
-    def component(code, value):
-        return {"code": {"coding": [{"system": "http://loinc.org", "code": code}]},
-                "valueQuantity": {"value": value, "unit": "mm[Hg]"}}
-    return {
-        "category": {"text": "Vital Signs"},
-        "code": {"text": "Blood Pressure"},
-        "effectiveDateTime": "2023-04-05T08:00:00Z",
-        "component": [component("8480-6", systolic), component("8462-4", diastolic)],
-    }
-
-
 class TestObservationVital:
-    def test_blood_pressure_components(self):
-        obs = ObservationVital(blood_pressure_observation(), "bp-1", [], {}, None, False, False, 0.15)
+    def test_blood_pressure_components(self, make_blood_pressure_observation):
+        obs = ObservationVital(make_blood_pressure_observation(), "bp-1", [], {}, None, False, False, 0.15)
         assert obs.value == 120.0
         assert obs.value2 == 80.0
         assert obs.value_string == "120.0/80.0 mm[Hg]"
