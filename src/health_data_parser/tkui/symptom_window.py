@@ -1,12 +1,11 @@
-import csv
-from datetime import datetime
+from datetime import datetime, time
 import os
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from tkcalendar import DateEntry
 
-from health_data_parser.model.symptom import Symptom
+from health_data_parser.ingest.symptoms_csv import InvalidSymptomFile, read_symptoms, write_symptoms
 from health_data_parser.tkui.symptom_dialog import SymptomDialog
 from health_data_parser.tkui.symptom_import_dialog import ImportDialog
 from health_data_parser.utils.logger import setup_logger
@@ -24,6 +23,8 @@ class SymptomWindow:
         
         self.symptom_file = symptom_file
         self.symptoms = []
+        # Treeview item id -> the Symptom shown in that row
+        self.symptom_by_item = {}
         self.load_symptoms()
         
         # Sorting variables
@@ -62,35 +63,16 @@ class SymptomWindow:
         """Load symptoms from CSV file"""
         if os.path.exists(self.symptom_file):
             try:
-                with open(self.symptom_file, 'r') as f:
-                    reader = csv.reader(f)
-                    next(reader)  # Skip header
-                    for row in reader:
-                        try:
-                            symptom = Symptom(row)
-                            self.symptoms.append(symptom)
-                        except Exception as e:
-                            logger.error(f"Error loading symptom: {str(e)}")
+                self.symptoms, errors = read_symptoms(self.symptom_file)
+                for row_number, error in errors:
+                    logger.error(f"Error loading symptom in row {row_number}: {error}")
             except Exception as e:
                 logger.error(f"Error reading symptom file: {str(e)}")
                 
     def save_symptoms(self):
         """Save symptoms to CSV file"""
         try:
-            with open(self.symptom_file, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(['Name', 'Start Date', 'End Date', 'Medications', 'Stimulants', 'Comment', 'Severity'])
-                
-                for symptom in self.symptoms:
-                    writer.writerow([
-                        symptom.name,
-                        symptom.start_date.strftime('%Y-%m-%d') if symptom.start_date else '',
-                        symptom.end_date.strftime('%Y-%m-%d') if symptom.end_date else '',
-                        ','.join(symptom.medications),
-                        ','.join(symptom.stimulants),
-                        symptom.comment,
-                        str(symptom.severity)
-                    ])
+            write_symptoms(self.symptom_file, self.symptoms)
         except Exception as e:
             self.show_message("Error", f"Failed to save symptoms: {str(e)}", "error")
             
@@ -177,8 +159,9 @@ class SymptomWindow:
         
         # Get date range
         try:
-            start_date = self.start_date_picker.get_date()
-            end_date = self.end_date_picker.get_date()
+            # The pickers give dates; symptoms hold datetimes, which can't be compared with dates
+            start_date = datetime.combine(self.start_date_picker.get_date(), time.min)
+            end_date = datetime.combine(self.end_date_picker.get_date(), time.max)
         except Exception:
             start_date = None
             end_date = None
@@ -262,25 +245,28 @@ class SymptomWindow:
         # Clear existing items
         for item in self.tree.get_children():
             self.tree.delete(item)
+        self.symptom_by_item = {}
             
         # Use provided symptoms list or apply filters
         symptoms = symptoms_to_show if symptoms_to_show is not None else self.symptoms
             
         # Add symptoms to treeview
         for symptom in symptoms:
-            self.tree.insert('', tk.END, values=(
+            item = self.tree.insert('', tk.END, values=(
                 symptom.name,
-                symptom.start_date.strftime('%Y-%m-%d') if symptom.start_date else '',
-                symptom.end_date.strftime('%Y-%m-%d') if symptom.end_date else '',
+                symptom.start_text,
+                symptom.end_text,
                 ','.join(symptom.medications),
                 ','.join(symptom.stimulants),
                 symptom.comment,
                 str(symptom.severity)
             ))
+            self.symptom_by_item[item] = symptom
             
     def add_symptom(self):
         """Open dialog to add a new symptom"""
         dialog = SymptomDialog(self.window)
+        self.window.wait_window(dialog.dialog)
         if dialog.result:
             self.symptoms.append(dialog.result)
             self.refresh_symptoms()
@@ -292,27 +278,14 @@ class SymptomWindow:
             self.show_message("Warning", "Please select a symptom to edit", "warning")
             return
             
-        # Get selected symptom
-        item = self.tree.item(selection[0])
-        values = item['values']
-        
-        # Find matching symptom
-        for symptom in self.symptoms:
-            if (symptom.name == values[0] and
-                (symptom.start_date.strftime('%Y-%m-%d') if symptom.start_date else '') == values[1] and
-                (symptom.end_date.strftime('%Y-%m-%d') if symptom.end_date else '') == values[2]):
-                dialog = SymptomDialog(self.window, symptom)
-                if dialog.result:
-                    # Update symptom
-                    symptom.name = dialog.result.name
-                    symptom.start_date = dialog.result.start_date
-                    symptom.end_date = dialog.result.end_date
-                    symptom.medications = dialog.result.medications
-                    symptom.stimulants = dialog.result.stimulants
-                    symptom.comment = dialog.result.comment
-                    symptom.severity = dialog.result.severity
-                    self.refresh_symptoms()
-                break
+        symptom = self.symptom_by_item.get(selection[0])
+        if symptom is None:
+            return
+        dialog = SymptomDialog(self.window, symptom)
+        self.window.wait_window(dialog.dialog)
+        if dialog.result:
+            self.symptoms[self.symptoms.index(symptom)] = dialog.result
+            self.refresh_symptoms()
                 
     def delete_symptom(self):
         """Delete selected symptom"""
@@ -322,18 +295,9 @@ class SymptomWindow:
             return
             
         if messagebox.askyesno("Confirm", "Are you sure you want to delete this symptom?"):
-            # Get selected symptom
-            item = self.tree.item(selection[0])
-            values = item['values']
-            
-            # Find and remove matching symptom
-            for symptom in self.symptoms[:]:
-                if (symptom.name == values[0] and
-                    (symptom.start_date.strftime('%Y-%m-%d') if symptom.start_date else '') == values[1] and
-                    (symptom.end_date.strftime('%Y-%m-%d') if symptom.end_date else '') == values[2]):
-                    self.symptoms.remove(symptom)
-                    break
-                    
+            symptom = self.symptom_by_item.get(selection[0])
+            if symptom is not None:
+                self.symptoms.remove(symptom)
             self.refresh_symptoms()
 
     def import_csv(self):
@@ -356,26 +320,14 @@ class SymptomWindow:
         import_mode = import_dialog.result
             
         try:
-            new_symptoms = []
-            error_count = 0
-            
-            with open(file_path, 'r') as f:
-                reader = csv.reader(f)
-                header = next(reader)  # Skip header
-                
-                # Validate header
-                expected_header = ['Name', 'Start Date', 'End Date', 'Medications', 'Stimulants', 'Comment', 'Severity']
-                if header != expected_header:
-                    self.show_message("Error", "Invalid CSV format. Expected columns: " + ", ".join(expected_header), "error")
-                    return
-                
-                for row_num, row in enumerate(reader, start=2):
-                    try:
-                        symptom = Symptom(row)
-                        new_symptoms.append(symptom)
-                    except Exception as e:
-                        error_count += 1
-                        logger.error(f"Error in row {row_num}: {str(e)}")
+            try:
+                new_symptoms, errors = read_symptoms(file_path, require_known_header=True)
+            except InvalidSymptomFile as e:
+                self.show_message("Error", str(e), "error")
+                return
+            for row_num, error in errors:
+                logger.error(f"Error in row {row_num}: {error}")
+            error_count = len(errors)
             
             if error_count > 0:
                 if messagebox.askyesno("Warning", 
@@ -431,21 +383,7 @@ class SymptomWindow:
             return
             
         try:
-            with open(file_path, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(['Name', 'Start Date', 'End Date', 'Medications', 'Stimulants', 'Comment', 'Severity'])
-                
-                for symptom in self.symptoms:
-                    writer.writerow([
-                        symptom.name,
-                        symptom.start_date.strftime('%Y-%m-%d') if symptom.start_date else '',
-                        symptom.end_date.strftime('%Y-%m-%d') if symptom.end_date else '',
-                        ','.join(symptom.medications),
-                        ','.join(symptom.stimulants),
-                        symptom.comment,
-                        str(symptom.severity)
-                    ])
-                    
+            write_symptoms(file_path, self.symptoms)
             self.show_message("Success", f"Exported {len(self.symptoms)} symptoms successfully.")
             
         except Exception as e:

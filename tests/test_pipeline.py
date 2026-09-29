@@ -1,13 +1,12 @@
 """End-to-end runs of DataParser over a small synthetic export.
 
 The PDF step is replaced by a recording stub everywhere except
-test_real_pdf_report: pdf_creator only defines fonts for Windows and macOS,
-and those tests pin down the data files the PDF is built from.
+test_real_pdf_report, so the other tests pin down the data files the PDF is
+built from.
 """
 import csv
 from datetime import date, datetime
 import json
-import sys
 
 import pytest
 
@@ -25,6 +24,10 @@ FOOD_CSV = (
     "2022-03-11 08:00:00,meal,Breakfast,Oats,Boiled,Huge,,,Low FODMAP,\n"
     "2022-03-12 12:30:00,meal,Lunch,Rice,Steamed,Huge,,,,\n"
 )
+
+EXTRA_CSV_HEADER = ("Subject,Performer,Collection Date,Report Description,LOINC Code,"
+                    "Code Description,Value,Range,Units\n")
+EXTRA_CSV_FERRITIN = '"Doe, Jane",Organization/ExampleLab,2022-11-20,Iron Panel,2276-4,Ferritin,{value},30-400,ng/mL\n'
 
 
 @pytest.fixture
@@ -58,7 +61,7 @@ def pdf_reports(monkeypatch):
         def __init__(self, output_path, subject, filename_affix, verbose=False, highlight_abnormal=True):
             self.filename = "HealthReport-stub.pdf"
 
-        def create_pdf(self, json_data, data, symptom_data, pulse_stats_graph, food_data):
+        def create_pdf(self, json_data, store, vital_stats_graph=None, symptom_charts=None, food_chart=None):
             created.append(json_data)
 
     monkeypatch.setattr("health_data_parser.reporting.outputs.Report", _RecordingReport)
@@ -227,11 +230,9 @@ class TestCustomDataRuns:
 
     def test_extra_observations_are_merged(self, pipeline_export, pdf_reports):
         extra = pipeline_export / "extra.csv"
-        extra.write_text(
-            "Subject,Performer,Collection Date,Report Description,LOINC Code,Code Description,Value,Range,Units\n"
-            '"Doe, Jane",Organization/ExampleLab,2022-11-20,Iron Panel,2276-4,Ferritin,20,30-400,ng/mL\n',
-            encoding="utf-8")
+        extra.write_text(EXTRA_CSV_HEADER + EXTRA_CSV_FERRITIN.format(value=20), encoding="utf-8")
         options = ParseOptions(str(pipeline_export), extra_observations_csv=str(extra))
+        records_before = sorted(p.name for p in (pipeline_export / "clinical-records").iterdir())
 
         DataParser(options).run()
 
@@ -239,6 +240,38 @@ class TestCustomDataRuns:
         assert json_data["meta"]["observationCount"] == 4
         assert json_data["meta"]["earliestResult"] == "2022-11-20"
         assert "Ferritin" in json_data["abnormalResults"]["codesWithAbnormalResults"]
+        # Merged in memory: nothing is written into the export
+        assert sorted(p.name for p in (pipeline_export / "clinical-records").iterdir()) == records_before
+
+    def test_extra_observations_replace_older_custom_files(self, pipeline_export, pdf_reports, tmp_path):
+        from health_data_parser.ingest.custom_observations import generate_diagnostic_report_files
+        old_csv = tmp_path / "old.csv"
+        old_csv.write_text(EXTRA_CSV_HEADER + EXTRA_CSV_FERRITIN.format(value=500), encoding="utf-8")
+        # A file an earlier version of the app wrote into the export
+        assert generate_diagnostic_report_files(str(old_csv), str(pipeline_export / "clinical-records"),
+                                                False, False)
+        extra = tmp_path / "extra.csv"
+        extra.write_text(EXTRA_CSV_HEADER + EXTRA_CSV_FERRITIN.format(value=20), encoding="utf-8")
+
+        DataParser(ParseOptions(str(pipeline_export), extra_observations_csv=str(extra))).run()
+
+        json_data = json.loads((pipeline_export / "observations.json").read_text(encoding="utf-8"))
+        [ferritin] = [o for o in json_data["observations"] if o["testMeta"]["testDescription"] == "Ferritin"]
+        assert ferritin["observedResult"]["value"] == 20.0
+        assert ferritin["observationId"].endswith("-CUSTOM[0]")
+        assert "LOW OUT OF RANGE" in json_data["abnormalResults"]["codesWithAbnormalResults"]["Ferritin"]
+
+    def test_older_custom_files_are_still_read(self, pipeline_export, pdf_reports, tmp_path):
+        from health_data_parser.ingest.custom_observations import generate_diagnostic_report_files
+        old_csv = tmp_path / "old.csv"
+        old_csv.write_text(EXTRA_CSV_HEADER + EXTRA_CSV_FERRITIN.format(value=20), encoding="utf-8")
+        assert generate_diagnostic_report_files(str(old_csv), str(pipeline_export / "clinical-records"),
+                                                False, False)
+
+        DataParser(ParseOptions(str(pipeline_export))).run()
+
+        json_data = json.loads((pipeline_export / "observations.json").read_text(encoding="utf-8"))
+        assert json_data["meta"]["observationCount"] == 4
 
 
 class TestOutputDir:
@@ -265,7 +298,7 @@ class TestOutputDir:
                 output_paths.append(output_path)
                 self.filename = "HealthReport-stub.pdf"
 
-            def create_pdf(self, *args):
+            def create_pdf(self, *args, **kwargs):
                 pass
 
         monkeypatch.setattr("health_data_parser.reporting.outputs.Report", _RecordingReport)
@@ -276,9 +309,6 @@ class TestOutputDir:
         assert output_paths == [str(output_dir)]
 
 
-@pytest.mark.skipif(sys.platform != "win32",
-                    reason="pdf_creator only defines fonts for Windows and macOS, and the macOS "
-                           "font (MesloLGS NF) is not installed by default")
 def test_real_pdf_report(pipeline_export):
     (pipeline_export / "symptoms.csv").write_text(SYMPTOM_CSV, encoding="utf-8")
     (pipeline_export / "food.csv").write_text(FOOD_CSV, encoding="utf-8")

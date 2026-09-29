@@ -1,9 +1,7 @@
-from datetime import datetime
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from health_data_parser.model.symptom import Symptom
+from health_data_parser.model.symptom import Symptom, parse_symptom_date
 
 
 class SymptomDialog:
@@ -15,8 +13,9 @@ class SymptomDialog:
         
         # Variables
         self.name = tk.StringVar(value=symptom.name if symptom else '')
-        self.start_date = tk.StringVar(value=symptom.start_date.strftime('%Y-%m-%d') if symptom and symptom.start_date else '')
-        self.end_date = tk.StringVar(value=symptom.end_date.strftime('%Y-%m-%d') if symptom and symptom.end_date else '')
+        # As entered, so a month-only date stays month-only
+        self.start_date = tk.StringVar(value=symptom.start_text if symptom else '')
+        self.end_date = tk.StringVar(value=symptom.end_text if symptom else '')
         self.medications = tk.StringVar(value=','.join(symptom.medications) if symptom else '')
         self.stimulants = tk.StringVar(value=','.join(symptom.stimulants) if symptom else '')
         self.comment = tk.StringVar(value=symptom.comment if symptom else '')
@@ -34,11 +33,11 @@ class SymptomDialog:
         ttk.Entry(form, textvariable=self.name).grid(row=0, column=1, sticky=tk.W, pady=5)
         
         # Start Date
-        ttk.Label(form, text="Start Date (YYYY-MM-DD):").grid(row=1, column=0, sticky=tk.W, pady=5)
+        ttk.Label(form, text="Start Date (YYYY-MM-DD or YYYY-MM):").grid(row=1, column=0, sticky=tk.W, pady=5)
         ttk.Entry(form, textvariable=self.start_date).grid(row=1, column=1, sticky=tk.W, pady=5)
         
         # End Date
-        ttk.Label(form, text="End Date (YYYY-MM-DD):").grid(row=2, column=0, sticky=tk.W, pady=5)
+        ttk.Label(form, text="End Date (YYYY-MM-DD or YYYY-MM):").grid(row=2, column=0, sticky=tk.W, pady=5)
         ttk.Entry(form, textvariable=self.end_date).grid(row=2, column=1, sticky=tk.W, pady=5)
         
         # Medications
@@ -76,14 +75,12 @@ class SymptomDialog:
                 messagebox.showerror("Error", "Name is required")
                 return
                 
-            # Parse dates
-            start_date = None
-            end_date = None
-            
-            if self.start_date.get():
-                start_date = datetime.strptime(self.start_date.get(), '%Y-%m-%d')
-            if self.end_date.get():
-                end_date = datetime.strptime(self.end_date.get(), '%Y-%m-%d')
+            # Validate dates: blank, YYYY-MM-DD or YYYY-MM
+            for label, text in [("Start date", self.start_date.get().strip()),
+                                ("End date", self.end_date.get().strip())]:
+                if text and parse_symptom_date(text) is None:
+                    messagebox.showerror("Error", f"{label} must be YYYY-MM-DD or YYYY-MM")
+                    return
                 
             # Parse severity
             try:

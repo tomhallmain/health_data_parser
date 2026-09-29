@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 import os
 
@@ -182,19 +182,17 @@ class VitalsStatsGraph:
             self.motion_min.append(minimum)
             self.motion_avgs.append(mean)
             self.motion_stdevs.append(stdev)
-            # self.set_final_minute_stats(minute, day_minute_hrv_readings,
-            #                             self.hrv_avgs, self.hrv_stdevs)
 
     def save_graph_images(self, base_dir: str):
         self.save_loc_minutes_data = os.path.join(
             base_dir, "avg_heart_rates_by_minute.png")
-        fig, (ax1, ax2, ax3) = plt.subplots(
-            nrows=3, ncols=1, gridspec_kw={'height_ratios': [4, 1, 1]})
+        fig = Figure()
+        ax1, ax2, ax3 = fig.subplots(nrows=3, ncols=1, gridspec_kw={'height_ratios': [4, 1, 1]})
         ax1.set_title(
             "Average heart rates over 24 hours (+/– one standard deviation)")
         ax1.set_ylabel("BPM")
         ax1.set_xlabel("Time (minutes)")
-        ax2.set_ylabel("Heart Rate Variability")
+        ax2.set_ylabel("Average motion context")
         ax2.set_xlabel("Time (minutes)")
         ax3.set_ylabel("Counts of pulse spike")
         ax3.set_xlabel("Time (minutes)")
@@ -217,15 +215,14 @@ class VitalsStatsGraph:
 
         self.save_loc_dates_data = os.path.join(
             base_dir, "avgs_by_day_trends.png")
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(
-            nrows=4, ncols=1, gridspec_kw={'height_ratios': [5, 1, 1, 1]})
+        fig = Figure()
+        ax1, ax2, ax3, ax4 = fig.subplots(nrows=4, ncols=1, gridspec_kw={'height_ratios': [5, 1, 1, 1]})
         ax1.set_title("Average heart rates, steps and stand minutes by day")
         ax1.set_ylabel("BPM")
         ax2.set_ylabel("Apple steps")
         ax3.set_ylabel("Apple stand minutes")
         ax4.set_ylabel("BPM / stand min")
         ax4.set_xlabel("Days")
-        plt.xticks(rotation=30, ha='right')
         x = np.array(list(map(lambda o: datetime.fromordinal(o),
                               list(range(self.min_pulse_ordinal,
                                          self.max_ordinal + 1)))))
@@ -245,6 +242,9 @@ class VitalsStatsGraph:
         ax3.fill_between(x, np.zeros(len(y_est)), y_est, color="black")
         y_est = smooth(self.pulse_stand_ratios, 10)
         ax4.plot(x, y_est, "-", color="black")
+        for label in ax4.get_xticklabels():
+            label.set_rotation(30)
+            label.set_horizontalalignment("right")
         fig.set_size_inches(10, 12)
         fig.savefig(self.save_loc_dates_data,
                     pad_inches=0.02, bbox_inches='tight')

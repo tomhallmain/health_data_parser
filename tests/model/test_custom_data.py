@@ -53,10 +53,6 @@ class TestFoodData:
     def test_missing_file_is_not_printed(self, tmp_path):
         assert not FoodData(str(tmp_path / "missing.csv"), False).to_print
 
-    def test_saves_chart(self, food_csv, tmp_path):
-        food_data = FoodData(str(food_csv), False)
-        food_data.save_most_common_foods_chart(80, str(tmp_path))
-        assert (tmp_path / "most_common_foods.png").exists()
 
 
 class TestSymptomSet:
@@ -71,8 +67,11 @@ class TestSymptomSet:
         assert headache.start_date == datetime(2021, 2, 1)
         assert headache.end_date == datetime(2021, 6, 1)
         assert headache.is_resolved
-        assert headache.medications == ["MEDICATION A", "MEDICATION B"]
-        assert headache.stimulants == ["STIMULANT A"]
+        # Names keep their case
+        assert headache.medications == ["Medication A", "Medication B"]
+        assert headache.stimulants == ["Stimulant A"]
+        # Dates keep their precision as entered
+        assert (headache.start_text, headache.end_text) == ("2021-02", "2021-06")
         assert headache.severity == 2
 
     def test_resolved_and_unresolved(self, symptom_csv):
@@ -83,10 +82,9 @@ class TestSymptomSet:
     def test_missing_file_has_no_symptoms(self, tmp_path):
         assert SymptomSet(str(tmp_path / "missing.csv")).symptoms == []
 
-    def test_saves_chart(self, symptom_csv, tmp_path):
-        symptom_set = SymptomSet(str(symptom_csv), start_year=2010)
-        symptom_set.set_chart_start_date()
-        symptom_set.generate_chart_data()
-        symptom_set.save_chart(30, str(tmp_path))
-        assert symptom_set.to_print
-        assert (tmp_path / "symptoms.png").exists()
+    def test_reads_files_in_the_platform_encoding(self, tmp_path, monkeypatch):
+        # Symptom files saved before UTF-8 was used are in the platform encoding
+        monkeypatch.setattr("locale.getpreferredencoding", lambda do_setlocale=True: "cp1252")
+        path = tmp_path / "symptoms.csv"
+        path.write_bytes(SYMPTOM_CSV.replace("Headache", "Céphalée").encode("cp1252"))
+        assert SymptomSet(str(path), start_year=2010).symptoms[0].name == "Céphalée"

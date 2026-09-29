@@ -1,7 +1,6 @@
 import csv
 from datetime import datetime
 import os
-import matplotlib.pyplot as plt
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('food_data')
@@ -113,30 +112,6 @@ class FoodData:
         self.avg_meals_per_day = round(
             len(self.meal_times) / len(self.dates_recorded), 1)
         self.to_print = True
-
-    def save_most_common_foods_chart(self, graph_cutoff: int, base_dir: str):
-        self.save_loc = os.path.join(base_dir, "most_common_foods.png")
-        food_to_plot = {}
-        for food in sorted(self.foods.values(), key=lambda f: f["count"]):
-            if food["count"] > 10:
-                if food["name"] in food_to_plot:
-                    food_to_plot[food["name"]] += food["count"]
-                else:
-                    food_to_plot[food["name"]] = food["count"]
-
-        self.food_labels = [food[:30] for food in sorted(
-            food_to_plot.keys(), key=lambda f: food_to_plot[f])]
-        self.food_counts = [count for count in sorted(food_to_plot.values())]
-
-        fig, ax = plt.subplots(1)
-        ax.barh(self.food_labels[-graph_cutoff:],
-                self.food_counts[-graph_cutoff:])
-        ax.set_xscale('log')
-        plt.tight_layout()
-        plt.margins(x=0.02, y=0.02)
-        fig.set_size_inches(7, 17)
-        fig.savefig(self.save_loc, pad_inches=0.02, bbox_inches='tight')
-        fig.clear(True)
 
     def has_warning_diets(self):
         return len(self.warning_diets) > 0

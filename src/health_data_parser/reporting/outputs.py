@@ -16,16 +16,6 @@ logger = setup_logger('reporter')
 SCHEMA_VERSION = 1
 
 
-def find_result(store, code, date):
-    """The result for test description `code` on `date`, from whichever of its
-    code ids has one."""
-    for code_id in store.code_ids(code):
-        observation = store.find(date, code_id)
-        if observation is not None:
-            return observation
-    return None
-
-
 def _csv_writer(csvfile):
     return csv.writer(csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
 
@@ -130,7 +120,7 @@ class Reporter:
                 for code in store.codes:
                     row = [code]
                     for date in dates:
-                        observation = find_result(store, code, date)
+                        observation = store.find_for_code(code, date)
                         if observation is None:
                             row.append("")
                             if date in reference_dates:
@@ -150,7 +140,8 @@ class Reporter:
             raise HealthDataParseError("An error occurred in writing observations data to CSV.") from e
 
     def report_all_data_json_and_pdf(self, include_observations, filepath, output_dir, store, vital_signs,
-                                     symptom_data, vital_stats_graph, food_data, custom_data_files, options):
+                                     custom_data_files, options, vital_stats_graph=None,
+                                     symptom_charts=None, food_chart=None):
         try:
             json_data = build_json_data(include_observations, store, vital_signs, options)
             with open(filepath, 'w', encoding='utf-8') as f:
@@ -164,7 +155,8 @@ class Reporter:
         try:
             report = Report(output_dir, options.subject, json_data["meta"]["processTime"][:10],
                             self.verbose, options.report_highlight_abnormal_results)
-            report.create_pdf(json_data, store, symptom_data, vital_stats_graph, food_data)
+            report.create_pdf(json_data, store, vital_stats_graph=vital_stats_graph,
+                              symptom_charts=symptom_charts, food_chart=food_chart)
             logger.info(f"Results report saved to {os.path.join(output_dir, report.filename)}")
         except Exception as e:
             if self.verbose:

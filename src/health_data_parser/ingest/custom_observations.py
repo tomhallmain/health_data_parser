@@ -1,5 +1,3 @@
-import csv
-import datetime
 from glob import glob
 import json
 import os
@@ -9,6 +7,7 @@ import uuid
 from health_data_parser.errors import HealthDataParseError
 from health_data_parser.ingest.fhir_json import ObservationRules, parse_observation
 from health_data_parser.model.observation_store import ObservationStore
+from health_data_parser.utils.csv_files import read_csv_rows
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('diagnostic_report_generator')
@@ -144,13 +143,8 @@ def save_reports_to_json(reports, base_dir, verbose):
                     logger.info(f"Saved file: {report_path}")
             has_saved_report = True
 
-            # Validate contained observations: each must parse as a recordable
-            # lab result (SkipObservation or any other error fails the report)
             with open(report_path, encoding="utf-8") as f:
-                file_data = json.load(f)
-            for i, observation in enumerate(file_data["contained"]):
-                parse_observation(observation, report_filename + "[" + str(i) + "]",
-                                  ObservationStore(), ObservationRules(), disallowed_codes=())
+                validate_report(json.load(f), report_filename)
         except Exception as e:
             if verbose:
                 logger.error(traceback.format_exc())
@@ -163,10 +157,83 @@ def save_reports_to_json(reports, base_dir, verbose):
     return not has_error_in_report
 
 
+def validate_report(report, name):
+    """Raise if any result in the report can't be recorded as a lab result
+    (SkipObservation, or an error for a malformed result)."""
+    for i, observation in enumerate(report["contained"]):
+        parse_observation(observation, name + "[" + str(i) + "]",
+                          ObservationStore(), ObservationRules(), disallowed_codes=())
+
+
+def build_custom_reports(observation_data_csv: str):
+    """DiagnosticReport resources by report id, one per subject + performer +
+    date + report description in a custom observations CSV, each containing
+    its rows' Observations. Raises for a row that can't be read."""
+    reports = {}
+    rows = read_csv_rows(observation_data_csv)
+    for row in rows[1:]:  # after the header
+        subject = row[0]
+        performer = row[1]
+        date = row[2]
+        report_description = row[3]
+        loinc_code = row[4]
+        code_description = row[5]
+        value = float(row[6])
+        _range = row[7]
+        units = row[8]
+
+        report_id = generate_report_id(subject, performer, date, report_description)
+        if report_id not in reports:
+            reports[report_id] = {
+                "id": report_id,
+                "status": "final",
+                "category": {"coding": [{"system": "http://hl7.org/fhir/v2/0074", "code": "LAB"}]},
+                "subject": {"display": subject},
+                "performer": {"display": performer},
+                "effectiveDateTime": date + "T12:00:00+00:00",
+                "issued": date + "T12:00:00+00:00",
+                "resourceType": "DiagnosticReport",
+                "identifier": [{"id": report_id, "system": "CUSTOM"}],
+                "meta": {
+                    "profile": ["http://fhir.org/guides/argonaut/StructureDefinition/argo-diagnosticreport"],
+                    "lastUpdated": "2021-07-14T13:35:46.000+00:00",
+                },
+                "contained": [],
+                "result": [],
+            }
+        report = reports[report_id]
+        observation_id = str(len(report["contained"]) + 1)
+        report["contained"].append(construct_observation(
+            observation_id, subject, date, code_description, loinc_code, _range, value, units))
+        report["result"].append({"reference": "#" + observation_id})
+    return reports
+
+
+def load_custom_reports(observation_data_csv: str, verbose=False):
+    """The custom observations CSV's reports, validated, without writing
+    anything. None when the file has no rows or a row or result can't be used;
+    raises HealthDataParseError for a missing or non-CSV path."""
+    validate_csv_file(observation_data_csv)
+    try:
+        reports = build_custom_reports(observation_data_csv)
+        if not reports:
+            logger.warning(f"No observations data found in {observation_data_csv}")
+            return None
+        for report_id, report in reports.items():
+            validate_report(report, report_id)
+        return reports
+    except Exception as e:
+        logger.error(f"Custom observations data \"{observation_data_csv}\" can't be used: {e!r}")
+        if verbose:
+            logger.error(traceback.format_exc())
+        return None
+
+
 def generate_diagnostic_report_files(observation_data_csv: str, base_dir: str,
                                      verbose: bool, in_script: bool):
-    reports = {}
-
+    """Write the custom observations CSV's reports as DiagnosticReport JSON
+    files into base_dir, replacing earlier files for the same reports; False
+    when the file has no rows or a row or report can't be used."""
     try:
         validate_csv_file(observation_data_csv)
     except HealthDataParseError:
@@ -175,76 +242,13 @@ def generate_diagnostic_report_files(observation_data_csv: str, base_dir: str,
         raise
 
     try:
-        with open(observation_data_csv, "r") as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quotechar="\"")
-            have_seen_header = False
-            have_seen_past_header = False
-
-            for row in reader:
-                if not have_seen_header:
-                    have_seen_header = True
-                    continue
-                elif not have_seen_past_header:
-                    have_seen_past_header = True
-                subject = row[0]
-                performer = row[1]
-                date = row[2]
-                report_description = row[3]
-                loinc_code = row[4]
-                code_description = row[5]
-                value = float(row[6])
-                _range = row[7]
-                units = row[8]
-
-                report_id = generate_report_id(
-                    subject, performer, date, report_description)
-
-                if report_id in reports:
-                    report = reports[report_id]
-                else:
-                    report = {}
-
-                if "contained" in report:
-                    observations = report["contained"]
-                    results = report["result"]
-                else:
-                    report["id"] = report_id
-                    report["status"] = "final"
-                    report["category"] = {"coding": [
-                        {"system": "http://hl7.org/fhir/v2/0074", "code": "LAB"}]}
-                    report["subject"] = {"display": subject}
-                    report["performer"] = {"display": performer}
-                    report["effectiveDateTime"] = date + "T12:00:00+00:00"
-                    report["issued"] = date + "T12:00:00+00:00"
-                    report["resourceType"] = "DiagnosticReport"
-                    report["identifier"] = [
-                        {"id": report_id, "system": "CUSTOM"}]
-                    report["meta"] = {
-                            "profile": [
-                                "http://fhir.org/guides/argonaut/StructureDefinition/argo-diagnosticreport"
-                            ],
-                            "lastUpdated": "2021-07-14T13:35:46.000+00:00"
-                        }
-                    observations = []
-                    results = []
-
-                observation_id = str(len(observations) + 1)
-                observation = construct_observation(observation_id, subject, date,
-                                                    code_description, loinc_code,
-                                                    _range, value, units)
-                observations.append(observation)
-                report["contained"] = observations
-                results.append({"reference": "#" + observation_id})
-                report["result"] = results
-                reports[report_id] = report
-
-            if not have_seen_past_header:
-                logger.warning(f"No observations data found in {observation_data_csv}")
-                return False
-
-        return save_reports_to_json(reports, base_dir, verbose)
+        reports = build_custom_reports(observation_data_csv)
     except Exception as e:
         if verbose:
             logger.error(traceback.format_exc())
             logger.error(str(e))
         return False
+    if not reports:
+        logger.warning(f"No observations data found in {observation_data_csv}")
+        return False
+    return save_reports_to_json(reports, base_dir, verbose)

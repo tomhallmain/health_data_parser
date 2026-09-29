@@ -168,9 +168,10 @@ def _clean_value_string(value_string, date, code, skip_long_values):
 
 class ClinicalRecordsParser:
     """Reads the FHIR Observation and DiagnosticReport files in an export's
-    clinical-records folder into an ObservationStore."""
+    clinical-records folder, plus any custom DiagnosticReports built in
+    memory (from --extra_observations), into an ObservationStore."""
 
-    def __init__(self, options, custom_data_files, store=None):
+    def __init__(self, options, custom_data_files, store=None, custom_reports=None):
         self.options = options
         self.verbose = options.verbose
         self.base_dir = options.base_dir
@@ -179,6 +180,8 @@ class ClinicalRecordsParser:
         self.rules = ObservationRules.from_options(options)
         self.custom_data_files = custom_data_files
         self.store = store if store is not None else ObservationStore()
+        # Report id -> DiagnosticReport
+        self.custom_reports = custom_reports or {}
 
     def parse(self):
         logger.info("Parsing clinical-records JSON...")
@@ -193,24 +196,35 @@ class ClinicalRecordsParser:
                 self._note_subject(file_data)
                 self._process_safely(file_data, f)
             elif file_category == "DiagnosticReport":
-                if "-CUSTOM" in f_addr:
-                    self.custom_data_files.append(f_addr)
                 with open(f_addr, encoding="utf-8") as file:
                     file_data = json.load(file)
-                if file_data["category"]["coding"][0]["code"] not in ["Lab", "LAB"]:
-                    continue
-                # Some Diagnostic Report files have multiple results contained.
-                # Their ids number them in order, but an index is reused after
-                # a result that failed, was on a skipped date, or was an
-                # unidentified vital sign.
-                if "contained" in file_data:
-                    i = 0
-                    for observation in file_data["contained"]:
-                        if self._process_safely(observation, f + "[" + str(i) + "]"):
-                            i += 1
-                else:
-                    self._process_safely(file_data, f)
+                if "-CUSTOM" in f_addr:
+                    # Written into the export by earlier versions of this app;
+                    # the in-memory version of the same report replaces it
+                    if file_data.get("id") in self.custom_reports:
+                        if self.verbose:
+                            logger.info(f"Skipping {f}: superseded by extra observations data")
+                        continue
+                    self.custom_data_files.append(f_addr)
+                self._parse_diagnostic_report(file_data, f)
+        for report_id, report in self.custom_reports.items():
+            self._parse_diagnostic_report(report, f"DiagnosticReport-{report_id}-CUSTOM")
         return self.store
+
+    def _parse_diagnostic_report(self, report, name):
+        if report["category"]["coding"][0]["code"] not in ["Lab", "LAB"]:
+            return
+        # Some Diagnostic Report files have multiple results contained.
+        # Their ids number them in order, but an index is reused after
+        # a result that failed, was on a skipped date, or was an
+        # unidentified vital sign.
+        if "contained" in report:
+            i = 0
+            for observation in report["contained"]:
+                if self._process_safely(observation, name + "[" + str(i) + "]"):
+                    i += 1
+        else:
+            self._process_safely(report, name)
 
     def _note_subject(self, file_data):
         if "name" not in self.subject and "subject" in file_data:

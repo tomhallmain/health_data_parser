@@ -42,6 +42,15 @@ class ObservationStore:
     def find(self, date, code_id):
         return self._by_datecode.get(date + code_id)
 
+    def find_for_code(self, code, date):
+        """The result for test description `code` on `date`, from whichever of
+        its code ids has one (the first, in the order they were seen)."""
+        for code_id in self.code_ids(code):
+            observation = self.find(date, code_id)
+            if observation is not None:
+                return observation
+        return None
+
     @property
     def codes(self):
         """Test descriptions, sorted."""

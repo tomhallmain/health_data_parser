@@ -4,7 +4,8 @@ import pytest
 
 from health_data_parser.ingest.fhir_json import ClinicalRecordsParser
 from health_data_parser.ingest.custom_observations import (
-    construct_observation, generate_diagnostic_report_files, generate_report_id)
+    build_custom_reports, construct_observation, generate_diagnostic_report_files, generate_report_id,
+    load_custom_reports)
 from health_data_parser.errors import HealthDataParseError
 
 HEADER = ("Subject,Performer,Collection Date,Report Description,LOINC Code,"
@@ -81,6 +82,51 @@ class TestGenerateDiagnosticReportFiles:
     def test_empty_csv_path_raises(self, base_dir):
         with pytest.raises(HealthDataParseError, match="Missing"):
             generate_diagnostic_report_files("", str(base_dir), False, False)
+
+
+REPORT_ID = "DoeJane.OrganizationExampleLab.2021-10-04.AutoimmuneScreen"
+
+
+class TestLoadCustomReports:
+    def test_reports_are_built_in_memory(self, observations_csv, tmp_path):
+        files_before = sorted(tmp_path.rglob("*"))
+
+        reports = load_custom_reports(str(observations_csv))
+
+        assert list(reports) == [REPORT_ID]
+        assert [o["code"]["coding"][0]["display"] for o in reports[REPORT_ID]["contained"]] == [
+            "Intrinsic Factor", "Custom Marker"]
+        assert sorted(tmp_path.rglob("*")) == files_before
+
+    def test_header_only_csv(self, tmp_path):
+        path = tmp_path / "empty.csv"
+        path.write_text(HEADER, encoding="utf-8")
+        assert load_custom_reports(str(path)) is None
+
+    def test_unreadable_row(self, tmp_path):
+        path = tmp_path / "bad.csv"
+        path.write_text(HEADER + ROWS[0].replace("0.72", "high"), encoding="utf-8")
+        assert load_custom_reports(str(path)) is None
+
+    def test_invalid_path_raises(self, tmp_path):
+        with pytest.raises(HealthDataParseError, match="is invalid"):
+            load_custom_reports(str(tmp_path / "missing.csv"))
+
+    def test_platform_encoding_is_accepted(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("locale.getpreferredencoding", lambda do_setlocale=True: "cp1252")
+        path = tmp_path / "observations.csv"
+        path.write_bytes((HEADER + ROWS[1].replace("Custom Marker", "Marqueur spécial")).encode("cp1252"))
+        [report] = build_custom_reports(str(path)).values()
+        assert report["contained"][0]["code"]["coding"][0]["display"] == "Marqueur spécial"
+
+    def test_parsed_with_clinical_records(self, observations_csv, json_parser_args):
+        reports = load_custom_reports(str(observations_csv))
+
+        data = ClinicalRecordsParser(json_parser_args, [], custom_reports=reports).parse()
+
+        assert data.codes == ["Custom Marker", "Intrinsic Factor"]
+        assert set(data.observations) == {f"DiagnosticReport-{REPORT_ID}-CUSTOM[0]",
+                                          f"DiagnosticReport-{REPORT_ID}-CUSTOM[1]"}
 
 
 class TestConstructObservation:

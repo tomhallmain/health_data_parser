@@ -2,7 +2,9 @@ from datetime import datetime
 import os
 import re
 
-from health_data_parser.reporting.pdf.canvas import pdf_creator, get_font, get_bold_font
+from health_data_parser.reporting.pdf.canvas import pdf_creator
+from health_data_parser.reporting.pdf.fonts import bold_font, regular_font
+from health_data_parser.model.reference_range import Interpretation
 from health_data_parser.model.units import VitalSignCategory
 from health_data_parser.utils.logger import setup_logger
 
@@ -109,6 +111,14 @@ def _filter_table(table: list, rows_to_skip: list, columns_to_skip: list):
 
 
 class Report:
+    """Builds the PDF report from the observations.json content, the
+    observation store, and whichever optional charts were produced."""
+
+    # Result dates per by-date table; later dates continue in another table
+    n_dates_in_table_per_page = 9
+    # Rows with results per page of a by-date table
+    max_observations_per_page = 40
+
     def __init__(self, output_path: str, subject: dict, filename_affix: str,
                  verbose=False, highlight_abnormal=True):
         self.output_path = output_path
@@ -117,43 +127,61 @@ class Report:
         self.highlight_abnormal = highlight_abnormal
         self.filename = "HealthReport" + filename_affix + ".pdf"
         self.filepath = os.path.join(self.output_path, self.filename)
-        self.n_dates_in_table_per_page = 9
 
-    def create_pdf(self, json_data: dict, data, symptom_data,
-                   pulse_stats_graph, food_data):
-        if self.verbose:
-            logger.info("\nCreating report cover page...")
-
+    def create_pdf(self, json_data: dict, store, vital_stats_graph=None,
+                   symptom_charts=None, food_chart=None):
         include_observations = "observations" in json_data
         meta = json_data["meta"]
-        report_date = meta["processTime"][:10]
         has_abnormal_results = include_observations and "abnormalResults" in json_data
-        print_symptom_data = symptom_data is not None and symptom_data.to_print
         print_pulse_stats_graph = (include_observations
                                    and meta["heartRateMonitoringWearableDetected"]
-                                   and pulse_stats_graph is not None
-                                   and pulse_stats_graph.to_print)
-        print_food_data = food_data is not None and food_data.to_print
+                                   and vital_stats_graph is not None
+                                   and vital_stats_graph.to_print)
 
-        if self.subject is None or "name" not in self.subject or self.subject["name"] == "":
-            footer_text = "Subject: UNKNOWN" + " | Report created: " + report_date
-            subject_known = False
-        else:
-            footer_text = "Subject: " + \
-                self.subject["name"] + " | Report created: " + report_date
-            subject_known = True
+        creator = pdf_creator(800, 50, self.filepath, self._footer_text(meta), self.verbose)
+        self.add_cover_page(creator, json_data, include_observations)
+        if has_abnormal_results:
+            self.add_abnormal_results_notice(creator, json_data)
+        self.add_table_of_contents_section(creator, symptom_charts is not None,
+                                           has_abnormal_results, include_observations,
+                                           print_pulse_stats_graph, food_chart is not None)
+        if symptom_charts is not None:
+            self.add_symptom_data(creator, symptom_charts)
+        if has_abnormal_results:
+            self.add_abnormal_results_summary_table(creator, json_data)
+            self.add_abnormal_observations_by_date_tables(creator, store)
+        elif include_observations:
+            creator.show_text("No abnormal results were found in Apple Health data export.")
+        if include_observations:
+            self.add_observations_by_date_tables(creator, store)
+        if print_pulse_stats_graph:
+            self.add_heart_stats(creator, json_data, vital_stats_graph)
+        if food_chart is not None:
+            self.add_food_data(creator, food_chart)
+        self.close(creator)
 
-        creator = pdf_creator(800, 50, self.filepath,
-                              footer_text, self.verbose)
-        creator.set_font(get_bold_font()[0], 15)
+    def _footer_text(self, meta):
+        report_date = meta["processTime"][:10]
+        if self._subject_known():
+            return "Subject: " + self.subject["name"] + " | Report created: " + report_date
+        return "Subject: UNKNOWN" + " | Report created: " + report_date
+
+    def _subject_known(self):
+        return self.subject is not None and bool(self.subject.get("name"))
+
+    def add_cover_page(self, creator, json_data, include_observations):
+        if self.verbose:
+            logger.info("Creating report cover page...")
+        meta = json_data["meta"]
+        creator.set_font(bold_font(), 15)
         creator.show_text(meta["description"])
-        creator.set_font(get_font()[0], 12)
+        creator.set_font(regular_font(), 12)
         creator.set_leading(14)
         creator.newline()
         creator.newline()
 
         if include_observations:
-            if subject_known:
+            if self._subject_known():
                 creator.show_text(
                     "Subject                " + self.subject["name"])
                 if "birthDate" in self.subject:
@@ -174,157 +202,85 @@ class Report:
             creator.show_text("Most recent record     " + datetime.fromisoformat(
                     meta["mostRecentResult"]).strftime("%B %d, %Y"))
             creator.show_text("Report assembled       " + datetime.fromisoformat(
-                    report_date).strftime("%B %d, %Y"))
+                    meta["processTime"][:10]).strftime("%B %d, %Y"))
 
             if meta["vitalSignsObservationCount"] > 0:
-                creator.newline()
-                creator.newline()
-                creator.set_font(get_bold_font()[0], 12)
-                creator.show_text("Summary of Vitals")
-                creator.newline()
+                self.add_vitals_summary(creator, json_data["vitalSigns"])
 
-                creator.set_font(get_font()[0], 8)
-                creator.set_leading(8)
-
-                # TODO add Trend column and/or graph of these vitals
-                vital_signs_table = [["Vital", "Unit", "Most Recent", "Date", "Max",
-                                      "Min", "Average", "StDev", "Count"]]
-
-                for vital in json_data["vitalSigns"]:
-                    if vital["count"] > 0:
-                        most_recent_obs = vital["mostRecent"]
-                        if type(vital["mostRecent"]["value"]) == list:
-                            for i in range(len(vital["mostRecent"]["value"])):
-                                row = [vital["labels"][i], vital["unit"]]
-                                row.append(
-                                    str(round(most_recent_obs["value"][i], 1)))
-                                row.append(datetime.strftime(
-                                    most_recent_obs["time"], "%B %d, %Y"))
-                                row.append(round(vital["max"][i], 1))
-                                row.append(round(vital["min"][i], 1))
-                                row.append(round(vital["avg"][i], 1))
-                                row.append(round(vital["stDev"][i], 1))
-                                row.append(vital["count"])
-                                vital_signs_table.append(row)
-                        else:
-                            row = [vital["vital"], vital["unit"]]
-                            row.append(str(round(most_recent_obs["value"], 1)))
-                            row.append(datetime.strftime(
-                                most_recent_obs["time"], "%B %d, %Y"))
-                            row.append(round(vital["max"], 1))
-                            row.append(round(vital["min"], 1))
-                            row.append(round(vital["avg"], 1))
-                            row.append(round(vital["stDev"], 1))
-                            row.append(vital["count"])
-                            vital_signs_table.append(row)
-
-                creator.show_table(vital_signs_table, [], 50)
-
-        creator.set_font(get_font()[0], 12)
+        creator.set_font(regular_font(), 12)
         creator.set_leading(14)
         creator.newline()
         creator.newline()
 
-        if has_abnormal_results:
-            creator.set_font(get_bold_font()[0], 12)
-            creator.show_text("WARNING: Abnormal results were found.")
-            creator.set_font(get_font()[0], 12)
-            creator.newline()
-            abnormal_results_meta = json_data["abnormalResults"]["meta"]
-            creator.show_text("Lab codes with abnormal results " + str(
-                abnormal_results_meta["codesWithAbnormalResultsCount"]))
-            creator.show_text("Total abnormal observations     " + str(
-                abnormal_results_meta["totalAbnormalResultsCount"]))
-            creator.newline()
-            includes_in_range = abnormal_results_meta["includesInRangeAbnormalities"]
-            creator.set_leading(10)
-            creator.set_font(get_font()[0], 9)
-            creator.show_text(
-                "NOTE: Reference ranges for tests are not static. The range displayed in all tables")
-            creator.show_text(
-                "represents the most recent range available. A result classified as abnormal by an old")
-            creator.show_text("range may be acceptable within current ranges.")
-            creator.newline()
+    def add_vitals_summary(self, creator, vital_signs):
+        creator.newline()
+        creator.newline()
+        creator.set_font(bold_font(), 12)
+        creator.show_text("Summary of Vitals")
+        creator.newline()
 
-            if includes_in_range:
-                in_range_boundary_percent = str(
-                    round(abnormal_results_meta["inRangeAbnormalBoundary"] * 100)) + "%"
-                creator.show_text("Abnormal results may include results within ranges at +/-"
-                                  + in_range_boundary_percent + " ends of the relevant range.")
-                creator.show_text(
-                    "These are labeled as lower severity with the labels \"High in range\" and \"Low in range\"")
-                creator.show_text(
-                    "or tags \"++\" and \"--\". Tags \"+++\" and \"---\" indicate high and low out of range.")
-                creator.show_text("Tag \"+\" indicates a positive result.")
-                abnormal_results_table = [
-                    ["RESULT CODE", "L OUT", "L IN", "OBSERVED", "H IN", "H OUT"]]
+        creator.set_font(regular_font(), 8)
+        creator.set_leading(8)
+
+        # TODO add Trend column and/or graph of these vitals
+        vital_signs_table = [["Vital", "Unit", "Most Recent", "Date", "Max",
+                              "Min", "Average", "StDev", "Count"]]
+
+        for vital in vital_signs:
+            if vital["count"] == 0:
+                continue
+            most_recent = vital["mostRecent"]
+            date = datetime.strftime(most_recent["time"], "%B %d, %Y")
+            if isinstance(most_recent["value"], list):
+                # Blood pressure: one row per component
+                for i in range(len(most_recent["value"])):
+                    vital_signs_table.append([
+                        vital["labels"][i], vital["unit"], str(round(most_recent["value"][i], 1)), date,
+                        round(vital["max"][i], 1), round(vital["min"][i], 1), round(vital["avg"][i], 1),
+                        round(vital["stDev"][i], 1), vital["count"]])
             else:
-                creator.show_text(
-                    "All listed abnormal results are out of the relevant range. Tags \"+++\" and \"---\" indicate")
-                creator.show_text(
-                    "high and low out of range. Tag \"+\" indicates a positive result.")
-                abnormal_results_table = [
-                    ["RESULT CODE", "LOW OUT OF RANGE", "OBSERVED", "HIGH OUT OF RANGE"]]
+                vital_signs_table.append([
+                    vital["vital"], vital["unit"], str(round(most_recent["value"], 1)), date,
+                    round(vital["max"], 1), round(vital["min"], 1), round(vital["avg"], 1),
+                    round(vital["stDev"], 1), vital["count"]])
 
-        #############################################################
-        ##
-        ## TABLE OF CONTENTS
-        ##
-        #############################################################
+        creator.show_table(vital_signs_table, [], 50)
 
-        self.add_table_of_contents_section(creator, print_symptom_data,
-                                           has_abnormal_results, include_observations,
-                                           print_pulse_stats_graph, print_food_data)
+    def add_abnormal_results_notice(self, creator, json_data):
+        abnormal_results_meta = json_data["abnormalResults"]["meta"]
+        creator.set_font(bold_font(), 12)
+        creator.show_text("WARNING: Abnormal results were found.")
+        creator.set_font(regular_font(), 12)
+        creator.newline()
+        creator.show_text("Lab codes with abnormal results " + str(
+            abnormal_results_meta["codesWithAbnormalResultsCount"]))
+        creator.show_text("Total abnormal observations     " + str(
+            abnormal_results_meta["totalAbnormalResultsCount"]))
+        creator.newline()
+        creator.set_leading(10)
+        creator.set_font(regular_font(), 9)
+        creator.show_text(
+            "NOTE: Reference ranges for tests are not static. The range displayed in all tables")
+        creator.show_text(
+            "represents the most recent range available. A result classified as abnormal by an old")
+        creator.show_text("range may be acceptable within current ranges.")
+        creator.newline()
 
-        #############################################################
-        ##
-        ## SYMPTOM SET REPORT
-        ##
-        #############################################################
-
-        if print_symptom_data:
-            self.add_symptom_data(creator, symptom_data)
-
-        if has_abnormal_results:
-            abnormal_results_meta = json_data["abnormalResults"]["meta"]
-            includes_in_range = abnormal_results_meta["includesInRangeAbnormalities"]
-
-            #############################################################
-            ##
-            ## ABNORMAL RESULTS SUMMARY TABLE
-            ##
-            #############################################################
-
-            self.add_abnormal_results_summary_table(
-                creator, json_data, includes_in_range, abnormal_results_table)
-
-            #############################################################
-            ##
-            ## ABNORMAL OBSERVATIONS BY DATE TABLES
-            ##
-            #############################################################
-
-            self.add_abnormal_observations_by_date_tables(creator, data)
-
-            #############################################################
-            ##
-            ## ALL OBSERVATIONS BY DATE TABLES
-            ##
-            #############################################################
-
-            self.add_observations_by_date_tables(creator, data)
-
-        elif include_observations:
+        if abnormal_results_meta["includesInRangeAbnormalities"]:
+            in_range_boundary_percent = str(
+                round(abnormal_results_meta["inRangeAbnormalBoundary"] * 100)) + "%"
+            creator.show_text("Abnormal results may include results within ranges at +/-"
+                              + in_range_boundary_percent + " ends of the relevant range.")
             creator.show_text(
-                "No abnormal results were found in Apple Health data export.")
-
-        if print_pulse_stats_graph:
-            self.add_heart_stats(creator, json_data, pulse_stats_graph)
-
-        if print_food_data:
-            self.add_food_data(creator, food_data)
-
-        self.close(creator)
+                "These are labeled as lower severity with the labels \"High in range\" and \"Low in range\"")
+            creator.show_text(
+                "or tags \"++\" and \"--\". Tags \"+++\" and \"---\" indicate high and low out of range.")
+            creator.show_text("Tag \"+\" indicates a positive result.")
+        else:
+            creator.show_text(
+                "All listed abnormal results are out of the relevant range. Tags \"+++\" and \"---\" indicate")
+            creator.show_text(
+                "high and low out of range. Tag \"+\" indicates a positive result.")
 
     def add_table_of_contents_section(self, creator, print_symptom_data,
                                       has_abnormal_results, include_observations,
@@ -332,11 +288,11 @@ class Report:
         creator.newline()
         creator.newline()
         creator.newline()
-        creator.set_font(get_bold_font()[0], 12)
+        creator.set_font(bold_font(), 12)
         creator.show_text("Sections included in this report")
         creator.newline()
         creator.set_leading(10)
-        creator.set_font(get_font()[0], 10)
+        creator.set_font(regular_font(), 10)
 
         if print_symptom_data:
             creator.show_text(" • Symptoms Report")
@@ -350,370 +306,110 @@ class Report:
         if print_food_data:
             creator.show_text(" • Food Data Analysis")
 
-    def add_symptom_data(self, creator, symptom_data):
+    def add_symptom_data(self, creator, symptom_charts):
         if self.verbose:
             logger.info("Adding symptoms report...")
-        creator.add_page()
-        creator.set_font(get_bold_font()[0], 15)
-        creator.set_leading(16)
-        creator.show_text("Symptoms Report - Including Historical")
-        creator.newline()
-        creator.set_leading(10)
-        creator.set_font(get_font()[0], 10)
-        creator.show_image(symptom_data.save_loc, 550,
-                           width=720, height=500, rotate=True)
-
-        if symptom_data.has_both_resolved_and_unresolved_symptoms():
+        pages = [("Symptoms Report - Including Historical", symptom_charts.all_symptoms_path)]
+        if symptom_charts.unresolved_path is not None:
+            pages.append(("Symptoms Report - Unresolved", symptom_charts.unresolved_path))
+        for title, image_path in pages:
             creator.add_page()
-            creator.set_font(get_bold_font()[0], 15)
+            creator.set_font(bold_font(), 15)
             creator.set_leading(16)
-            creator.show_text("Symptoms Report - Unresolved")
+            creator.show_text(title)
             creator.newline()
             creator.set_leading(10)
-            creator.set_font(get_font()[0], 10)
-            creator.show_image(symptom_data.save_loc_unresolved, 550,
-                               width=720, height=500, rotate=True)
+            creator.set_font(regular_font(), 10)
+            creator.show_image(image_path, 550, width=720, height=500, rotate=True)
 
-    def add_abnormal_results_summary_table(self, creator, json_data, includes_in_range, abnormal_results_table):
+    def add_abnormal_results_summary_table(self, creator, json_data):
         if self.verbose:
             logger.info("Writing abnormal results summary and detail tables...")
+        abnormal_results = json_data["abnormalResults"]
+        includes_in_range = abnormal_results["meta"]["includesInRangeAbnormalities"]
+        interpretations_by_code = abnormal_results["codesWithAbnormalResults"]
 
         creator.add_page()
-        creator.set_font(get_bold_font()[0], 15)
+        creator.set_font(bold_font(), 15)
         creator.set_leading(20)
         creator.show_text("Abnormal Results By Code Summary")
         creator.set_leading(10)
         creator.newline()
-        abnormal_result_interpretations_by_code = json_data[
-            "abnormalResults"]["codesWithAbnormalResults"]
 
-        for code in sorted(abnormal_result_interpretations_by_code.keys()):
-            if len(code) > 35:
-                code_row = [code[0:20] + ".." + code[-6:]]
-            else:
-                code_row = [code]
-            interpretations = abnormal_result_interpretations_by_code[code]
-            if "LOW OUT OF RANGE" in interpretations:
-                code_row.append("---")
-            else:
-                code_row.append("")
-            if includes_in_range:
-                if "Low in range" in interpretations:
-                    code_row.append("--")
-                else:
-                    code_row.append("")
-            if "Non-negative result" in interpretations:
-                code_row.append("+")
-            else:
-                code_row.append("")
-            if includes_in_range:
-                if "High in range" in interpretations:
-                    code_row.append("++")
-                else:
-                    code_row.append("")
-            if "HIGH OUT OF RANGE" in interpretations:
-                code_row.append("+++")
-            else:
-                code_row.append("")
+        if includes_in_range:
+            table = [["RESULT CODE", "L OUT", "L IN", "OBSERVED", "H IN", "H OUT"]]
+        else:
+            table = [["RESULT CODE", "LOW OUT OF RANGE", "OBSERVED", "HIGH OUT OF RANGE"]]
+        interpretations = Interpretation.ordered(include_in_range=includes_in_range)
+        for code in sorted(interpretations_by_code):
+            code_label = code[0:20] + ".." + code[-6:] if len(code) > 35 else code
+            found = interpretations_by_code[code]
+            table.append([code_label] + [i.value if i.text in found else "" for i in interpretations])
 
-            abnormal_results_table.append(code_row)
+        creator.show_table(table, [], -1)
 
-        creator.show_table(abnormal_results_table, [], -1)
+    def add_abnormal_observations_by_date_tables(self, creator, store):
+        abnormal_results = store.abnormal_results
+        codes = [code for code in store.codes
+                 if any(code_id in abnormal_results for code_id in store.code_ids(code))]
 
-    def get_header(self, data):
-        header = ["Observation Code", "Range"] if len(
-            data.reference_dates) > 0 else ["Observation Code"]
-        return header
+        def abnormal_result(code, date):
+            for code_id in store.code_ids(code):
+                for observation in abnormal_results.get(code_id, []):
+                    if observation.date == date:
+                        return observation
+            return None
 
-    def add_abnormal_observations_by_date_tables(self, creator, data):
-        header = self.get_header(data)
-        abnormal_results = data.abnormal_results
-        abnormal_dates = data.abnormal_dates
-        has_reference_dates = len(data.reference_dates) > 0
-        header_dates_tables = []
-        header_dates = []
-        table_counter = 0
-        date_counter = 0
-        has_unappended_row = False
+        self._add_by_date_tables(creator, store, store.abnormal_dates, codes, abnormal_result,
+                                 "Abnormal Results By Code", highlight_abnormal=False,
+                                 gap_after_first_title=True)
 
-        for date in abnormal_dates:
-            header_dates.append(date)
-            date_counter += 1
-            has_unappended_row = True
-            if date_counter % self.n_dates_in_table_per_page == 0:
-                if len(header_dates_tables) > table_counter:
-                    header_dates_tables[table_counter] = header_dates
-                else:
-                    header_dates_tables.append(header_dates)
-                header_dates = []
-                has_unappended_row = False
-                table_counter += 1
-                header_dates = header_dates_tables[table_counter] if len(
-                    header_dates_tables) > table_counter else []
-
-        if has_unappended_row:
-            if len(header_dates_tables) > table_counter:
-                header_dates_tables[table_counter] = header_dates
-            else:
-                header_dates_tables.append(header_dates)
-
-        code_ranges_table = []
-
-        for code in data.codes:
-            for code_id in data.code_ids(code):
-                if code_id in abnormal_results:
-                    if has_reference_dates:
-                        if code in data.ranges:
-                            row = [_wrap_text_to_fit_length(
-                                code, 20), _wrap_text_to_fit_length(data.ranges[code], 15)]
-                        else:
-                            row = [code, ""]
-                    else:
-                        row = [code]
-
-                    code_ranges_table.append(row)
-
-        # abnormal_results_tables is a list of abnormal observation date
-        # results with columsn of up to n_dates_in_table_per_page per page
-        abnormal_results_tables = []
-
-        for code in data.codes:
-            date_counter = 0
-            table_counter = 0
-            table = abnormal_results_tables[table_counter] if len(
-                abnormal_results_tables) > table_counter else []
-            row = []
-            has_unappended_row = False
-            abnormal_result_found = False
-
-            for date in abnormal_dates:
-                date_counter += 1
-                date_found = False
-                has_unappended_row = True
-
-                for code_id in data.code_ids(code):
-                    if code_id in abnormal_results:
-                        abnormal_result_found = True
-                        results = abnormal_results[code_id]
-                        for observation in results:
-                            if observation.date == date:
-                                date_found = True
-                                value = observation.value_string[:15]
-                                if observation.has_reference:
-                                    abnormal_result_tag = observation.reference.tag
-                                else:
-                                    abnormal_result_tag = ""
-                                row.append(_wrap_text_to_fit_length(
-                                    value + abnormal_result_tag, 10))
-                                break
-                        else:
-                            continue
-
-                        break
-
-                if not date_found:
-                    row.append("")
-
-                if abnormal_result_found and date_counter % self.n_dates_in_table_per_page == 0:
-                    table.append(row)
-                    row = []
-                    if len(abnormal_results_tables) > table_counter:
-                        abnormal_results_tables[table_counter] = table
-                    else:
-                        abnormal_results_tables.append(table)
-                    has_unappended_row = False
-                    table_counter += 1
-                    table = abnormal_results_tables[table_counter] if len(
-                        abnormal_results_tables) > table_counter else []
-
-            if abnormal_result_found and has_unappended_row:
-                table.append(row)
-                if len(abnormal_results_tables) > table_counter:
-                    abnormal_results_tables[table_counter] = table
-                else:
-                    abnormal_results_tables.append(table)
-
-        has_shown_first_page = False
-        max_observations_per_page = 40
-
-        for i in range(len(abnormal_results_tables)):
-            header_row = list(header)
-            header_row.extend(header_dates_tables[i])
-            table = abnormal_results_tables[i]
-            observations_table = []
-
-            for i in range(len(table)):
-                row = list(code_ranges_table[i])
-                row.extend(table[i])
-                observations_table.append(row)
-
-            while len(observations_table) > 0:
-                observation_cutoff = max_observations_per_page
-                table_to_show = observations_table[:observation_cutoff]
-                rows_to_skip, columns_to_skip = _find_rows_and_columns_to_skip(
-                    table_to_show)
-                if len(rows_to_skip) > 0:
-                    extension_amount = len(rows_to_skip)
-                    while (len(observations_table) > observation_cutoff
-                            and not len(table_to_show) - len(rows_to_skip) >= max_observations_per_page):
-                        table_to_show.extend(observations_table[observation_cutoff:(
-                            observation_cutoff+extension_amount)])
-                        observation_cutoff += extension_amount
-                        if self.verbose:
-                            logger.info(f"Extended table by {extension_amount} as some rows skipped. New table length: {len(table_to_show)}")
-                        rows_to_skip, columns_to_skip = _find_rows_and_columns_to_skip(
-                            table_to_show)
-                        extension_amount = max_observations_per_page - \
-                            (len(table_to_show) - len(rows_to_skip))
-                observations_table = observations_table[len(
-                    table_to_show):]
-                table_to_show.insert(0, header_row)
-                if len(rows_to_skip) > 0 or len(columns_to_skip) > 0:
-                    table_to_show = _filter_table(
-                        table_to_show, rows_to_skip, columns_to_skip)
-                creator.add_page()
-                creator.set_font(get_bold_font()[0], 15)
-                creator.set_leading(16)
-                if has_shown_first_page:
-                    creator.show_text(
-                        "Abnormal Results By Code (continued)")
-                else:
-                    creator.show_text("Abnormal Results By Code")
-                    creator.newline()
-                    has_shown_first_page = True
-                creator.set_leading(7)
-                creator.newline()
-                creator.set_font(get_font()[0], 6)
-                extra_style_commands = [
-                    ("BACKGROUND", (1, 1), (1, -1), "oldlace"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 2),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 2),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-                    ("TOPPADDING", (0, 0), (-1, -1), 2)
-                    ]
-
-                extra_style_commands.extend(
-                    _get_conditional_format_styles(table_to_show, False))
-                x_offset = 50 if len(table_to_show[0]) <= 9 else 30
-                creator.show_table(
-                    table_to_show, extra_style_commands, x_offset)
-
-    def add_observations_by_date_tables(self, creator, data):
+    def add_observations_by_date_tables(self, creator, store):
         if self.verbose:
             logger.info("Writing all observations detail tables...")
+        self._add_by_date_tables(creator, store, store.dates, store.codes, store.find_for_code,
+                                 "All Lab Observations", highlight_abnormal=self.highlight_abnormal,
+                                 gap_after_first_title=False)
 
-        header = self.get_header(data)
-        dates = data.dates
-        has_reference_dates = len(data.reference_dates) > 0
-        header_dates_tables = []
-        header_dates = []
-        table_counter = 0
-        date_counter = 0
-        has_unappended_row = False
+    def _add_by_date_tables(self, creator, store, dates, codes, result_for, title,
+                            highlight_abnormal, gap_after_first_title):
+        """Tables of results with a row per code and a column per date.
 
-        for date in dates:
-            header_dates.append(date)
-            date_counter += 1
-            has_unappended_row = True
-            if date_counter % self.n_dates_in_table_per_page == 0:
-                if len(header_dates_tables) > table_counter:
-                    header_dates_tables[table_counter] = header_dates
-                else:
-                    header_dates_tables.append(header_dates)
-                header_dates = []
-                has_unappended_row = False
-                table_counter += 1
-                header_dates = header_dates_tables[table_counter] if len(
-                    header_dates_tables) > table_counter else []
-
-        if has_unappended_row:
-            if len(header_dates_tables) > table_counter:
-                header_dates_tables[table_counter] = header_dates
+        Dates are split into tables of n_dates_in_table_per_page, and each
+        table into pages of max_observations_per_page rows that have results;
+        rows and columns without any result are left out of a page.
+        result_for(code, date) gives the observation for a cell, or None.
+        """
+        has_reference_dates = len(store.reference_dates) > 0
+        header = ["Observation Code", "Range"] if has_reference_dates else ["Observation Code"]
+        code_columns = []
+        for code in codes:
+            if not has_reference_dates:
+                code_columns.append([code])
+            elif code in store.ranges:
+                code_columns.append([_wrap_text_to_fit_length(code, 20),
+                                     _wrap_text_to_fit_length(store.ranges[code], 15)])
             else:
-                header_dates_tables.append(header_dates)
-
-        code_ranges_table = []
-
-        for code in data.codes:
-            if has_reference_dates:
-                if code in data.ranges:
-                    row = [_wrap_text_to_fit_length(
-                        code, 20), _wrap_text_to_fit_length(data.ranges[code], 15)]
-                else:
-                    row = [code, ""]
-            else:
-                row = [code]
-
-            code_ranges_table.append(row)
-
-        # results_tables is a list of observation date results with columns
-        # of up to n_dates_in_table_per_page per page
-        results_tables = []
-
-        for code in data.codes:
-            date_counter = 0
-            table_counter = 0
-            table = results_tables[table_counter] if len(
-                results_tables) > table_counter else []
-            row = []
-            has_unappended_row = False
-
-            for date in dates:
-                date_counter += 1
-                date_found = False
-                has_unappended_row = True
-
-                for code_id in data.code_ids(code):
-                    observation = data.find(date, code_id)
-                    if observation is not None:
-                        date_found = True
-                        if observation.has_reference:
-                            abnormal_result_tag = observation.reference.tag
-                        else:
-                            abnormal_result_tag = ""
-                        value = observation.value_string[:15]
-                        row.append(_wrap_text_to_fit_length(
-                            value + abnormal_result_tag, 10))
-                        break
-
-                if not date_found:
-                    row.append("")
-
-                if date_counter % self.n_dates_in_table_per_page == 0:
-                    table.append(row)
-                    row = []
-                    if len(results_tables) > table_counter:
-                        results_tables[table_counter] = table
-                    else:
-                        results_tables.append(table)
-                    has_unappended_row = False
-                    table_counter += 1
-                    table = results_tables[table_counter] if len(
-                        results_tables) > table_counter else []
-
-            if has_unappended_row:
-                table.append(row)
-                if len(results_tables) > table_counter:
-                    results_tables[table_counter] = table
-                else:
-                    results_tables.append(table)
+                code_columns.append([code, ""])
 
         has_shown_first_page = False
-        max_observations_per_page = 40
-
-        for i in range(len(results_tables)):
-            header_row = list(header)
-            header_row.extend(header_dates_tables[i])
-            table = results_tables[i]
+        max_observations_per_page = self.max_observations_per_page
+        for start in range(0, len(dates), self.n_dates_in_table_per_page):
+            table_dates = dates[start:start + self.n_dates_in_table_per_page]
+            header_row = header + table_dates
             observations_table = []
-
-            for i in range(len(table)):
-                row = list(code_ranges_table[i])
-                row.extend(table[i])
+            for code, code_column in zip(codes, code_columns):
+                row = list(code_column)
+                for date in table_dates:
+                    observation = result_for(code, date)
+                    if observation is None:
+                        row.append("")
+                    else:
+                        tag = observation.reference.tag if observation.has_reference else ""
+                        row.append(_wrap_text_to_fit_length(observation.value_string[:15] + tag, 10))
                 observations_table.append(row)
 
             while len(observations_table) > 0:
-                rows_to_skip = []
                 observation_cutoff = max_observations_per_page
                 table_to_show = observations_table[:observation_cutoff]
                 rows_to_skip, columns_to_skip = _find_rows_and_columns_to_skip(
@@ -738,16 +434,18 @@ class Report:
                     table_to_show = _filter_table(
                         table_to_show, rows_to_skip, columns_to_skip)
                 creator.add_page()
-                creator.set_font(get_bold_font()[0], 15)
+                creator.set_font(bold_font(), 15)
                 creator.set_leading(16)
                 if has_shown_first_page:
-                    creator.show_text("All Lab Observations (continued)")
+                    creator.show_text(title + " (continued)")
                 else:
-                    creator.show_text("All Lab Observations")
+                    creator.show_text(title)
+                    if gap_after_first_title:
+                        creator.newline()
                     has_shown_first_page = True
                 creator.set_leading(7)
                 creator.newline()
-                creator.set_font(get_font()[0], 6)
+                creator.set_font(regular_font(), 6)
                 extra_style_commands = [
                     ("BACKGROUND", (1, 1), (1, -1), "oldlace"),
                     ("LEFTPADDING", (0, 0), (-1, -1), 2),
@@ -755,9 +453,8 @@ class Report:
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
                     ("TOPPADDING", (0, 0), (-1, -1), 2)
                     ]
-
-                extra_style_commands.extend(_get_conditional_format_styles(
-                        table_to_show, self.highlight_abnormal))
+                extra_style_commands.extend(
+                    _get_conditional_format_styles(table_to_show, highlight_abnormal))
                 x_offset = 50 if len(table_to_show[0]) <= 9 else 30
                 creator.show_table(
                     table_to_show, extra_style_commands, x_offset)
@@ -766,12 +463,12 @@ class Report:
         if self.verbose:
             logger.info("Adding pulse stats graphs sections...")
         creator.add_page()
-        creator.set_font(get_bold_font()[0], 15)
+        creator.set_font(bold_font(), 15)
         creator.set_leading(16)
         creator.show_text("Heart Rate Data Analysis")
         creator.newline()
         creator.set_leading(10)
-        creator.set_font(get_font()[0], 10)
+        creator.set_font(regular_font(), 10)
         for vital in json_data["vitalSigns"]:
             if vital["vital"] == VitalSignCategory.PULSE.value:
                 text1 = _right_pad_with_spaces("Total readings:           "
@@ -795,7 +492,7 @@ class Report:
 
         creator.newline()
         creator.set_leading(9)
-        creator.set_font(get_font()[0], 8)
+        creator.set_font(regular_font(), 8)
         creator.show_text(
             "                                                   NOTES")
         creator.newline()
@@ -808,12 +505,12 @@ class Report:
         creator.show_text("  fewer minutes.")
 
         creator.add_page()
-        creator.set_font(get_bold_font()[0], 15)
+        creator.set_font(bold_font(), 15)
         creator.set_leading(16)
         creator.show_text("Heart Rate Data Analysis")
         creator.newline()
         creator.set_leading(10)
-        creator.set_font(get_font()[0], 10)
+        creator.set_font(regular_font(), 10)
         creator.show_text("Dates recorded:   "
                           + str(len(pulse_stats_graph.pulse_dates)))
         creator.show_text("Earliest date:    " + datetime.fromordinal(
@@ -825,7 +522,7 @@ class Report:
             pulse_stats_graph.save_loc_dates_data, 45, width=500)
         creator.newline()
         creator.set_leading(9)
-        creator.set_font(get_font()[0], 8)
+        creator.set_font(regular_font(), 8)
         creator.show_text(
             "                                                   NOTES")
         creator.newline()
@@ -836,16 +533,17 @@ class Report:
         creator.show_text(
             "  count may vary in either direction from recorded values.")
 
-    def add_food_data(self, creator, food_data):
+    def add_food_data(self, creator, food_chart):
+        food_data = food_chart.food
         if self.verbose:
             logger.info("Adding food data report...")
         creator.add_page()
-        creator.set_font(get_bold_font()[0], 15)
+        creator.set_font(bold_font(), 15)
         creator.set_leading(16)
         creator.show_text("Food Data Analysis")
         creator.newline()
         creator.set_leading(10)
-        creator.set_font(get_font()[0], 10)
+        creator.set_font(regular_font(), 10)
         text1 = _right_pad_with_spaces("Total food records:      "
                                        + str(food_data.record_count), 45)
         text2 = _right_pad_with_spaces("Earliest food record:    "
@@ -860,14 +558,14 @@ class Report:
                           + str(food_data.avg_meals_per_day))
         creator.newline()
         creator.newline()
-        creator.set_font(get_bold_font()[0], 10)
+        creator.set_font(bold_font(), 10)
         creator.show_text("Most common foods recorded")
         creator.newline()
-        creator.show_image(food_data.save_loc, 150, width=250)
+        creator.show_image(food_chart.path, 150, width=250)
 
         creator.newline()
         creator.set_leading(9)
-        creator.set_font(get_font()[0], 8)
+        creator.set_font(regular_font(), 8)
         creator.show_text(
             "                                                   NOTES")
 

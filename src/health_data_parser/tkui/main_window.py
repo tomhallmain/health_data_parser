@@ -1,4 +1,3 @@
-import csv
 import dataclasses
 import os
 
@@ -8,6 +7,7 @@ from tkinter import ttk, filedialog, messagebox
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+from health_data_parser.ingest.symptoms_csv import write_symptoms
 from health_data_parser.analysis.summary import (
     OBSERVATIONS_JSON_FILENAME, load_observations_json, summary_lines,
     observation_counts_by_year, abnormal_counts_by_interpretation)
@@ -260,9 +260,7 @@ class HealthDataParserUI:
             # Create the file with header if it doesn't exist
             if not os.path.exists(default_file):
                 try:
-                    with open(default_file, 'w', newline='') as f:
-                        writer = csv.writer(f)
-                        writer.writerow(['Name', 'Start Date', 'End Date', 'Medications', 'Stimulants', 'Comment', 'Severity'])
+                    write_symptoms(default_file, [])
                 except Exception as e:
                     self.show_message("Error", f"Failed to create symptom file: {str(e)}", "error")
                     return

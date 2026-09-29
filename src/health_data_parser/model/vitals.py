@@ -149,7 +149,8 @@ class VitalSigns:
         self.pulse = VitalSeries(VitalSignCategory.PULSE.value)
         self.respiration = VitalSeries(VitalSignCategory.RESPIRATION.value)
         self.blood_pressure = BloodPressureSeries()
-        self.hrv = VitalSeries("Heart rate variability", "HRV")
+        # SDNN, in milliseconds
+        self.hrv = VitalSeries("Heart rate variability", "ms")
         # Parsed from export.xml but not included in reports
         self.spo2 = VitalSeries(VitalSignCategory.SPO2.value, "%")
         self.stand = VitalSeries("Apple stand minutes", "/5min")
