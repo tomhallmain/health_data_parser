@@ -25,27 +25,16 @@ logger = setup_logger('data_parser')
 class DataParser:
     def __init__(self, args):
         self.args = args
-        self.data_export_dir = args.data_export_dir
         self.verbose = args.verbose
         self.food_data_csv = args.food_data_csv
         self.symptom_data_csv = args.symptom_data_csv
         self.json_add_all_vitals = args.json_add_all_vitals
-        self.subject = {}
-        self.normal_height_unit = HeightUnit.CM
-        self.normal_weight_unit = WeightUnit.LB
-        self.normal_temperature_unit = TemperatureUnit.C
+        self.outputs = args.output_paths
+        self.output_dir = self.outputs.directory
+        self.export_xml = args.export_xml
+        self.base_dir = args.base_dir
 
-        self.all_data_csv = os.path.join(self.data_export_dir, "observations.csv")
-        self.all_data_json = os.path.join(self.data_export_dir, "observations.json")
-        self.abnormal_results_output_csv = os.path.join(self.data_export_dir, "abnormal_results.csv")
-        self.abnormal_results_by_interp_csv = os.path.join(self.data_export_dir,
-            "abnormal_results_by_interpretation.csv")
-        self.abnormal_results_by_code_text = os.path.join(self.data_export_dir, "abnormal_results_by_code.txt")
-        self.export_xml = os.path.join(self.data_export_dir, "export.xml")
-        self.export_cda_xml = os.path.join(self.data_export_dir, "export_cda.xml")
-        self.base_dir = os.path.join(self.data_export_dir, "clinical-records")
-
-        self.xml_data = AppleHealthXMLData(self.normal_height_unit, self.normal_weight_unit,
+        self.xml_data = AppleHealthXMLData(args.normal_height_unit, args.normal_weight_unit,
                                            args.normal_temperature_unit)
         self.custom_data_files = []
         self.food_data = None
@@ -54,10 +43,12 @@ class DataParser:
         self.vital_stats_graph = None
 
     def create_custom_report(self):
+        os.makedirs(self.output_dir, exist_ok=True)
         self.process_custom_data()
         self.report(include_observations=False)
 
     def run(self):
+        os.makedirs(self.output_dir, exist_ok=True)
         self.process_custom_data()
         self.process_xml_data()
         self.process_json_data()
@@ -82,7 +73,7 @@ class DataParser:
             try:
                 self.food_data = FoodData(self.food_data_csv, self.verbose)
                 if self.food_data.to_print:
-                    self.food_data.save_most_common_foods_chart(80, self.data_export_dir)
+                    self.food_data.save_most_common_foods_chart(80, self.output_dir)
             except Exception as e:
                 if self.verbose:
                     logger.error(f"Error processing food data: {e}")
@@ -97,10 +88,10 @@ class DataParser:
                 if len(self.symptom_data.symptoms) > 0:
                     self.symptom_data.set_chart_start_date()
                     self.symptom_data.generate_chart_data()
-                    self.symptom_data.save_chart(30, self.data_export_dir)
+                    self.symptom_data.save_chart(30, self.output_dir)
                     if self.symptom_data.has_both_resolved_and_unresolved_symptoms():
                         self.symptom_data.generate_chart_data(include_historical_symptoms=False)
-                        self.symptom_data.save_chart(30, self.data_export_dir, unresolved_only=True)
+                        self.symptom_data.save_chart(30, self.output_dir, unresolved_only=True)
             except Exception as e:
                 if self.verbose:
                     logger.error(f"Error processing symptom data: {e}")
@@ -249,7 +240,7 @@ class DataParser:
             try:
                 self.vital_stats_graph = VitalsStatsGraph(
                     AppleHealthXMLParser.min_xml_ordinal, data.pulse_stats, data.hrv_stats, data.step_stats, data.stand_stats)
-                self.vital_stats_graph.save_graph_images(self.data_export_dir)
+                self.vital_stats_graph.save_graph_images(self.output_dir)
             except Exception as e:
                 if self.verbose:
                     logger.error(f"Error creating wearable vitals graph: {e}")
@@ -275,10 +266,10 @@ class DataParser:
 
         reporter = Reporter(self.verbose)
         if include_observations:
-            reporter.report_abnormal_results_by_code_then_date(self.abnormal_results_by_code_text, self.observations_data)
-            reporter.report_abnormal_results_by_interpretation(self.abnormal_results_by_interp_csv, self.observations_data, self.args)
-            reporter.report_abnormal_results_by_date(self.abnormal_results_output_csv, self.observations_data)
-            reporter.report_all_data_by_datecode(self.all_data_csv, self.observations_data)
+            reporter.report_abnormal_results_by_code_then_date(self.outputs.abnormal_results_by_code_text, self.observations_data)
+            reporter.report_abnormal_results_by_interpretation(self.outputs.abnormal_results_by_interpretation_csv, self.observations_data, self.args)
+            reporter.report_abnormal_results_by_date(self.outputs.abnormal_results_csv, self.observations_data)
+            reporter.report_all_data_by_datecode(self.outputs.all_data_csv, self.observations_data)
         reporter.report_all_data_json_and_pdf(
-            include_observations, self.all_data_json, self.data_export_dir, self.observations_data, self.xml_data,
+            include_observations, self.outputs.all_data_json, self.output_dir, self.observations_data, self.xml_data,
             self.symptom_data, self.vital_stats_graph, self.food_data, self.custom_data_files, self.args)

@@ -197,7 +197,7 @@ def export_dir(tmp_path, write_json):
 
 @pytest.fixture
 def json_parser_args(tmp_path):
-    """The subset of HealthDataParseArgs that ObservationJSONDataParser reads."""
+    """The subset of ParseOptions that ObservationJSONDataParser reads."""
     base_dir = tmp_path / "clinical-records"
     base_dir.mkdir()
     return SimpleNamespace(

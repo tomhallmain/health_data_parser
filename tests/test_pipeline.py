@@ -10,7 +10,7 @@ import sys
 
 import pytest
 
-from health_data_parser.options import HealthDataParseArgs
+from health_data_parser.options import ParseOptions
 from health_data_parser.pipeline import DataParser
 from health_data_parser.analysis.summary import lab_result_rows, summarize, vital_sign_rows
 
@@ -75,7 +75,7 @@ def vital(json_data, name):
 
 @pytest.fixture
 def run_output(pipeline_export, pdf_reports):
-    DataParser(HealthDataParseArgs(str(pipeline_export))).run()
+    DataParser(ParseOptions(str(pipeline_export))).run()
     json_data = json.loads((pipeline_export / "observations.json").read_text(encoding="utf-8"))
     return pipeline_export, json_data
 
@@ -191,10 +191,9 @@ class TestCustomDataRuns:
     def test_custom_only_report(self, pipeline_export, pdf_reports):
         symptoms = pipeline_export / "symptoms.csv"
         symptoms.write_text(SYMPTOM_CSV, encoding="utf-8")
-        args = HealthDataParseArgs(str(pipeline_export))
-        args.symptom_data_csv = str(symptoms)
+        options = ParseOptions(str(pipeline_export), symptom_data_csv=str(symptoms))
 
-        DataParser(args).create_custom_report()
+        DataParser(options).create_custom_report()
 
         json_data = json.loads((pipeline_export / "observations.json").read_text(encoding="utf-8"))
         assert set(json_data) == {"meta"}
@@ -208,15 +207,49 @@ class TestCustomDataRuns:
             "Subject,Performer,Collection Date,Report Description,LOINC Code,Code Description,Value,Range,Units\n"
             '"Doe, Jane",Organization/ExampleLab,2022-11-20,Iron Panel,2276-4,Ferritin,20,30-400,ng/mL\n',
             encoding="utf-8")
-        args = HealthDataParseArgs(str(pipeline_export))
-        args.extra_observations_csv = str(extra)
+        options = ParseOptions(str(pipeline_export), extra_observations_csv=str(extra))
 
-        DataParser(args).run()
+        DataParser(options).run()
 
         json_data = json.loads((pipeline_export / "observations.json").read_text(encoding="utf-8"))
         assert json_data["meta"]["observationCount"] == 4
         assert json_data["meta"]["earliestResult"] == "2022-11-20"
         assert "Ferritin" in json_data["abnormalResults"]["codesWithAbnormalResults"]
+
+
+class TestOutputDir:
+    OUTPUT_FILES = ["observations.json", "observations.csv", "abnormal_results.csv",
+                    "abnormal_results_by_interpretation.csv", "abnormal_results_by_code.txt"]
+
+    def test_outputs_go_to_output_dir(self, pipeline_export, pdf_reports, tmp_path):
+        output_dir = tmp_path / "reports" / "2024"
+        (pipeline_export / "food.csv").write_text(FOOD_CSV, encoding="utf-8")
+        options = ParseOptions(str(pipeline_export), output_dir=str(output_dir),
+                               food_data_csv=str(pipeline_export / "food.csv"))
+
+        DataParser(options).run()
+
+        for name in self.OUTPUT_FILES + ["most_common_foods.png"]:
+            assert (output_dir / name).exists(), name
+            assert not (pipeline_export / name).exists(), name
+
+    def test_pdf_is_written_to_output_dir(self, pipeline_export, monkeypatch, tmp_path):
+        output_paths = []
+
+        class _RecordingReport:
+            def __init__(self, output_path, subject, filename_affix, verbose=False, highlight_abnormal=True):
+                output_paths.append(output_path)
+                self.filename = "HealthReport-stub.pdf"
+
+            def create_pdf(self, *args):
+                pass
+
+        monkeypatch.setattr("health_data_parser.reporting.outputs.Report", _RecordingReport)
+        output_dir = tmp_path / "reports"
+
+        DataParser(ParseOptions(str(pipeline_export), output_dir=str(output_dir))).run()
+
+        assert output_paths == [str(output_dir)]
 
 
 @pytest.mark.skipif(sys.platform != "win32",
@@ -225,11 +258,11 @@ class TestCustomDataRuns:
 def test_real_pdf_report(pipeline_export):
     (pipeline_export / "symptoms.csv").write_text(SYMPTOM_CSV, encoding="utf-8")
     (pipeline_export / "food.csv").write_text(FOOD_CSV, encoding="utf-8")
-    args = HealthDataParseArgs(str(pipeline_export))
-    args.symptom_data_csv = str(pipeline_export / "symptoms.csv")
-    args.food_data_csv = str(pipeline_export / "food.csv")
+    options = ParseOptions(str(pipeline_export),
+                           symptom_data_csv=str(pipeline_export / "symptoms.csv"),
+                           food_data_csv=str(pipeline_export / "food.csv"))
 
-    DataParser(args).run()
+    DataParser(options).run()
 
     [pdf] = pipeline_export.glob("HealthReport*.pdf")
     assert pdf.read_bytes().startswith(b"%PDF")

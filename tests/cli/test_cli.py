@@ -38,13 +38,14 @@ class TestParseDataCli:
     def test_no_arguments_prints_help(self):
         result = run_cli(PARSE)
         assert result.returncode == 0
-        assert "Usage:" in result.stdout
+        assert "usage:" in result.stdout.lower()
+        assert "--output_dir" in result.stdout
 
     def test_invalid_export_dir(self, tmp_path):
         result = run_cli(PARSE, tmp_path / "missing")
         assert result.returncode == 1
         assert "is invalid" in result.stderr
-        assert "Usage:" in result.stdout
+        assert "usage:" in result.stdout.lower()
 
     def test_export_without_clinical_records(self, tmp_path):
         result = run_cli(PARSE, tmp_path)
@@ -54,18 +55,32 @@ class TestParseDataCli:
     def test_unknown_option(self, export_dir):
         result = run_cli(PARSE, export_dir, "--no_such_option")
         assert result.returncode == 2
-        assert "Usage:" in result.stdout
+        assert "unrecognized arguments: --no_such_option" in result.stderr
 
     @pytest.mark.parametrize("option, message", [
         ("--start_year=abc", "is not a valid year"),
         ("--skip_dates=2023-13-45", "is not a valid list of dates"),
         ("--in_range_abnormal_boundary=0.6", "is not a valid decimal-formatted percentage"),
-        ("--birth_date=yesterday", "is not a valid list of date"),
+        ("--in_range_abnormal_boundary=lots", "is not a valid decimal-formatted percentage"),
+        ("--birth_date=yesterday", "is not a valid date"),
+        ("--report_highlight_abnormal_results=maybe", "is not a boolean"),
     ])
     def test_invalid_option_values(self, export_dir, option, message):
         result = run_cli(PARSE, export_dir, option)
         assert result.returncode == 1
         assert message in result.stderr
+
+    @pytest.mark.parametrize("option", ["--start_year=abc", "--start-year=abc"])
+    def test_hyphenated_aliases(self, export_dir, option):
+        result = run_cli(PARSE, export_dir, option)
+        assert "is not a valid year" in result.stderr
+
+    def test_output_dir_that_is_a_file(self, export_dir, tmp_path):
+        path = tmp_path / "reports"
+        path.write_text("", encoding="utf-8")
+        result = run_cli(PARSE, export_dir, "--output-dir", path)
+        assert result.returncode == 1
+        assert "is a file" in result.stderr
 
     def test_run_failure_exits_with_message(self, export_dir, tmp_path):
         result = run_cli(PARSE, export_dir, f"--food_data={tmp_path / 'missing.csv'}")
@@ -77,7 +92,7 @@ class TestParseDataCli:
     def test_help_flag(self, export_dir, flag):
         result = run_cli(PARSE, export_dir, flag)
         assert result.returncode == 0
-        assert "Usage:" in result.stdout
+        assert "usage:" in result.stdout.lower()
 
 
 class TestGenerateDiagnosticReportFilesCli:
@@ -110,7 +125,7 @@ class TestRootCompatibilityScripts:
     def test_no_arguments_prints_help(self, script):
         result = run_root_script(script)
         assert result.returncode == 0, result.stderr
-        assert "Usage:" in result.stdout
+        assert "usage:" in result.stdout.lower()
 
     def test_parse_data_reports_errors(self, tmp_path):
         result = run_root_script("parse_data.py", tmp_path / "missing")

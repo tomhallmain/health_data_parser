@@ -1,4 +1,5 @@
 import csv
+import dataclasses
 import os
 
 import tkinter as tk
@@ -10,11 +11,15 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from health_data_parser.analysis.summary import (
     OBSERVATIONS_JSON_FILENAME, load_observations_json, summary_lines,
     observation_counts_by_year, abnormal_counts_by_interpretation)
-from health_data_parser.options import HealthDataParseArgs
+from health_data_parser.options import (
+    ParseOptions, parse_boundary, parse_skip_dates, parse_start_year)
 from health_data_parser.pipeline import DataParser
 from health_data_parser.tkui.statistics_window import StatisticsWindow
 from health_data_parser.tkui.symptom_window import SymptomWindow
 from health_data_parser.utils.paths import default_user_data_dir
+
+_DEFAULTS = {f.name: f.default for f in dataclasses.fields(ParseOptions)
+             if f.default is not dataclasses.MISSING}
 
 class HealthDataParserUI:
     def __init__(self, root):
@@ -27,13 +32,15 @@ class HealthDataParserUI:
         self.symptom_data = tk.StringVar()
         self.food_data = tk.StringVar()
         self.extra_observations = tk.StringVar()
-        self.start_year = tk.StringVar(value="2000")
-        self.skip_dates = tk.StringVar()
-        self.skip_long_values = tk.BooleanVar(value=True)
-        self.json_add_all_vitals = tk.BooleanVar(value=False)
-        self.filter_abnormal_in_range = tk.BooleanVar(value=False)
-        self.in_range_abnormal_boundary = tk.StringVar(value="0.15")
-        self.report_highlight_abnormal_results = tk.BooleanVar(value=True)
+        # Blank start year means no start year
+        self.start_year = tk.StringVar(value=_DEFAULTS["start_year"] or "")
+        self.skip_dates = tk.StringVar(value=",".join(_DEFAULTS["skip_dates"]))
+        self.skip_long_values = tk.BooleanVar(value=_DEFAULTS["skip_long_values"])
+        self.json_add_all_vitals = tk.BooleanVar(value=_DEFAULTS["json_add_all_vitals"])
+        self.filter_abnormal_in_range = tk.BooleanVar(value=_DEFAULTS["skip_in_range_abnormal_results"])
+        self.in_range_abnormal_boundary = tk.StringVar(value=str(_DEFAULTS["in_range_abnormal_boundary"]))
+        self.report_highlight_abnormal_results = tk.BooleanVar(
+            value=_DEFAULTS["report_highlight_abnormal_results"])
         
         # Track active window
         self.active_window = None
@@ -152,31 +159,27 @@ class HealthDataParserUI:
             return
             
         try:
-            # Create parse arguments
-            parse_args = HealthDataParseArgs(self.export_dir.get())
-            
-            # Set additional arguments from UI
-            parse_args.start_year = int(self.start_year.get())
-            parse_args.skip_dates = self.skip_dates.get().split(",") if self.skip_dates.get() else []
-            parse_args.skip_long_values = self.skip_long_values.get()
-            parse_args.json_add_all_vitals = self.json_add_all_vitals.get()
-            parse_args.skip_in_range_abnormal_results = self.filter_abnormal_in_range.get()
-            parse_args.in_range_abnormal_boundary = float(self.in_range_abnormal_boundary.get())
-            parse_args.report_highlight_abnormal_results = self.report_highlight_abnormal_results.get()
-            
-            if self.symptom_data.get():
-                parse_args.symptom_data_csv = self.symptom_data.get()
-            if self.food_data.get():
-                parse_args.food_data_csv = self.food_data.get()
-            if self.extra_observations.get():
-                parse_args.extra_observations_csv = self.extra_observations.get()
-            
+            start_year = self.start_year.get().strip()
+            options = ParseOptions(
+                data_export_dir=self.export_dir.get(),
+                start_year=parse_start_year(start_year) if start_year else None,
+                skip_dates=parse_skip_dates(self.skip_dates.get()),
+                skip_long_values=self.skip_long_values.get(),
+                json_add_all_vitals=self.json_add_all_vitals.get(),
+                skip_in_range_abnormal_results=self.filter_abnormal_in_range.get(),
+                in_range_abnormal_boundary=parse_boundary(self.in_range_abnormal_boundary.get()),
+                report_highlight_abnormal_results=self.report_highlight_abnormal_results.get(),
+                symptom_data_csv=self.symptom_data.get() or None,
+                food_data_csv=self.food_data.get() or None,
+                extra_observations_csv=self.extra_observations.get() or None,
+            )
+
             # Run parser
-            parser = DataParser(parse_args)
+            parser = DataParser(options)
             parser.run()
-            
+
             # Update statistics and graphs
-            self.update_statistics(parse_args.data_export_dir)
+            self.update_statistics(options.output_paths.directory)
             
             self.show_message("Success", "Report generated successfully!")
             

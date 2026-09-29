@@ -191,7 +191,7 @@ class Reporter:
                 logger.error(traceback.format_exc())
             raise HealthDataParseError("An error occurred in writing observations data to CSV.") from e
 
-    def report_all_data_json_and_pdf(self, include_observations, filepath, data_export_dir, data, xml_data, symptom_data, vital_stats_graph, food_data, custom_data_files, args):
+    def report_all_data_json_and_pdf(self, include_observations, filepath, output_dir, data, xml_data, symptom_data, vital_stats_graph, food_data, custom_data_files, args):
         # Write simplified observations data to JSON
 
         json_data = {}
@@ -261,10 +261,10 @@ class Reporter:
         try:
             if include_observations and not args.json_add_all_vitals:
                 json_data["vitalSigns"] = save_stats_objs
-            report = Report(data_export_dir, args.subject, json_data["meta"]["processTime"][:10],
+            report = Report(output_dir, args.subject, json_data["meta"]["processTime"][:10],
                             self.verbose, args.report_highlight_abnormal_results)
             report.create_pdf(json_data, data, symptom_data, vital_stats_graph, food_data)
-            logger.info(f"Results report saved to {os.path.join(data_export_dir, report.filename)}")
+            logger.info(f"Results report saved to {os.path.join(output_dir, report.filename)}")
         except Exception as e:
             if self.verbose:
                 logger.error(traceback.format_exc())
