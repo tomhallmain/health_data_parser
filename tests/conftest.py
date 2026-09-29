@@ -20,9 +20,10 @@ REPO_ROOT = TESTS_DIR.parent
 
 
 def _is_isolation_sensitive(name, module):
-    if name == "matplotlib":
+    if name == "matplotlib" or name.split(".")[0] == "health_data_parser":
         return True
-    # Namespace packages (data/, ui/, ...) have __path__ but no __file__
+    # Anything else loaded from the repo, e.g. the root compatibility scripts.
+    # Namespace packages have __path__ but no __file__.
     locations = [getattr(module, "__file__", None), *(getattr(module, "__path__", None) or [])]
     for loc in locations:
         if not loc:
@@ -106,11 +107,11 @@ def mpl_config_dir():
 @pytest.fixture(scope="session")
 def _app_global_defaults():
     """Import-time values of process-wide state that code mutates in place."""
-    import data.units
-    import data.xml_parser
+    from health_data_parser.ingest import apple_xml
+    from health_data_parser.model import units
     return {
-        "base_stats": deepcopy(data.units.base_stats),
-        "min_xml_ordinal": data.xml_parser.AppleHealthXMLParser.min_xml_ordinal,
+        "base_stats": deepcopy(units.base_stats),
+        "min_xml_ordinal": apple_xml.AppleHealthXMLParser.min_xml_ordinal,
     }
 
 
@@ -120,13 +121,14 @@ def reset_app_globals(_app_global_defaults):
     pollute the next; the teardown reset keeps a failing test's state from
     leaking too."""
     def _reset():
-        import data.units
-        import data.xml_parser
-        # Restored in place: data.xml_parser binds this same dict by name
-        data.units.base_stats.clear()
-        data.units.base_stats.update(deepcopy(_app_global_defaults["base_stats"]))
+        from health_data_parser.ingest import apple_xml
+        from health_data_parser.model import units
+        # Restored in place: ingest.apple_xml and reporting.charts.vitals bind
+        # this same dict by name
+        units.base_stats.clear()
+        units.base_stats.update(deepcopy(_app_global_defaults["base_stats"]))
         # Lowered by every XML parse to the earliest record seen
-        data.xml_parser.AppleHealthXMLParser.min_xml_ordinal = _app_global_defaults["min_xml_ordinal"]
+        apple_xml.AppleHealthXMLParser.min_xml_ordinal = _app_global_defaults["min_xml_ordinal"]
         # Chart code creates figures through pyplot and never closes them
         if "matplotlib.pyplot" in sys.modules:
             sys.modules["matplotlib.pyplot"].close("all")

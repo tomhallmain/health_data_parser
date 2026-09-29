@@ -6,7 +6,7 @@ from pathlib import Path
 
 import matplotlib
 
-import data.units  # noqa: F401  (creates a project logger with a file handler)
+import health_data_parser.model.units  # noqa: F401  (creates a project logger with a file handler)
 
 
 def test_home_directories_are_redirected(test_home):

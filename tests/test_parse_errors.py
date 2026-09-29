@@ -2,8 +2,9 @@
 and stay open; only the CLI entry points turn them into a process exit."""
 import pytest
 
-from parse_data import DataParser, HealthDataParseArgs
-from utils.errors import HealthDataParseError
+from health_data_parser.options import HealthDataParseArgs
+from health_data_parser.pipeline import DataParser
+from health_data_parser.errors import HealthDataParseError
 
 
 class TestHealthDataParseArgs:

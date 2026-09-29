@@ -10,8 +10,9 @@ import sys
 
 import pytest
 
-from parse_data import DataParser, HealthDataParseArgs
-from ui.statistics_data import lab_result_rows, summarize, vital_sign_rows
+from health_data_parser.options import HealthDataParseArgs
+from health_data_parser.pipeline import DataParser
+from health_data_parser.analysis.summary import lab_result_rows, summarize, vital_sign_rows
 
 SYMPTOM_CSV = (
     "Symptom/Condition,Onset/Time of Diagnosis,Conclusion,Medications,Stimulants,Comment,Severity\n"
@@ -59,7 +60,7 @@ def pdf_reports(monkeypatch):
         def create_pdf(self, json_data, data, symptom_data, pulse_stats_graph, food_data):
             created.append(json_data)
 
-    monkeypatch.setattr("reporting.reporter.Report", _RecordingReport)
+    monkeypatch.setattr("health_data_parser.reporting.outputs.Report", _RecordingReport)
     return created
 
 

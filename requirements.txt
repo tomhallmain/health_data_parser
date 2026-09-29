@@ -1,7 +1,0 @@
-matplotlib>=3.5.0
-numpy
-pytest>=7.0
-reportlab
-tkcalendar>=1.6.0
-# Tkinter is also required; it ships with most Python installs and is not
-# installable via pip (on some Linux distros install the python3-tk package).

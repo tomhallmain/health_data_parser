@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "health-data-parser"
+version = "0.1.0"
+description = "Parse Apple Health exports and custom health data into reports."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.5.0",
+    "numpy",
+    "reportlab",
+    "tkcalendar>=1.6.0",
+]
+# Tkinter is also required; it ships with most Python installs and is not
+# installable via pip (on some Linux distros install the python3-tk package).
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+health-data-parser = "health_data_parser.cli.parse:main"
+health-data-parser-reports = "health_data_parser.cli.diagnostic_reports:main"
+
+[project.gui-scripts]
+health-data-parser-gui = "health_data_parser.tkui.main_window:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets the suite run from a checkout without an install; with
+# `pip install -e .` this resolves to the same files
+pythonpath = ["src"]
+xfail_strict = true
