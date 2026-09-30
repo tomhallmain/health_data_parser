@@ -7,15 +7,13 @@ from PySide6.QtWidgets import (
     QRadioButton, QSpinBox, QTableView, QVBoxLayout, QWidget)
 
 from health_data_parser.gui.models import SymptomFilterProxy, SymptomsModel
-from health_data_parser.gui.widgets import SymptomDateEdit, date_edit
+from health_data_parser.gui.widgets import SymptomDateEdit, csv_file_filter, date_edit
 from health_data_parser.ingest.symptoms_csv import InvalidSymptomFile, read_symptoms, write_symptoms
 from health_data_parser.model.symptom import ImportMode, Symptom, import_symptoms, parse_symptom_date
 from health_data_parser.utils.logger import setup_logger
 from health_data_parser.utils.translations import _
 
 logger = setup_logger('symptom_manager')
-
-_CSV_FILTER = "CSV (*.csv);;All files (*)"
 
 
 class SymptomDialog(QDialog):
@@ -221,12 +219,12 @@ class SymptomManager(QWidget):
         return None
 
     def ask_open_path(self, title):
-        path, selected_filter = QFileDialog.getOpenFileName(self, title, self._directory(), _CSV_FILTER)
+        path, selected_filter = QFileDialog.getOpenFileName(self, title, self._directory(), csv_file_filter())
         return path
 
     def ask_save_path(self, title):
         path, selected_filter = QFileDialog.getSaveFileName(self, title, self.path or self._directory(),
-                                                            _CSV_FILTER)
+                                                            csv_file_filter())
         return path
 
     def ask_yes_no(self, title, text):

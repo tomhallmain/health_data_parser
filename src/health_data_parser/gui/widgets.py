@@ -2,13 +2,17 @@ import re
 
 from PySide6.QtCore import QDate, Signal
 from PySide6.QtWidgets import (
-    QComboBox, QDateEdit, QFileDialog, QHBoxLayout, QLineEdit, QListWidget, QPushButton,
+    QCheckBox, QComboBox, QDateEdit, QFileDialog, QHBoxLayout, QLineEdit, QListWidget, QPushButton,
     QVBoxLayout, QWidget)
 
 from health_data_parser.utils.translations import _
 
 ISO_DATE_FORMAT = "yyyy-MM-dd"
 MONTH_FORMAT = "yyyy-MM"
+
+
+def csv_file_filter():
+    return _("CSV files (*.csv);;All files (*)")
 
 
 def date_edit(parent=None, display_format=ISO_DATE_FORMAT):
@@ -85,6 +89,39 @@ class PathField(QWidget):
                 self, self._caption, self.path(), self._file_filter)
         if path:
             self.set_path(path)
+
+
+class OptionalDateEdit(QWidget):
+    """A date that can be left unset."""
+    changed = Signal()
+
+    def __init__(self, label, parent=None):
+        super().__init__(parent)
+        self.enabled = QCheckBox(label)
+        self.date_edit = date_edit()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.enabled)
+        layout.addWidget(self.date_edit, 1)
+        self.enabled.toggled.connect(self._enabled_changed)
+        self.date_edit.dateChanged.connect(self.changed)
+        self._enabled_changed()
+
+    def iso_date(self):
+        """The date as YYYY-MM-DD, or None when unset."""
+        if not self.enabled.isChecked():
+            return None
+        return self.date_edit.date().toString(ISO_DATE_FORMAT)
+
+    def set_iso_date(self, iso_date):
+        date = QDate.fromString(iso_date or "", ISO_DATE_FORMAT)
+        if date.isValid():
+            self.date_edit.setDate(date)
+        self.enabled.setChecked(date.isValid())
+
+    def _enabled_changed(self):
+        self.date_edit.setEnabled(self.enabled.isChecked())
+        self.changed.emit()
 
 
 class SkipDatesEditor(QWidget):

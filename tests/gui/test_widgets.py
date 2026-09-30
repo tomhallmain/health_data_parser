@@ -1,6 +1,6 @@
 import pytest
 
-from health_data_parser.gui.widgets import PathField, SkipDatesEditor, SymptomDateEdit
+from health_data_parser.gui.widgets import OptionalDateEdit, PathField, SkipDatesEditor, SymptomDateEdit
 
 
 @pytest.fixture
@@ -84,3 +84,23 @@ class TestPathField:
 
         assert field.history() == ["/recent1", "/recent2"]
         assert field.path() == "/current"
+
+
+class TestOptionalDateEdit:
+    def test_unset_by_default(self, qtbot):
+        edit = OptionalDateEdit("Set")
+        qtbot.addWidget(edit)
+
+        assert edit.iso_date() is None
+        assert not edit.date_edit.isEnabled()
+
+    def test_round_trip(self, qtbot):
+        edit = OptionalDateEdit("Set")
+        qtbot.addWidget(edit)
+
+        edit.set_iso_date("1980-02-29")
+        assert edit.iso_date() == "1980-02-29"
+        assert edit.date_edit.isEnabled()
+
+        edit.set_iso_date(None)
+        assert edit.iso_date() is None

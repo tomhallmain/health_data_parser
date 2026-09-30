@@ -2,12 +2,13 @@ import dataclasses
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QCheckBox, QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton,
+    QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton,
     QSpinBox, QVBoxLayout, QWidget)
 
 from health_data_parser.errors import HealthDataParseError
 from health_data_parser.gui.settings import recent_export_dirs, string_list
-from health_data_parser.gui.widgets import PathField, SkipDatesEditor
+from health_data_parser.gui.widgets import OptionalDateEdit, PathField, SkipDatesEditor, csv_file_filter
+from health_data_parser.model.units import HeightUnit, TemperatureUnit, WeightUnit
 from health_data_parser.options import ParseOptions
 from health_data_parser.utils.translations import _
 
@@ -17,9 +18,6 @@ _DEFAULTS = {f.name: f.default for f in dataclasses.fields(ParseOptions)
 # The start year box's minimum stands for "no start year"
 _NO_START_YEAR = 1899
 _MAX_YEAR = 2100
-
-_CSV_FILTER = "CSV (*.csv);;All files (*)"
-
 
 def _flag_labels():
     """(option name, check box label) for the boolean options."""
@@ -31,6 +29,20 @@ def _flag_labels():
         ("only_clinical_records", _("Only clinical records (skip export.xml)")),
         ("custom_only", _("Report on the custom data files only")),
         ("verbose", _("Verbose logging")),
+    ]
+
+
+def _unit_labels():
+    """(option name, form label, [(unit, label)]) for the unit options."""
+    return [
+        ("normal_height_unit", _("Height unit:"), [
+            (HeightUnit.CM, _("Centimeters (cm)")), (HeightUnit.M, _("Meters (m)")),
+            (HeightUnit.FT, _("Feet (ft)")), (HeightUnit.IN, _("Inches (in)"))]),
+        ("normal_weight_unit", _("Weight unit:"), [
+            (WeightUnit.G, _("Grams (g)")), (WeightUnit.KG, _("Kilograms (kg)")),
+            (WeightUnit.LB, _("Pounds (lb)"))]),
+        ("normal_temperature_unit", _("Temperature unit:"), [
+            (TemperatureUnit.C, _("Celsius (°C)")), (TemperatureUnit.F, _("Fahrenheit (°F)"))]),
     ]
 
 
@@ -46,9 +58,9 @@ class RunOptionsPanel(QWidget):
         self.export_dir = PathField(PathField.DIRECTORY, _("Apple Health Export Directory"), history=True)
         self.output_dir = PathField(PathField.DIRECTORY, _("Output Directory"))
         self.output_dir.set_placeholder(_("The export directory"))
-        self.symptom_csv = PathField(PathField.FILE, _("Symptom Data"), _CSV_FILTER)
-        self.food_csv = PathField(PathField.FILE, _("Food Data"), _CSV_FILTER)
-        self.extra_observations_csv = PathField(PathField.FILE, _("Extra Observations"), _CSV_FILTER)
+        self.symptom_csv = PathField(PathField.FILE, _("Symptom Data"), csv_file_filter())
+        self.food_csv = PathField(PathField.FILE, _("Food Data"), csv_file_filter())
+        self.extra_observations_csv = PathField(PathField.FILE, _("Extra Observations"), csv_file_filter())
         self.manage_symptoms_button = QPushButton(_("Manage..."))
         self.manage_symptoms_button.clicked.connect(self.manage_symptoms_requested)
 
@@ -61,6 +73,17 @@ class RunOptionsPanel(QWidget):
         self.boundary.setDecimals(2)
         self.boundary.setSingleStep(0.01)
         self.flags = {name: QCheckBox(label) for name, label in _flag_labels()}
+        self.birth_date = OptionalDateEdit(_("Set"))
+        self.birth_date.setToolTip(_("Subject birth date for the report, if not found in export.xml"))
+        # Option name -> combo box whose items hold the unit enum's member name
+        self.units = {}
+        unit_rows = []
+        for name, label, choices in _unit_labels():
+            combo = QComboBox()
+            for unit, unit_label in choices:
+                combo.addItem(unit_label, unit.name)
+            self.units[name] = combo
+            unit_rows.append((label, combo))
 
         self.error_label = QLabel()
         self.error_label.setWordWrap(True)
@@ -83,6 +106,9 @@ class RunOptionsPanel(QWidget):
         options_form.addRow(_("Start year:"), self.start_year)
         options_form.addRow(_("Skip dates:"), self.skip_dates)
         options_form.addRow(_("In-range abnormal boundary:"), self.boundary)
+        options_form.addRow(_("Birth date:"), self.birth_date)
+        for label, combo in unit_rows:
+            options_form.addRow(label, combo)
         for check_box in self.flags.values():
             options_form.addRow(check_box)
 
@@ -95,12 +121,14 @@ class RunOptionsPanel(QWidget):
         self.reset_to_defaults()
 
         for field in (self.export_dir, self.output_dir, self.symptom_csv, self.food_csv,
-                      self.extra_observations_csv, self.skip_dates):
+                      self.extra_observations_csv, self.skip_dates, self.birth_date):
             field.changed.connect(self.changed)
         self.start_year.valueChanged.connect(self.changed)
         self.boundary.valueChanged.connect(self.changed)
         for check_box in self.flags.values():
             check_box.toggled.connect(self.changed)
+        for combo in self.units.values():
+            combo.currentIndexChanged.connect(self.changed)
 
     def reset_to_defaults(self):
         self._set_start_year(_DEFAULTS["start_year"])
@@ -108,6 +136,21 @@ class RunOptionsPanel(QWidget):
         self.boundary.setValue(_DEFAULTS["in_range_abnormal_boundary"])
         for name, check_box in self.flags.items():
             check_box.setChecked(_DEFAULTS[name])
+        self.birth_date.set_iso_date(_DEFAULTS["birth_date"])
+        for name in self.units:
+            self._set_unit(name, _DEFAULTS[name].name)
+
+    def _set_unit(self, name, unit_name):
+        """Select the unit named `unit_name`; an unknown name leaves the
+        selection as it is."""
+        combo = self.units[name]
+        index = combo.findData(unit_name)
+        if index >= 0:
+            combo.setCurrentIndex(index)
+
+    def _unit(self, name):
+        unit_type = type(_DEFAULTS[name])
+        return unit_type[self.units[name].currentData()]
 
     def _set_start_year(self, year):
         self.start_year.setValue(_NO_START_YEAR if year is None else year)
@@ -127,6 +170,8 @@ class RunOptionsPanel(QWidget):
             symptom_data_csv=self.symptom_csv.path() or None,
             food_data_csv=self.food_csv.path() or None,
             extra_observations_csv=self.extra_observations_csv.path() or None,
+            birth_date=self.birth_date.iso_date(),
+            **{name: self._unit(name) for name in self.units},
             **{name: check_box.isChecked() for name, check_box in self.flags.items()},
         )
 
@@ -154,6 +199,9 @@ class RunOptionsPanel(QWidget):
         settings.setValue("in_range_abnormal_boundary", self.boundary.value())
         for name, check_box in self.flags.items():
             settings.setValue(name, check_box.isChecked())
+        settings.setValue("birth_date", self.birth_date.iso_date() or "")
+        for name, combo in self.units.items():
+            settings.setValue(name, combo.currentData())
         settings.endGroup()
 
     def restore_settings(self, settings):
@@ -174,5 +222,10 @@ class RunOptionsPanel(QWidget):
             for name, check_box in self.flags.items():
                 if settings.contains(name):
                     check_box.setChecked(settings.value(name, False, type=bool))
+            if settings.contains("birth_date"):
+                self.birth_date.set_iso_date(settings.value("birth_date", "", type=str))
+            for name in self.units:
+                if settings.contains(name):
+                    self._set_unit(name, settings.value(name, "", type=str))
         finally:
             settings.endGroup()
