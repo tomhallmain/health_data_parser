@@ -11,7 +11,8 @@ import json
 import pytest
 
 from health_data_parser.options import ParseOptions
-from health_data_parser.pipeline import DataParser
+from health_data_parser.errors import RunCancelled
+from health_data_parser.pipeline import DataParser, Stage
 from health_data_parser.analysis.summary import lab_result_rows, summarize, vital_sign_rows
 from health_data_parser.utils.translations import _
 
@@ -29,44 +30,6 @@ FOOD_CSV = (
 EXTRA_CSV_HEADER = ("Subject,Performer,Collection Date,Report Description,LOINC Code,"
                     "Code Description,Value,Range,Units\n")
 EXTRA_CSV_FERRITIN = '"Doe, Jane",Organization/ExampleLab,2022-11-20,Iron Panel,2276-4,Ferritin,{value},30-400,ng/mL\n'
-
-
-@pytest.fixture
-def pipeline_export(tmp_path, write_json, make_lab_observation, make_blood_pressure_observation):
-    """Two dates of labs (one high result, one low-in-range) plus a set of vital signs."""
-    export = tmp_path / "apple_health_export"
-    records = export / "clinical-records"
-    observations = [
-        make_lab_observation(date="2023-01-10", value=90),
-        make_lab_observation(date="2023-04-05", value=105),
-        make_lab_observation(display="Hemoglobin", code="718-7", date="2023-04-05", value=13.6,
-                             unit="g/dL", range_text="13.5-17.5 g/dL"),
-    ]
-    vitals = [("Pulse", "8867-4", 62, "/min"), ("Body height", "8302-2", 180, "cm"),
-              ("Body weight", "29463-7", 180, "lb"), ("Body temperature", "8310-5", 98.6, "[degF]")]
-    for display, code, value, unit in vitals:
-        observations.append(make_lab_observation(display=display, code=code, value=value, unit=unit,
-                                                 range_text=None, category="Vital Signs"))
-    observations.append(make_blood_pressure_observation())
-    for i, observation in enumerate(observations):
-        write_json(records / f"Observation-{i}.json", observation)
-    return export
-
-
-@pytest.fixture
-def pdf_reports(monkeypatch):
-    """Replaces the PDF report with a stub; yields the json_data each run passed to it."""
-    created = []
-
-    class _RecordingReport:
-        def __init__(self, output_path, subject, filename_affix, verbose=False, highlight_abnormal=True):
-            self.filename = "HealthReport-stub.pdf"
-
-        def create_pdf(self, json_data, store, vital_stats_graph=None, symptom_charts=None, food_chart=None):
-            created.append(json_data)
-
-    monkeypatch.setattr("health_data_parser.reporting.outputs.Report", _RecordingReport)
-    return created
 
 
 def read_csv(path):
@@ -310,6 +273,38 @@ class TestOutputDir:
         DataParser(ParseOptions(str(pipeline_export), output_dir=str(output_dir))).run()
 
         assert output_paths == [str(output_dir)]
+
+
+class TestProgress:
+    def test_run_reports_every_stage_in_order(self, pipeline_export, pdf_reports):
+        stages = []
+        parser = DataParser(ParseOptions(str(pipeline_export)))
+
+        parser.run(progress=stages.append)
+
+        assert stages == list(Stage)
+        assert parser.pdf_path == str(pipeline_export / "HealthReport-stub.pdf")
+
+    def test_custom_report_stages(self, pipeline_export, pdf_reports):
+        symptoms = pipeline_export / "symptoms.csv"
+        symptoms.write_text(SYMPTOM_CSV, encoding="utf-8")
+        stages = []
+
+        DataParser(ParseOptions(str(pipeline_export), symptom_data_csv=str(symptoms))).create_custom_report(
+            progress=stages.append)
+
+        assert stages == [Stage.CUSTOM_DATA, Stage.OUTPUTS]
+
+    def test_cancel_stops_before_the_next_stage(self, pipeline_export, pdf_reports):
+        stages = []
+
+        with pytest.raises(RunCancelled):
+            DataParser(ParseOptions(str(pipeline_export))).run(
+                progress=stages.append, is_cancelled=lambda: Stage.EXPORT_XML in stages)
+
+        assert stages == [Stage.CUSTOM_DATA, Stage.EXPORT_XML]
+        assert pdf_reports == []
+        assert not (pipeline_export / "observations.json").exists()
 
 
 def test_real_pdf_report(pipeline_export):

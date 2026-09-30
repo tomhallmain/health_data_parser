@@ -11,21 +11,19 @@ requires-python = ">=3.11"
 dependencies = [
     "matplotlib>=3.5.0",
     "numpy",
+    "PySide6>=6.5",
     "reportlab",
-    "tkcalendar>=1.6.0",
 ]
-# Tkinter is also required; it ships with most Python installs and is not
-# installable via pip (on some Linux distros install the python3-tk package).
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0"]
+dev = ["pytest>=7.0", "pytest-qt>=4.2"]
 
 [project.scripts]
 health-data-parser = "health_data_parser.cli.parse:main"
 health-data-parser-reports = "health_data_parser.cli.diagnostic_reports:main"
 
 [project.gui-scripts]
-health-data-parser-gui = "health_data_parser.tkui.main_window:main"
+health-data-parser-gui = "health_data_parser.gui.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -36,3 +34,5 @@ testpaths = ["tests"]
 # `pip install -e .` this resolves to the same files
 pythonpath = ["src"]
 xfail_strict = true
+# pytest-qt
+qt_api = "pyside6"

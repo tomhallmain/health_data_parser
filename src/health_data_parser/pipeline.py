@@ -1,9 +1,10 @@
+from enum import Enum
 import os
 import traceback
 
 from health_data_parser.analysis.abnormal import apply_shared_reference_ranges
 from health_data_parser.analysis.vitals import add_clinical_vitals, sort_vital_signs
-from health_data_parser.errors import HealthDataParseError
+from health_data_parser.errors import HealthDataParseError, RunCancelled
 from health_data_parser.ingest.apple_xml import AppleHealthXMLParser
 from health_data_parser.ingest.custom_observations import load_custom_reports
 from health_data_parser.ingest.fhir_json import ClinicalRecordsParser, ObservationRules
@@ -19,6 +20,16 @@ from health_data_parser.utils.translations import _
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('data_parser')
+
+
+class Stage(Enum):
+    """The steps of a run, in order."""
+    CUSTOM_DATA = "custom_data"
+    EXPORT_XML = "export_xml"
+    CLINICAL_RECORDS = "clinical_records"
+    ANALYSIS = "analysis"
+    WEARABLE_CHARTS = "wearable_charts"
+    OUTPUTS = "outputs"
 
 
 class DataParser:
@@ -42,23 +53,51 @@ class DataParser:
         self.symptom_data = None
         self.symptom_charts = None
         self.vital_stats_graph = None
+        # Set once the PDF report is written
+        self.pdf_path = None
 
-    def create_custom_report(self):
+    def create_custom_report(self, progress=None, is_cancelled=None):
+        """Report on the custom data files only. See run() for the arguments."""
+        stage = self._stage_reporter(progress, is_cancelled)
         os.makedirs(self.output_dir, exist_ok=True)
+        stage(Stage.CUSTOM_DATA)
         self.process_custom_data()
+        stage(Stage.OUTPUTS)
         self.report(include_observations=False)
 
-    def run(self):
+    def run(self, progress=None, is_cancelled=None):
+        """Parse everything and write the outputs.
+
+        progress(stage) is called as each Stage starts. is_cancelled() is
+        checked before each stage; when it returns True the run stops with
+        RunCancelled (outputs written so far, such as charts, remain).
+        """
+        stage = self._stage_reporter(progress, is_cancelled)
         os.makedirs(self.output_dir, exist_ok=True)
+        stage(Stage.CUSTOM_DATA)
         self.process_custom_data()
+        stage(Stage.EXPORT_XML)
         self.process_xml_data()
+        stage(Stage.CLINICAL_RECORDS)
         self.process_json_data()
+        stage(Stage.ANALYSIS)
         apply_shared_reference_ranges(self.store, ObservationRules.from_options(self.options),
                                       self.verbose)
         add_clinical_vitals(self.store, self.vital_signs, self.options, self.verbose)
         sort_vital_signs(self.vital_signs, self.verbose)
+        stage(Stage.WEARABLE_CHARTS)
         self.create_wearable_vitals_graph()
+        stage(Stage.OUTPUTS)
         self.report()
+
+    @staticmethod
+    def _stage_reporter(progress, is_cancelled):
+        def stage(name):
+            if is_cancelled is not None and is_cancelled():
+                raise RunCancelled()
+            if progress is not None:
+                progress(name)
+        return stage
 
     def process_custom_data(self):
         options = self.options
@@ -141,7 +180,7 @@ class DataParser:
                 self.outputs.abnormal_results_by_interpretation_csv, self.store, self.options)
             reporter.report_abnormal_results_by_date(self.outputs.abnormal_results_csv, self.store)
             reporter.report_all_data_by_datecode(self.outputs.all_data_csv, self.store)
-        reporter.report_all_data_json_and_pdf(
+        self.pdf_path = reporter.report_all_data_json_and_pdf(
             include_observations, self.outputs.all_data_json, self.output_dir, self.store, self.vital_signs,
             self.custom_data_files, self.options, vital_stats_graph=self.vital_stats_graph,
             symptom_charts=self.symptom_charts, food_chart=self.food_chart)

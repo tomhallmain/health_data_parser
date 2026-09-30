@@ -64,7 +64,16 @@ MPL_CONFIG_DIR = Path(tempfile.gettempdir()) / "health_data_parser_tests_mplconf
 MPL_CONFIG_DIR.mkdir(exist_ok=True)
 os.environ["MPLCONFIGDIR"] = str(MPL_CONFIG_DIR)
 
+# Qt: no display needed, and the Qt binding matplotlib's Qt backend uses
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+os.environ["QT_API"] = "pyside6"
+
 import pytest
+from PySide6.QtCore import QStandardPaths
+
+# Qt's per-user locations (QSettings files included) move to a test location
+# under the throwaway HOME
+QStandardPaths.setTestModeEnabled(True)
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -177,6 +186,45 @@ def export_dir(tmp_path, write_json):
     export = tmp_path / "apple_health_export"
     write_json(export / "clinical-records" / "Observation-1.json", lab_observation())
     return export
+
+
+# Shared by test_pipeline.py and the GUI run tests
+@pytest.fixture
+def pipeline_export(tmp_path, write_json, make_lab_observation, make_blood_pressure_observation):
+    """Two dates of labs (one high result, one low-in-range) plus a set of vital signs."""
+    export = tmp_path / "apple_health_export"
+    records = export / "clinical-records"
+    observations = [
+        make_lab_observation(date="2023-01-10", value=90),
+        make_lab_observation(date="2023-04-05", value=105),
+        make_lab_observation(display="Hemoglobin", code="718-7", date="2023-04-05", value=13.6,
+                             unit="g/dL", range_text="13.5-17.5 g/dL"),
+    ]
+    vitals = [("Pulse", "8867-4", 62, "/min"), ("Body height", "8302-2", 180, "cm"),
+              ("Body weight", "29463-7", 180, "lb"), ("Body temperature", "8310-5", 98.6, "[degF]")]
+    for display, code, value, unit in vitals:
+        observations.append(make_lab_observation(display=display, code=code, value=value, unit=unit,
+                                                 range_text=None, category="Vital Signs"))
+    observations.append(make_blood_pressure_observation())
+    for i, observation in enumerate(observations):
+        write_json(records / f"Observation-{i}.json", observation)
+    return export
+
+
+@pytest.fixture
+def pdf_reports(monkeypatch):
+    """Replaces the PDF report with a stub; yields the json_data each run passed to it."""
+    created = []
+
+    class _RecordingReport:
+        def __init__(self, output_path, subject, filename_affix, verbose=False, highlight_abnormal=True):
+            self.filename = "HealthReport-stub.pdf"
+
+        def create_pdf(self, json_data, store, vital_stats_graph=None, symptom_charts=None, food_chart=None):
+            created.append(json_data)
+
+    monkeypatch.setattr("health_data_parser.reporting.outputs.Report", _RecordingReport)
+    return created
 
 
 @pytest.fixture

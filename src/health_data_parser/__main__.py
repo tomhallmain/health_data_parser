@@ -1,3 +1,5 @@
-from health_data_parser.tkui.main_window import main
+import sys
 
-main()
+from health_data_parser.gui.app import main
+
+sys.exit(main())

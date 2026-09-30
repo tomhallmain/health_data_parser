@@ -7,13 +7,13 @@ import sys
 
 SRC = Path(__file__).resolve().parents[2] / "src"
 
-# Every module outside the Tk GUI (which needs a display to import tkinter
-# widgets in some environments)
+# Every module, the Qt GUI included: its charts are embedded through
+# backend_qtagg, and importing it needs no display
 CHECK = """
 import pkgutil, sys, importlib
 import health_data_parser
 for module in pkgutil.walk_packages(health_data_parser.__path__, "health_data_parser."):
-    if ".tkui" in module.name or module.name.endswith("__main__"):
+    if module.name.endswith("__main__"):
         continue
     importlib.import_module(module.name)
 print("matplotlib.pyplot" in sys.modules)

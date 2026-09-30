@@ -147,6 +147,7 @@ class Reporter:
     def report_all_data_json_and_pdf(self, include_observations, filepath, output_dir, store, vital_signs,
                                      custom_data_files, options, vital_stats_graph=None,
                                      symptom_charts=None, food_chart=None):
+        """Write observations.json and the PDF report; returns the PDF's path."""
         try:
             json_data = build_json_data(include_observations, store, vital_signs, options)
             with open(filepath, 'w', encoding='utf-8') as f:
@@ -162,7 +163,8 @@ class Reporter:
                             self.verbose, options.report_highlight_abnormal_results)
             report.create_pdf(json_data, store, vital_stats_graph=vital_stats_graph,
                               symptom_charts=symptom_charts, food_chart=food_chart)
-            logger.info(f"Results report saved to {os.path.join(output_dir, report.filename)}")
+            pdf_path = os.path.join(output_dir, report.filename)
+            logger.info(f"Results report saved to {pdf_path}")
         except Exception as e:
             if self.verbose:
                 logger.error(traceback.format_exc())
@@ -172,6 +174,7 @@ class Reporter:
             logger.info("The compiled information includes some custom data not exported from Apple Health:")
             for filename in custom_data_files:
                 logger.info(filename)
+        return pdf_path
 
 
 def build_json_data(include_observations, store, vital_signs, options):

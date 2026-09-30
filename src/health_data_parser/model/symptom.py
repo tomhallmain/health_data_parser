@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 import os
 
 from health_data_parser.utils.logger import setup_logger
@@ -66,6 +67,40 @@ class Symptom:
             return self.name + " chronic from " + str(self.start_date)
         else:
             return self.name + " " + str(self.start_date) + " " + str(self.end_date)
+
+
+class ImportMode(Enum):
+    APPEND = "append"
+    REPLACE = "replace"
+    # Update symptoms with the same name and dates; add the rest
+    MERGE = "merge"
+
+
+def import_symptoms(existing, imported, mode):
+    """(symptoms, updated_count) after importing `imported` into `existing`.
+
+    In MERGE mode a symptom matching an existing one by name, start and end
+    date updates that one's medications, stimulants, comment and severity in
+    place; updated_count counts those. The other modes update nothing.
+    """
+    if mode is ImportMode.REPLACE:
+        return list(imported), 0
+    if mode is ImportMode.APPEND:
+        return list(existing) + list(imported), 0
+    symptoms = list(existing)
+    updated = 0
+    for new in imported:
+        match = next((s for s in symptoms if (s.name, s.start_date, s.end_date)
+                      == (new.name, new.start_date, new.end_date)), None)
+        if match is None:
+            symptoms.append(new)
+            continue
+        match.medications = new.medications
+        match.stimulants = new.stimulants
+        match.comment = new.comment
+        match.severity = new.severity
+        updated += 1
+    return symptoms, updated
 
 
 class SymptomSet:
