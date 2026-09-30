@@ -7,6 +7,7 @@ from health_data_parser.analysis.summary import (
     abnormal_counts_by_interpretation, lab_result_rows, load_observations_json,
     observation_counts_by_date, observation_counts_by_year, summarize, summary_lines,
     vital_sign_rows)
+from health_data_parser.utils.translations import _
 
 
 def observation(date, test, value_string, reference_range=None):
@@ -98,17 +99,18 @@ class TestSummary:
         assert summary["earliest_result"] is None
 
     def test_summary_lines_include_date_range_when_known(self, json_data):
-        assert "Date Range: 2022-11-20 to 2023-04-05" in summary_lines(json_data)
-        assert not any(line.startswith("Date Range") for line in summary_lines({}))
+        date_range = _("Date Range: {0} to {1}")
+        assert date_range.format("2022-11-20", "2023-04-05") in summary_lines(json_data)
+        assert not any(line.startswith(date_range.split("{0}")[0]) for line in summary_lines({}))
 
 
 class TestLabResultRows:
     def test_rows(self, json_data):
         assert lab_result_rows(json_data) == [
-            ("2023-04-05", "Glucose", "105 mg/dL", "70-99 mg/dL", "HIGH OUT OF RANGE"),
-            ("2023-04-05", "Hemoglobin", "13.6 g/dL", "13.5-17.5 g/dL", "Low in range"),
-            ("2023-01-10", "Glucose", "90 mg/dL", "70-99 mg/dL", "Normal"),
-            ("2022-11-20", "Ferritin", "20 ng/mL", "30-400 ng/mL", "LOW OUT OF RANGE"),
+            ("2023-04-05", "Glucose", "105 mg/dL", "70-99 mg/dL", _("HIGH OUT OF RANGE")),
+            ("2023-04-05", "Hemoglobin", "13.6 g/dL", "13.5-17.5 g/dL", _("Low in range")),
+            ("2023-01-10", "Glucose", "90 mg/dL", "70-99 mg/dL", _("Normal")),
+            ("2022-11-20", "Ferritin", "20 ng/mL", "30-400 ng/mL", _("LOW OUT OF RANGE")),
             ("2022-11-20", "Comment", "See report", "", ""),
         ]
 
@@ -141,7 +143,7 @@ class TestCounts:
 
     def test_abnormal_counts_are_ordered_by_severity(self, json_data):
         assert abnormal_counts_by_interpretation(json_data) == [
-            ("LOW OUT OF RANGE", 1), ("Low in range", 1), ("HIGH OUT OF RANGE", 1)]
+            (_("LOW OUT OF RANGE"), 1), (_("Low in range"), 1), (_("HIGH OUT OF RANGE"), 1)]
 
     def test_observation_counts_by_date(self, json_data):
         assert observation_counts_by_date(json_data) == [

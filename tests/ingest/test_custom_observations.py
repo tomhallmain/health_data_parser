@@ -1,4 +1,5 @@
 import json
+import re
 
 import pytest
 
@@ -7,6 +8,7 @@ from health_data_parser.ingest.custom_observations import (
     build_custom_reports, construct_observation, generate_diagnostic_report_files, generate_report_id,
     load_custom_reports)
 from health_data_parser.errors import HealthDataParseError
+from health_data_parser.utils.translations import _
 
 HEADER = ("Subject,Performer,Collection Date,Report Description,LOINC Code,"
           "Code Description,Value,Range,Units\n")
@@ -30,13 +32,17 @@ def base_dir(tmp_path):
     return path
 
 
+def invalid_csv_message(path):
+    return re.escape(_("Custom observation results CSV file \"{0}\" is invalid.").format(str(path)))
+
+
 def custom_report_files(base_dir):
     return sorted(base_dir.glob("DiagnosticReport-*-CUSTOM.json"))
 
 
 class TestGenerateDiagnosticReportFiles:
     def test_rows_for_one_report_are_saved_together(self, observations_csv, base_dir):
-        assert generate_diagnostic_report_files(str(observations_csv), str(base_dir), False, False)
+        assert generate_diagnostic_report_files(str(observations_csv), str(base_dir), False)
 
         [report_file] = custom_report_files(base_dir)
         report = json.loads(report_file.read_text(encoding="utf-8"))
@@ -48,16 +54,16 @@ class TestGenerateDiagnosticReportFiles:
         assert report["result"] == [{"reference": "#1"}, {"reference": "#2"}]
 
     def test_regenerating_replaces_previous_file(self, observations_csv, base_dir):
-        generate_diagnostic_report_files(str(observations_csv), str(base_dir), False, False)
+        generate_diagnostic_report_files(str(observations_csv), str(base_dir), False)
         [first_file] = custom_report_files(base_dir)
 
-        generate_diagnostic_report_files(str(observations_csv), str(base_dir), False, False)
+        generate_diagnostic_report_files(str(observations_csv), str(base_dir), False)
 
         [second_file] = custom_report_files(base_dir)
         assert second_file != first_file
 
     def test_generated_reports_are_parsed(self, observations_csv, base_dir, json_parser_args):
-        generate_diagnostic_report_files(str(observations_csv), str(base_dir), False, False)
+        generate_diagnostic_report_files(str(observations_csv), str(base_dir), False)
         json_parser_args.base_dir = str(base_dir)
 
         data = ClinicalRecordsParser(json_parser_args, []).parse()
@@ -68,7 +74,7 @@ class TestGenerateDiagnosticReportFiles:
     def test_header_only_csv_returns_false(self, tmp_path, base_dir):
         path = tmp_path / "empty.csv"
         path.write_text(HEADER, encoding="utf-8")
-        assert not generate_diagnostic_report_files(str(path), str(base_dir), False, False)
+        assert not generate_diagnostic_report_files(str(path), str(base_dir), False)
         assert custom_report_files(base_dir) == []
 
     @pytest.mark.parametrize("name", ["missing.csv", "observations.txt"])
@@ -76,12 +82,12 @@ class TestGenerateDiagnosticReportFiles:
         path = tmp_path / name
         if name.endswith(".txt"):
             path.write_text(HEADER, encoding="utf-8")
-        with pytest.raises(HealthDataParseError, match="is invalid"):
-            generate_diagnostic_report_files(str(path), str(base_dir), False, False)
+        with pytest.raises(HealthDataParseError, match=invalid_csv_message(path)):
+            generate_diagnostic_report_files(str(path), str(base_dir), False)
 
     def test_empty_csv_path_raises(self, base_dir):
-        with pytest.raises(HealthDataParseError, match="Missing"):
-            generate_diagnostic_report_files("", str(base_dir), False, False)
+        with pytest.raises(HealthDataParseError, match=re.escape(_("Missing custom observation results CSV file."))):
+            generate_diagnostic_report_files("", str(base_dir), False)
 
 
 REPORT_ID = "DoeJane.OrganizationExampleLab.2021-10-04.AutoimmuneScreen"
@@ -109,7 +115,7 @@ class TestLoadCustomReports:
         assert load_custom_reports(str(path)) is None
 
     def test_invalid_path_raises(self, tmp_path):
-        with pytest.raises(HealthDataParseError, match="is invalid"):
+        with pytest.raises(HealthDataParseError, match=invalid_csv_message(tmp_path / "missing.csv")):
             load_custom_reports(str(tmp_path / "missing.csv"))
 
     def test_platform_encoding_is_accepted(self, tmp_path, monkeypatch):

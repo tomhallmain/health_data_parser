@@ -8,6 +8,8 @@ import matplotlib.lines as mlines
 from matplotlib.collections import PolyCollection
 from matplotlib.figure import Figure
 
+from health_data_parser.utils.translations import _
+
 MARKERS = [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p",
            "P", "*", "h", "H", "+", "x", "X", "D", "d", "|", "_",
            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -133,10 +135,10 @@ def _save_timeline(symptom_set, symptoms, chart_start, path):
                 ax.plot(x, y, marker=entry["marker"], color=entry["color"], markeredgecolor="black")
     stimulant_legend = ax.legend(bbox_to_anchor=(0, -0.05, 1, 0), loc="upper left",
                                  handles=handles["stimulant"],
-                                 title="PRIMARY CAUSE / STIMULANT", ncol=4, prop={"size": 7})
+                                 title=_("PRIMARY CAUSE / STIMULANT"), ncol=4, prop={"size": 7})
     ax.legend(bbox_to_anchor=(-0.4, -0.05, 1, 0), loc="upper left",
               handles=handles["medication"],
-              title="MEDICATION / TREATMENT", ncol=2, prop={"size": 7})
+              title=_("MEDICATION / TREATMENT"), ncol=2, prop={"size": 7})
     ax.add_artist(stimulant_legend)
     fig.set_size_inches(11, 9)
     fig.savefig(path, pad_inches=0.02, bbox_inches='tight')

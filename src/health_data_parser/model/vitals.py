@@ -2,10 +2,33 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from health_data_parser.model.units import VitalSignCategory
+from health_data_parser.utils.translations import _
 
 # More heart rate readings than this are taken to mean a wearable recorded
 # them, which is also enough data for the heart rate charts
 WEARABLE_HEART_RATE_READINGS = 10000
+
+
+def vital_label(name):
+    """The display name for a vital sign's (or blood pressure component's)
+    English name, as used in observations.json; unknown names as given."""
+    # Literal _() calls so pygettext extracts them
+    labels = {
+        "Height": _("Height"),
+        "Weight": _("Weight"),
+        "BMI": _("BMI"),
+        "Temperature": _("Temperature"),
+        "Pulse": _("Pulse"),
+        "Respiration": _("Respiration"),
+        "Blood Pressure": _("Blood Pressure"),
+        "BP Systolic": _("BP Systolic"),
+        "BP Diastolic": _("BP Diastolic"),
+        "Heart rate variability": _("Heart rate variability"),
+        "SpO2": _("SpO2"),
+        "Apple stand minutes": _("Apple stand minutes"),
+        "Steps": _("Steps"),
+    }
+    return labels.get(name, name)
 
 
 @dataclass

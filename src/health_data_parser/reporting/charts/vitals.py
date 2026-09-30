@@ -3,6 +3,8 @@ from matplotlib.figure import Figure
 import numpy as np
 import os
 
+from health_data_parser.utils.translations import _
+
 MINUTES_PER_DAY = 24 * 60
 
 
@@ -189,13 +191,13 @@ class VitalsStatsGraph:
         fig = Figure()
         ax1, ax2, ax3 = fig.subplots(nrows=3, ncols=1, gridspec_kw={'height_ratios': [4, 1, 1]})
         ax1.set_title(
-            "Average heart rates over 24 hours (+/– one standard deviation)")
-        ax1.set_ylabel("BPM")
-        ax1.set_xlabel("Time (minutes)")
-        ax2.set_ylabel("Average motion context")
-        ax2.set_xlabel("Time (minutes)")
-        ax3.set_ylabel("Counts of pulse spike")
-        ax3.set_xlabel("Time (minutes)")
+            _("Average heart rates over 24 hours (+/– one standard deviation)"))
+        ax1.set_ylabel(_("BPM"))
+        ax1.set_xlabel(_("Time (minutes)"))
+        ax2.set_ylabel(_("Average motion context"))
+        ax2.set_xlabel(_("Time (minutes)"))
+        ax3.set_ylabel(_("Counts of pulse spike"))
+        ax3.set_xlabel(_("Time (minutes)"))
         x = self.minutes
         y_est = np.array(self.minute_avgs)
         y_err = np.array(self.minute_stdevs)
@@ -217,12 +219,12 @@ class VitalsStatsGraph:
             base_dir, "avgs_by_day_trends.png")
         fig = Figure()
         ax1, ax2, ax3, ax4 = fig.subplots(nrows=4, ncols=1, gridspec_kw={'height_ratios': [5, 1, 1, 1]})
-        ax1.set_title("Average heart rates, steps and stand minutes by day")
-        ax1.set_ylabel("BPM")
-        ax2.set_ylabel("Apple steps")
-        ax3.set_ylabel("Apple stand minutes")
-        ax4.set_ylabel("BPM / stand min")
-        ax4.set_xlabel("Days")
+        ax1.set_title(_("Average heart rates, steps and stand minutes by day"))
+        ax1.set_ylabel(_("BPM"))
+        ax2.set_ylabel(_("Apple steps"))
+        ax3.set_ylabel(_("Apple stand minutes"))
+        ax4.set_ylabel(_("BPM / stand min"))
+        ax4.set_xlabel(_("Days"))
         x = np.array(list(map(lambda o: datetime.fromordinal(o),
                               list(range(self.min_pulse_ordinal,
                                          self.max_ordinal + 1)))))

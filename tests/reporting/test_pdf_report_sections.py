@@ -8,6 +8,7 @@ from health_data_parser.reporting.pdf import fonts
 from health_data_parser.reporting.pdf.canvas import pdf_creator
 from health_data_parser.reporting.pdf.fonts import regular_font
 from health_data_parser.reporting.pdf.report import Report
+from health_data_parser.utils.translations import _
 
 
 class RecordingCanvas:
@@ -48,12 +49,12 @@ class TestHeartStatsSection:
     def test_percent_in_motion(self, report):
         canvas = RecordingCanvas()
         report.add_heart_stats(canvas, PULSE_JSON, pulse_graph([110], [60, 70, 80]))
-        assert any("Percent in motion: 25%" in line for line in canvas.lines)
+        assert any(_("Percent in motion:") + " 25%" in line for line in canvas.lines)
 
     def test_no_resting_readings(self, report):
         canvas = RecordingCanvas()
         report.add_heart_stats(canvas, PULSE_JSON, pulse_graph([110, 120], []))
-        assert any("Percent in motion: 100%" in line for line in canvas.lines)
+        assert any(_("Percent in motion:") + " 100%" in line for line in canvas.lines)
 
 
 def lab(make_lab_observation, display, code, date, value, range_text="70-99 mg/dL", unit="mg/dL"):
@@ -97,7 +98,7 @@ class TestByDateTables:
         [table] = canvas.tables
         assert table[1:] == [["Glucose", "40\nmg/dL---", "150\nmg/dL+++"],
                              ["Iron", "200\nug/dL+++", ""]]
-        assert canvas.lines[0] == "All Lab Observations"
+        assert canvas.lines[0] == _("All Lab Observations")
 
     def test_dates_split_across_tables(self, report, make_lab_observation):
         store = ObservationStore()
@@ -111,7 +112,7 @@ class TestByDateTables:
 
         # Date columns per table (the first column is the code)
         assert [len(table[0]) - 1 for table in canvas.tables] == [9, 2]
-        assert canvas.lines[-1] == "All Lab Observations (continued)"
+        assert canvas.lines[-1] == _("{0} (continued)").format(_("All Lab Observations"))
 
     def test_all_observations_section_without_abnormal_results(self, report, make_lab_observation, tmp_path,
                                                                 monkeypatch):
@@ -131,8 +132,8 @@ class TestByDateTables:
 
         report.create_pdf(json_data, store)
 
-        assert "No abnormal results were found in Apple Health data export." in canvas.lines
-        assert "All Lab Observations" in canvas.lines
+        assert _("No abnormal results were found in Apple Health data export.") in canvas.lines
+        assert _("All Lab Observations") in canvas.lines
         assert len(canvas.tables) == 1
 
 

@@ -2,6 +2,7 @@
 HealthDataParseError so the GUI can report them and stay open; only the CLI
 entry points turn them into a process exit."""
 import dataclasses
+import re
 
 import pytest
 
@@ -10,6 +11,16 @@ from health_data_parser.model.units import HeightUnit, TemperatureUnit, WeightUn
 from health_data_parser.options import (
     OutputPaths, ParseOptions, parse_bool, parse_boundary, parse_skip_dates, parse_start_year)
 from health_data_parser.pipeline import DataParser
+from health_data_parser.utils.translations import _
+
+
+def message(text, *args):
+    """A pytest.raises(match=...) pattern for the translated, formatted message."""
+    return re.escape(_(text).format(*args))
+
+
+CLINICAL_RECORDS_MISSING = ("Folder \"clinical-records\" not found in export folder \"{0}\". Ensure data has "
+                            "been connected to Apple Health before export.")
 
 
 class TestParseOptions:
@@ -47,42 +58,48 @@ class TestParseOptions:
 
     @pytest.mark.parametrize("path", [None, ""])
     def test_missing_path(self, path):
-        with pytest.raises(HealthDataParseError, match="Missing"):
+        with pytest.raises(HealthDataParseError, match=message("Missing Apple Health data export directory path.")):
             ParseOptions(path)
 
     def test_nonexistent_path(self, tmp_path):
-        with pytest.raises(HealthDataParseError, match="is invalid"):
-            ParseOptions(str(tmp_path / "missing"))
+        path = str(tmp_path / "missing")
+        with pytest.raises(HealthDataParseError, match=message(
+                "Apple Health data export directory path \"{0}\" is invalid.", path)):
+            ParseOptions(path)
 
     def test_file_instead_of_directory(self, tmp_path):
         path = tmp_path / "export.zip"
         path.write_bytes(b"")
-        with pytest.raises(HealthDataParseError, match="is invalid"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "Apple Health data export directory path \"{0}\" is invalid.", str(path))):
             ParseOptions(str(path))
 
     def test_missing_clinical_records(self, tmp_path):
-        with pytest.raises(HealthDataParseError, match="clinical-records"):
+        with pytest.raises(HealthDataParseError, match=message(CLINICAL_RECORDS_MISSING, str(tmp_path))):
             ParseOptions(str(tmp_path))
 
     def test_empty_clinical_records(self, tmp_path):
         (tmp_path / "clinical-records").mkdir()
-        with pytest.raises(HealthDataParseError, match="clinical-records"):
+        with pytest.raises(HealthDataParseError, match=message(CLINICAL_RECORDS_MISSING, str(tmp_path))):
             ParseOptions(str(tmp_path))
 
     @pytest.mark.parametrize("boundary", [0.5, -0.5, 1.0])
     def test_boundary_must_be_under_half(self, export_dir, boundary):
-        with pytest.raises(HealthDataParseError, match="not a valid decimal-formatted percentage"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "\"{0}\" is not a valid decimal-formatted percentage: its absolute value must be "
+                "less than 0.5.", boundary)):
             ParseOptions(str(export_dir), in_range_abnormal_boundary=boundary)
 
     def test_negative_boundary_is_allowed(self, export_dir):
         assert ParseOptions(str(export_dir), in_range_abnormal_boundary=-0.1).in_range_abnormal_boundary == -0.1
 
     def test_skip_dates_must_be_iso(self, export_dir):
-        with pytest.raises(HealthDataParseError, match="not a valid list of dates"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "\"{0}\" is not a valid list of dates in format YYYY-MM-DD.", "2023-01-01,2023-13-45")):
             ParseOptions(str(export_dir), skip_dates=("2023-01-01", "2023-13-45"))
 
     def test_start_year_must_be_an_integer(self, export_dir):
-        with pytest.raises(HealthDataParseError, match="not a valid year"):
+        with pytest.raises(HealthDataParseError, match=message("\"{0}\" is not a valid year.", "2020")):
             ParseOptions(str(export_dir), start_year="2020")
 
     def test_birth_date_fills_subject(self, export_dir):
@@ -91,7 +108,8 @@ class TestParseOptions:
         assert "age" in options.subject
 
     def test_invalid_birth_date(self, export_dir):
-        with pytest.raises(HealthDataParseError, match="not a valid date"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "\"{0}\" is not a valid date in format YYYY-MM-DD.", "yesterday")):
             ParseOptions(str(export_dir), birth_date="yesterday")
 
     def test_output_dir_defaults_to_export_dir(self, export_dir):
@@ -104,7 +122,7 @@ class TestParseOptions:
     def test_output_dir_must_not_be_a_file(self, export_dir, tmp_path):
         path = tmp_path / "reports"
         path.write_text("", encoding="utf-8")
-        with pytest.raises(HealthDataParseError, match="is a file"):
+        with pytest.raises(HealthDataParseError, match=message("Output directory \"{0}\" is a file.", str(path))):
             ParseOptions(str(export_dir), output_dir=str(path))
 
 
@@ -120,7 +138,7 @@ def test_output_paths(tmp_path):
 class TestStringConversions:
     def test_start_year(self):
         assert parse_start_year("2020") == 2020
-        with pytest.raises(HealthDataParseError, match="not a valid year"):
+        with pytest.raises(HealthDataParseError, match=message("\"{0}\" is not a valid year.", "abc")):
             parse_start_year("abc")
 
     def test_skip_dates(self):
@@ -129,7 +147,8 @@ class TestStringConversions:
 
     def test_boundary(self):
         assert parse_boundary("0.2") == 0.2
-        with pytest.raises(HealthDataParseError, match="not a valid decimal-formatted percentage"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "\"{0}\" is not a valid decimal-formatted percentage.", "lots")):
             parse_boundary("lots")
 
     @pytest.mark.parametrize("value, expected", [("true", True), ("False", False), (" TRUE ", True)])
@@ -137,14 +156,17 @@ class TestStringConversions:
         assert parse_bool(value, "--flag") is expected
 
     def test_invalid_bool(self):
-        with pytest.raises(HealthDataParseError, match="not a boolean"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "{0} value \"{1}\" is not a boolean (true or false).", "--flag", "maybe")):
             parse_bool("maybe", "--flag")
 
 
 class TestDataParserErrors:
     def test_missing_extra_observations_csv(self, export_dir, tmp_path):
-        options = ParseOptions(str(export_dir), extra_observations_csv=str(tmp_path / "missing.csv"))
-        with pytest.raises(HealthDataParseError, match="is invalid"):
+        path = str(tmp_path / "missing.csv")
+        options = ParseOptions(str(export_dir), extra_observations_csv=path)
+        with pytest.raises(HealthDataParseError, match=message(
+                "Custom observation results CSV file \"{0}\" is invalid.", path)):
             DataParser(options).process_custom_data()
 
     def test_extra_observations_without_rows(self, export_dir, tmp_path):
@@ -152,14 +174,17 @@ class TestDataParserErrors:
         path.write_text("Subject,Performer,Collection Date,Report Description,LOINC Code,"
                         "Code Description,Value,Range,Units\n", encoding="utf-8")
         options = ParseOptions(str(export_dir), extra_observations_csv=str(path))
-        with pytest.raises(HealthDataParseError, match="extra observations"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "Failed to read extra observations data \"{0}\".", str(path))):
             DataParser(options).process_custom_data()
 
     def test_unreadable_food_data(self, export_dir, tmp_path):
         options = ParseOptions(str(export_dir), food_data_csv=str(tmp_path / "missing.csv"))
-        with pytest.raises(HealthDataParseError, match="food data"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "Failed to assemble or analyze food data provided.")):
             DataParser(options).process_custom_data()
 
     def test_report_without_observations(self, export_dir):
-        with pytest.raises(HealthDataParseError, match="No relevant laboratory records"):
+        with pytest.raises(HealthDataParseError, match=message(
+                "No relevant laboratory records found in exported Apple Health data")):
             DataParser(ParseOptions(str(export_dir))).report()

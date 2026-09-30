@@ -8,6 +8,7 @@ import traceback
 from health_data_parser.errors import HealthDataParseError
 from health_data_parser.model.reference_range import Interpretation
 from health_data_parser.reporting.pdf.report import Report
+from health_data_parser.utils.translations import _
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('reporter')
@@ -31,18 +32,22 @@ class Reporter:
             return
         try:
             with open(filepath, "w", encoding="utf-8") as textfile:
-                lines = ["|----- Laboratory Abnormal Results from Apple Health Data by Code -----|", ""]
+                lines = ["|----- " + _("Laboratory Abnormal Results from Apple Health Data by Code") + " -----|", ""]
                 for code in store.codes:
                     for code_id in store.code_ids(code):
                         if code_id not in abnormal_results:
                             continue
-                        lines.append("Abnormal results found for code " + code + ":")
+                        lines.append(_("Abnormal results found for code {0}:").format(code))
                         for observation in sorted(abnormal_results[code_id], key=operator.attrgetter("date")):
                             reference = observation.reference
-                            line = (observation.date + ": " + reference.interpretation.text
-                                    + " - observed " + observation.value_string)
                             if reference.is_range_type:
-                                line += " - range " + reference.range
+                                line = _("{0}: {1} - observed {2} - range {3}").format(
+                                    observation.date, reference.interpretation.label,
+                                    observation.value_string, reference.range)
+                            else:
+                                line = _("{0}: {1} - observed {2}").format(
+                                    observation.date, reference.interpretation.label,
+                                    observation.value_string)
                             lines.append(line)
                         lines.append("")
                 for line in lines:
@@ -64,8 +69,8 @@ class Reporter:
                 filewriter = _csv_writer(csvfile)
                 interpretations = Interpretation.ordered(
                     include_in_range=not options.skip_in_range_abnormal_results)
-                filewriter.writerow(["Laboratory Abnormal Results by Interpretation from Apple Health Data"]
-                                    + [i.text for i in interpretations])
+                filewriter.writerow([_("Laboratory Abnormal Results by Interpretation from Apple Health Data")]
+                                    + [i.label for i in interpretations])
                 for code in store.codes:
                     found = {observation.reference.interpretation
                              for code_id in store.code_ids(code)
@@ -87,7 +92,7 @@ class Reporter:
             with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
                 filewriter = _csv_writer(csvfile)
                 abnormal_dates = store.abnormal_dates
-                filewriter.writerow(["Laboratory Abnormal Results from Apple Health Data"] + abnormal_dates)
+                filewriter.writerow([_("Laboratory Abnormal Results from Apple Health Data")] + abnormal_dates)
                 for code in store.codes:
                     code_ids = [code_id for code_id in store.code_ids(code) if code_id in abnormal_results]
                     if not code_ids:
@@ -111,11 +116,11 @@ class Reporter:
                 filewriter = _csv_writer(csvfile)
                 dates = store.dates
                 reference_dates = set(store.reference_dates)
-                header = ["Laboratory Observations from Apple Health Data"]
+                header = [_("Laboratory Observations from Apple Health Data")]
                 for date in dates:
                     if date in reference_dates:
-                        header.append(date + " range")
-                    header.append(date + " result")
+                        header.append(_("{0} range").format(date))
+                    header.append(_("{0} result").format(date))
                 filewriter.writerow(header)
                 for code in store.codes:
                     row = [code]
@@ -137,7 +142,7 @@ class Reporter:
         except Exception as e:
             if self.verbose:
                 logger.error(traceback.format_exc())
-            raise HealthDataParseError("An error occurred in writing observations data to CSV.") from e
+            raise HealthDataParseError(_("An error occurred in writing observations data to CSV.")) from e
 
     def report_all_data_json_and_pdf(self, include_observations, filepath, output_dir, store, vital_signs,
                                      custom_data_files, options, vital_stats_graph=None,
@@ -150,7 +155,7 @@ class Reporter:
         except Exception as e:
             if self.verbose:
                 logger.error(traceback.format_exc())
-            raise HealthDataParseError(f"An error occurred in writing observations data to JSON: {e}") from e
+            raise HealthDataParseError(_("An error occurred in writing observations data to JSON: {0}").format(e)) from e
 
         try:
             report = Report(output_dir, options.subject, json_data["meta"]["processTime"][:10],
@@ -161,7 +166,7 @@ class Reporter:
         except Exception as e:
             if self.verbose:
                 logger.error(traceback.format_exc())
-            raise HealthDataParseError(f"An error occurred in writing observations data to PDF report: {e}") from e
+            raise HealthDataParseError(_("An error occurred in writing observations data to PDF report: {0}").format(e)) from e
 
         if self.verbose and len(custom_data_files) > 0:
             logger.info("The compiled information includes some custom data not exported from Apple Health:")

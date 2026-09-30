@@ -8,31 +8,21 @@ from health_data_parser.errors import HealthDataParseError
 from health_data_parser.ingest.fhir_json import ObservationRules, parse_observation
 from health_data_parser.model.observation_store import ObservationStore
 from health_data_parser.utils.csv_files import read_csv_rows
+from health_data_parser.utils.translations import _
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('diagnostic_report_generator')
 
-help_text = """
-Usage:
-
-   $ python generate_diagnostic_report_files.py path/to/observation_data.csv ${args}
-
-    -h, --help
-        Print this help text
-
-    -v, --verbose
-        Run in verbose mode
-"""
 
 
 def validate_csv_file(observation_data_csv: str):
     if observation_data_csv is None or observation_data_csv == "":
-        raise HealthDataParseError("Missing custom observation results CSV file.")
+        raise HealthDataParseError(_("Missing custom observation results CSV file."))
     elif (not os.path.exists(observation_data_csv)
           or os.path.isdir(observation_data_csv)
           or observation_data_csv[-4:] != ".csv"):
         raise HealthDataParseError(
-            f"Custom observation results CSV file \"{observation_data_csv}\" is invalid.")
+            _("Custom observation results CSV file \"{0}\" is invalid.").format(observation_data_csv))
 
 
 def generate_report_id(subject: str, performer: str, date: str, report_desc: str):
@@ -229,18 +219,11 @@ def load_custom_reports(observation_data_csv: str, verbose=False):
         return None
 
 
-def generate_diagnostic_report_files(observation_data_csv: str, base_dir: str,
-                                     verbose: bool, in_script: bool):
+def generate_diagnostic_report_files(observation_data_csv: str, base_dir: str, verbose: bool):
     """Write the custom observations CSV's reports as DiagnosticReport JSON
     files into base_dir, replacing earlier files for the same reports; False
     when the file has no rows or a row or report can't be used."""
-    try:
-        validate_csv_file(observation_data_csv)
-    except HealthDataParseError:
-        if in_script:
-            print(help_text)
-        raise
-
+    validate_csv_file(observation_data_csv)
     try:
         reports = build_custom_reports(observation_data_csv)
     except Exception as e:

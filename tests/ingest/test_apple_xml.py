@@ -1,4 +1,5 @@
 from datetime import date
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -7,6 +8,7 @@ from health_data_parser.errors import HealthDataParseError
 from health_data_parser.ingest.apple_xml import AppleHealthXMLParser
 from health_data_parser.model.units import HeightUnit, TemperatureUnit, WeightUnit
 from health_data_parser.model.vitals import VitalSigns
+from health_data_parser.utils.translations import _
 
 ME = ('<Me HKCharacteristicTypeIdentifierDateOfBirth="1990-05-01" '
       'HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexFemale" '
@@ -55,7 +57,7 @@ def parse_xml(tmp_path):
 
 class TestAppleHealthXMLParser:
     def test_subject(self, parse_xml):
-        _, subject = parse_xml()
+        _vitals, subject = parse_xml()
         assert subject["birthDate"] == "1990-05-01"
         assert subject["sex"] == "Female"
         assert subject["bloodType"] == "APositive"
@@ -70,20 +72,20 @@ class TestAppleHealthXMLParser:
         assert options.subject["birthDate"] == "1985-01-01"
 
     def test_height_and_weight_are_converted_to_normal_units(self, parse_xml):
-        vitals, _ = parse_xml(record("Height", 70, unit="in"), record("BodyMass", 80, unit="kg"))
+        vitals, _subject = parse_xml(record("Height", 70, unit="in"), record("BodyMass", 80, unit="kg"))
         assert vitals.height.values == [pytest.approx(177.8)]
         assert vitals.weight.values == [pytest.approx(176.37, abs=0.01)]
 
     def test_records_without_units_are_skipped(self, parse_xml):
-        vitals, _ = parse_xml(record("Height", 70))
+        vitals, _subject = parse_xml(record("Height", 70))
         assert vitals.height.count == 0
 
     def test_records_with_unknown_units_are_skipped(self, parse_xml):
-        vitals, _ = parse_xml(record("Height", 70, unit="furlongs"))
+        vitals, _subject = parse_xml(record("Height", 70, unit="furlongs"))
         assert vitals.height.count == 0
 
     def test_implausible_heart_rates_are_filtered(self, parse_xml):
-        vitals, _ = parse_xml(
+        vitals, _subject = parse_xml(
             record("HeartRate", 60),
             record("HeartRate", 145),                       # high but at rest: kept
             record("HeartRate", 150, children=MOTION),      # over 140 in motion: dropped
@@ -95,18 +97,18 @@ class TestAppleHealthXMLParser:
         assert [reading.motion for reading in vitals.pulse.readings] == [0, 0]
 
     def test_heart_rate_motion_context(self, parse_xml):
-        vitals, _ = parse_xml(record("HeartRate", 120, children=MOTION))
+        vitals, _subject = parse_xml(record("HeartRate", 120, children=MOTION))
         assert vitals.pulse.readings[0].motion == 2
         assert vitals.motion_data_found
 
     @pytest.mark.parametrize("value, unit", [(98.6, "degF"), (37, "degC"), (98.6, None), (37, None)])
     def test_body_temperature_is_converted(self, parse_xml, value, unit):
         # Without a unit, values over 45 are taken as Fahrenheit
-        vitals, _ = parse_xml(record("BodyTemperature", value, unit=unit))
+        vitals, _subject = parse_xml(record("BodyTemperature", value, unit=unit))
         assert vitals.temperature.values == [pytest.approx(37.0)]
 
     def test_blood_pressure_correlations(self, parse_xml):
-        vitals, _ = parse_xml(blood_pressure(120, 80), blood_pressure(130, 85))
+        vitals, _subject = parse_xml(blood_pressure(120, 80), blood_pressure(130, 85))
         bp = vitals.blood_pressure
         assert bp.count == 2
         assert bp.systolic.values == [120, 130]
@@ -118,11 +120,11 @@ class TestAppleHealthXMLParser:
         correlation = ('<Correlation type="HKCorrelationTypeIdentifierBloodPressure" '
                        'startDate="2023-01-01 08:00:00 -0500">'
                        + record("BloodPressureSystolic", 120, unit="mmHg") + '</Correlation>')
-        vitals, _ = parse_xml(correlation)
+        vitals, _subject = parse_xml(correlation)
         assert vitals.blood_pressure.count == 0
 
     def test_other_record_types(self, parse_xml):
-        vitals, _ = parse_xml(record("StepCount", 100), record("HeartRateVariabilitySDNN", 45),
+        vitals, _subject = parse_xml(record("StepCount", 100), record("HeartRateVariabilitySDNN", 45),
                               record("HeartRateVariabilitySDNN", 170),   # over 160: dropped
                               record("OxygenSaturation", 0.98), record("AppleStandTime", 3))
         assert vitals.steps.count == 1
@@ -131,38 +133,40 @@ class TestAppleHealthXMLParser:
         assert vitals.stand.count == 1
 
     def test_observations_count(self, parse_xml):
-        vitals, _ = parse_xml(blood_pressure(120, 80), record("HeartRate", 60),
+        vitals, _subject = parse_xml(blood_pressure(120, 80), record("HeartRate", 60),
                               record("BodyTemperature", 37, unit="degC"), record("StepCount", 100))
         # Blood pressure, heart rate, HRV and temperature count; steps do not
         assert vitals.xml_observation_count == 3
 
     def test_start_year(self, parse_xml):
-        vitals, _ = parse_xml(record("HeartRate", 60, date="2019-06-01 08:00:00 -0500"),
+        vitals, _subject = parse_xml(record("HeartRate", 60, date="2019-06-01 08:00:00 -0500"),
                               record("HeartRate", 70), start_year=2020)
         assert vitals.pulse.values == [70.0]
 
     def test_earliest_record_date_is_tracked(self, parse_xml):
-        vitals, _ = parse_xml(record("HeartRate", 60, date="2021-03-04 08:00:00 -0500"),
+        vitals, _subject = parse_xml(record("HeartRate", 60, date="2021-03-04 08:00:00 -0500"),
                               record("HeartRate", 70))
         assert vitals.earliest_xml_ordinal == date(2021, 3, 4).toordinal()
 
     def test_earliest_date_is_per_parse(self, parse_xml):
         parse_xml(record("HeartRate", 60, date="2019-03-04 08:00:00 -0500"))
-        vitals, _ = parse_xml(record("HeartRate", 70))
+        vitals, _subject = parse_xml(record("HeartRate", 70))
         assert vitals.earliest_xml_ordinal == date(2023, 1, 1).toordinal()
 
     def test_unparseable_date_after_valid_record_is_skipped(self, parse_xml):
-        vitals, _ = parse_xml(record("HeartRate", 60), record("HeartRate", 70, date="not a date"))
+        vitals, _subject = parse_xml(record("HeartRate", 60), record("HeartRate", 70, date="not a date"))
         assert vitals.pulse.values == [60.0]
 
     def test_unparseable_date_on_first_record_is_skipped(self, parse_xml):
-        vitals, _ = parse_xml(record("HeartRate", 60, date="not a date"), record("HeartRate", 70))
+        vitals, _subject = parse_xml(record("HeartRate", 60, date="not a date"), record("HeartRate", 70))
         assert vitals.pulse.values == [70.0]
 
     def test_malformed_xml_raises(self, tmp_path):
         path = tmp_path / "export.xml"
         path.write_text("<HealthData>", encoding="utf-8")
-        with pytest.raises(HealthDataParseError, match="parsing XML"):
+        # The message ends with the XML parser's error
+        prefix = _("An exception occurred in parsing XML export files: {0}").format("")
+        with pytest.raises(HealthDataParseError, match=re.escape(prefix)):
             AppleHealthXMLParser(new_vital_signs(), xml_options()).parse(str(path))
 
     def test_missing_me_element_raises(self, parse_xml):

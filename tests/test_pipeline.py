@@ -13,6 +13,7 @@ import pytest
 from health_data_parser.options import ParseOptions
 from health_data_parser.pipeline import DataParser
 from health_data_parser.analysis.summary import lab_result_rows, summarize, vital_sign_rows
+from health_data_parser.utils.translations import _
 
 SYMPTOM_CSV = (
     "Symptom/Condition,Onset/Time of Diagnosis,Conclusion,Medications,Stimulants,Comment,Severity\n"
@@ -89,7 +90,7 @@ class TestFullRun:
         assert len(pdf_reports) == 1
 
     def test_json_meta(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         meta = json_data["meta"]
         assert meta["schemaVersion"] == 1
         assert meta["observationCount"] == 3
@@ -100,7 +101,7 @@ class TestFullRun:
         assert meta["heartRateMonitoringWearableDetected"] is False
 
     def test_json_abnormal_results(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         abnormal = json_data["abnormalResults"]
         assert abnormal["meta"]["totalAbnormalResultsCount"] == 2
         assert abnormal["meta"]["codesWithAbnormalResultsCount"] == 2
@@ -108,13 +109,13 @@ class TestFullRun:
             "Glucose": ["HIGH OUT OF RANGE"], "Hemoglobin": ["Low in range"]}
 
     def test_json_observations(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         observations = json_data["observations"]
         assert [o["date"] for o in observations] == ["2023-04-05", "2023-04-05", "2023-01-10"]
         assert {o["testMeta"]["testDescription"] for o in observations} == {"Glucose", "Hemoglobin"}
 
     def test_json_vital_signs(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         assert vital(json_data, "Height")["avg"] == pytest.approx(180)
         assert vital(json_data, "Weight")["avg"] == pytest.approx(180)
         assert vital(json_data, "BMI")["mostRecent"]["value"] == pytest.approx(25.2, abs=0.01)
@@ -126,7 +127,7 @@ class TestFullRun:
         assert all("list" not in v for v in json_data["vitalSigns"])
 
     def test_vital_signs_share_one_shape(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         keys = {"vital", "unit", "count", "avg", "max", "min", "stDev", "mostRecent"}
         for vital_sign in json_data["vitalSigns"]:
             assert set(vital_sign) - {"labels"} == keys, vital_sign["vital"]
@@ -134,7 +135,7 @@ class TestFullRun:
         assert (empty["count"], empty["avg"], empty["mostRecent"]) == (0, None, None)
 
     def test_times_are_iso_8601(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         most_recent = vital(json_data, "Pulse")["mostRecent"]
         assert datetime.fromisoformat(most_recent["time"]).date() == date(2023, 4, 5)
         assert most_recent["motion"] == 0
@@ -146,25 +147,27 @@ class TestFullRun:
         assert [r["value"] for r in vital(json_data, "Blood Pressure")["list"]] == [[120.0, 80.0]]
 
     def test_temperature_unit_matches_normalized_values(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         assert vital(json_data, "Temperature")["unit"] == "C"
 
     def test_abnormal_results_by_code_text(self, run_output):
-        export, _ = run_output
+        export, _json_data = run_output
         text = (export / "abnormal_results_by_code.txt").read_text(encoding="utf-8")
-        assert "Abnormal results found for code Glucose:" in text
-        assert "2023-04-05: HIGH OUT OF RANGE - observed 105 mg/dL - range 70.0 - 99.0" in text
-        assert "2023-04-05: Low in range - observed 13.6 g/dL - range 13.5 - 17.5" in text
+        assert _("Abnormal results found for code {0}:").format("Glucose") in text
+        assert _("{0}: {1} - observed {2} - range {3}").format(
+            "2023-04-05", _("HIGH OUT OF RANGE"), "105 mg/dL", "70.0 - 99.0") in text
+        assert _("{0}: {1} - observed {2} - range {3}").format(
+            "2023-04-05", _("Low in range"), "13.6 g/dL", "13.5 - 17.5") in text
 
     def test_abnormal_results_by_interpretation_csv(self, run_output):
-        export, _ = run_output
+        export, _json_data = run_output
         rows = read_csv(export / "abnormal_results_by_interpretation.csv")
-        assert rows[0][1:] == ["LOW OUT OF RANGE", "Low in range", "Non-negative result",
-                               "High in range", "HIGH OUT OF RANGE"]
+        assert rows[0][1:] == [_("LOW OUT OF RANGE"), _("Low in range"), _("Non-negative result"),
+                               _("High in range"), _("HIGH OUT OF RANGE")]
         assert rows[1:] == [["Glucose", "", "", "", "", "+++"], ["Hemoglobin", "", "--", "", "", ""]]
 
     def test_abnormal_results_csv(self, run_output):
-        export, _ = run_output
+        export, _json_data = run_output
         rows = read_csv(export / "abnormal_results.csv")
         assert rows[0][1:] == ["2023-04-05"]
         assert rows[1:] == [["Glucose", "105 mg/dL +++"], ["Hemoglobin", "13.6 g/dL --"]]
@@ -172,14 +175,14 @@ class TestFullRun:
     @pytest.mark.parametrize("name", ["observations.csv", "abnormal_results.csv",
                                       "abnormal_results_by_interpretation.csv"])
     def test_csv_row_endings(self, run_output, name):
-        export, _ = run_output
+        export, _json_data = run_output
         assert b"\r\r\n" not in (export / name).read_bytes()
 
     def test_observations_csv(self, run_output):
-        export, _ = run_output
+        export, _json_data = run_output
         rows = read_csv(export / "observations.csv")
-        assert rows[0][1:] == ["2023-04-05 range", "2023-04-05 result",
-                               "2023-01-10 range", "2023-01-10 result"]
+        assert rows[0][1:] == [_("{0} range").format("2023-04-05"), _("{0} result").format("2023-04-05"),
+                               _("{0} range").format("2023-01-10"), _("{0} result").format("2023-01-10")]
         stripped = [[cell.strip() for cell in row] for row in rows[1:]]
         assert stripped == [
             ["Glucose", "70-99 mg/dL", "105 mg/dL +++", "70-99 mg/dL", "90 mg/dL"],
@@ -191,22 +194,22 @@ class TestStatisticsContract:
     """ui/statistics_data.py reads the observations.json this pipeline writes."""
 
     def test_summary(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         summary = summarize(json_data)
         assert summary["observation_count"] == 3
         assert summary["unique_test_count"] == 2
         assert summary["abnormal_result_count"] == 2
 
     def test_lab_result_rows(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         assert sorted(lab_result_rows(json_data)) == [
-            ("2023-01-10", "Glucose", "90 mg/dL", "70-99 mg/dL", "Normal"),
-            ("2023-04-05", "Glucose", "105 mg/dL", "70-99 mg/dL", "HIGH OUT OF RANGE"),
-            ("2023-04-05", "Hemoglobin", "13.6 g/dL", "13.5-17.5 g/dL", "Low in range"),
+            ("2023-01-10", "Glucose", "90 mg/dL", "70-99 mg/dL", _("Normal")),
+            ("2023-04-05", "Glucose", "105 mg/dL", "70-99 mg/dL", _("HIGH OUT OF RANGE")),
+            ("2023-04-05", "Hemoglobin", "13.6 g/dL", "13.5-17.5 g/dL", _("Low in range")),
         ]
 
     def test_vital_sign_rows(self, run_output):
-        _, json_data = run_output
+        _export, json_data = run_output
         rows = {row[0]: row for row in vital_sign_rows(json_data)}
         assert set(rows) == {"Height", "Weight", "BMI", "Temperature", "Pulse",
                              "BP Systolic", "BP Diastolic"}
@@ -249,7 +252,7 @@ class TestCustomDataRuns:
         old_csv.write_text(EXTRA_CSV_HEADER + EXTRA_CSV_FERRITIN.format(value=500), encoding="utf-8")
         # A file an earlier version of the app wrote into the export
         assert generate_diagnostic_report_files(str(old_csv), str(pipeline_export / "clinical-records"),
-                                                False, False)
+                                                False)
         extra = tmp_path / "extra.csv"
         extra.write_text(EXTRA_CSV_HEADER + EXTRA_CSV_FERRITIN.format(value=20), encoding="utf-8")
 
@@ -266,7 +269,7 @@ class TestCustomDataRuns:
         old_csv = tmp_path / "old.csv"
         old_csv.write_text(EXTRA_CSV_HEADER + EXTRA_CSV_FERRITIN.format(value=20), encoding="utf-8")
         assert generate_diagnostic_report_files(str(old_csv), str(pipeline_export / "clinical-records"),
-                                                False, False)
+                                                False)
 
         DataParser(ParseOptions(str(pipeline_export))).run()
 

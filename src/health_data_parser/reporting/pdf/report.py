@@ -6,7 +6,9 @@ from health_data_parser.reporting.pdf.canvas import pdf_creator
 from health_data_parser.reporting.pdf.fonts import bold_font, regular_font
 from health_data_parser.model.reference_range import Interpretation
 from health_data_parser.model.units import VitalSignCategory
+from health_data_parser.model.vitals import vital_label
 from health_data_parser.utils.logger import setup_logger
+from health_data_parser.utils.translations import _
 
 # Set up logger
 logger = setup_logger('report')
@@ -27,6 +29,12 @@ def _wrap_text_to_fit_length(text: str, fit_length: int):
     if text or not lines:
         lines.append(text)
     return "\n".join(lines)
+
+
+def _bullet(text: str, width: int = 102):
+    """A bulleted paragraph wrapped to `width`, continuation lines indented."""
+    lines = _wrap_text_to_fit_length(text, width).split("\n")
+    return "\n".join(["• " + lines[0]] + ["  " + line for line in lines[1:]])
 
 
 def _right_pad_with_spaces(text: str, length: int):
@@ -151,7 +159,7 @@ class Report:
             self.add_abnormal_results_summary_table(creator, json_data)
             self.add_abnormal_observations_by_date_tables(creator, store)
         elif include_observations:
-            creator.show_text("No abnormal results were found in Apple Health data export.")
+            creator.show_text(_("No abnormal results were found in Apple Health data export."))
         if include_observations:
             self.add_observations_by_date_tables(creator, store)
         if print_pulse_stats_graph:
@@ -162,9 +170,8 @@ class Report:
 
     def _footer_text(self, meta):
         report_date = meta["processTime"][:10]
-        if self._subject_known():
-            return "Subject: " + self.subject["name"] + " | Report created: " + report_date
-        return "Subject: UNKNOWN" + " | Report created: " + report_date
+        name = self.subject["name"] if self._subject_known() else _("UNKNOWN")
+        return _("Subject: {0} | Report created: {1}").format(name, report_date)
 
     def _subject_known(self):
         return self.subject is not None and bool(self.subject.get("name"))
@@ -174,34 +181,33 @@ class Report:
             logger.info("Creating report cover page...")
         meta = json_data["meta"]
         creator.set_font(bold_font(), 15)
-        creator.show_text(meta["description"])
+        creator.show_text(_("Health Records Report"))
         creator.set_font(regular_font(), 12)
         creator.set_leading(14)
         creator.newline()
         creator.newline()
 
         if include_observations:
+            # Labels padded to a column
+            width = 23
             if self._subject_known():
-                creator.show_text(
-                    "Subject                " + self.subject["name"])
+                creator.show_text(_("Subject").ljust(width) + self.subject["name"])
                 if "birthDate" in self.subject:
-                    creator.show_text("DOB                    " + datetime.fromisoformat(
+                    creator.show_text(_("DOB").ljust(width) + datetime.fromisoformat(
                             self.subject["birthDate"]).strftime("%B %d, %Y"))
-                    creator.show_text("Age                    "
-                                      + str(self.subject["age"]))
+                    creator.show_text(_("Age").ljust(width) + str(self.subject["age"]))
                 if "sex" in self.subject:
-                    creator.show_text("Sex                    "
-                                      + str(self.subject["sex"]))
+                    creator.show_text(_("Sex").ljust(width) + str(self.subject["sex"]))
             else:
-                creator.show_text("Subject                UNKNOWN")
+                creator.show_text(_("Subject").ljust(width) + _("UNKNOWN"))
 
-            creator.show_text("Lab records count      " + str(
+            creator.show_text(_("Lab records count").ljust(width) + str(
                     meta["observationCount"]))
-            creator.show_text("Earliest record        " + datetime.fromisoformat(
+            creator.show_text(_("Earliest record").ljust(width) + datetime.fromisoformat(
                     meta["earliestResult"]).strftime("%B %d, %Y"))
-            creator.show_text("Most recent record     " + datetime.fromisoformat(
+            creator.show_text(_("Most recent record").ljust(width) + datetime.fromisoformat(
                     meta["mostRecentResult"]).strftime("%B %d, %Y"))
-            creator.show_text("Report assembled       " + datetime.fromisoformat(
+            creator.show_text(_("Report assembled").ljust(width) + datetime.fromisoformat(
                     meta["processTime"][:10]).strftime("%B %d, %Y"))
 
             if meta["vitalSignsObservationCount"] > 0:
@@ -216,15 +222,15 @@ class Report:
         creator.newline()
         creator.newline()
         creator.set_font(bold_font(), 12)
-        creator.show_text("Summary of Vitals")
+        creator.show_text(_("Summary of Vitals"))
         creator.newline()
 
         creator.set_font(regular_font(), 8)
         creator.set_leading(8)
 
         # TODO add Trend column and/or graph of these vitals
-        vital_signs_table = [["Vital", "Unit", "Most Recent", "Date", "Max",
-                              "Min", "Average", "StDev", "Count"]]
+        vital_signs_table = [[_("Vital"), _("Unit"), _("Most Recent"), _("Date"), _("Max"),
+                              _("Min"), _("Average"), _("StDev"), _("Count")]]
 
         for vital in vital_signs:
             if vital["count"] == 0:
@@ -235,12 +241,12 @@ class Report:
                 # Blood pressure: one row per component
                 for i in range(len(most_recent["value"])):
                     vital_signs_table.append([
-                        vital["labels"][i], vital["unit"], str(round(most_recent["value"][i], 1)), date,
+                        vital_label(vital["labels"][i]), vital["unit"], str(round(most_recent["value"][i], 1)), date,
                         round(vital["max"][i], 1), round(vital["min"][i], 1), round(vital["avg"][i], 1),
                         round(vital["stDev"][i], 1), vital["count"]])
             else:
                 vital_signs_table.append([
-                    vital["vital"], vital["unit"], str(round(most_recent["value"], 1)), date,
+                    vital_label(vital["vital"]), vital["unit"], str(round(most_recent["value"], 1)), date,
                     round(vital["max"], 1), round(vital["min"], 1), round(vital["avg"], 1),
                     round(vital["stDev"], 1), vital["count"]])
 
@@ -249,38 +255,35 @@ class Report:
     def add_abnormal_results_notice(self, creator, json_data):
         abnormal_results_meta = json_data["abnormalResults"]["meta"]
         creator.set_font(bold_font(), 12)
-        creator.show_text("WARNING: Abnormal results were found.")
+        creator.show_text(_("WARNING: Abnormal results were found."))
         creator.set_font(regular_font(), 12)
         creator.newline()
-        creator.show_text("Lab codes with abnormal results " + str(
+        width = 32
+        creator.show_text(_("Lab codes with abnormal results").ljust(width) + str(
             abnormal_results_meta["codesWithAbnormalResultsCount"]))
-        creator.show_text("Total abnormal observations     " + str(
+        creator.show_text(_("Total abnormal observations").ljust(width) + str(
             abnormal_results_meta["totalAbnormalResultsCount"]))
         creator.newline()
         creator.set_leading(10)
         creator.set_font(regular_font(), 9)
-        creator.show_text(
-            "NOTE: Reference ranges for tests are not static. The range displayed in all tables")
-        creator.show_text(
-            "represents the most recent range available. A result classified as abnormal by an old")
-        creator.show_text("range may be acceptable within current ranges.")
+        creator.show_text(_wrap_text_to_fit_length(_(
+            "NOTE: Reference ranges for tests are not static. The range displayed in all tables "
+            "represents the most recent range available. A result classified as abnormal by an old "
+            "range may be acceptable within current ranges."), 88))
         creator.newline()
 
         if abnormal_results_meta["includesInRangeAbnormalities"]:
             in_range_boundary_percent = str(
                 round(abnormal_results_meta["inRangeAbnormalBoundary"] * 100)) + "%"
-            creator.show_text("Abnormal results may include results within ranges at +/-"
-                              + in_range_boundary_percent + " ends of the relevant range.")
-            creator.show_text(
-                "These are labeled as lower severity with the labels \"High in range\" and \"Low in range\"")
-            creator.show_text(
-                "or tags \"++\" and \"--\". Tags \"+++\" and \"---\" indicate high and low out of range.")
-            creator.show_text("Tag \"+\" indicates a positive result.")
+            creator.show_text(_wrap_text_to_fit_length(_(
+                "Abnormal results may include results within ranges at +/-{0} ends of the relevant "
+                "range. These are labeled as lower severity with the labels \"High in range\" and "
+                "\"Low in range\" or tags \"++\" and \"--\". Tags \"+++\" and \"---\" indicate high and "
+                "low out of range. Tag \"+\" indicates a positive result.").format(in_range_boundary_percent), 88))
         else:
-            creator.show_text(
-                "All listed abnormal results are out of the relevant range. Tags \"+++\" and \"---\" indicate")
-            creator.show_text(
-                "high and low out of range. Tag \"+\" indicates a positive result.")
+            creator.show_text(_wrap_text_to_fit_length(_(
+                "All listed abnormal results are out of the relevant range. Tags \"+++\" and \"---\" "
+                "indicate high and low out of range. Tag \"+\" indicates a positive result."), 88))
 
     def add_table_of_contents_section(self, creator, print_symptom_data,
                                       has_abnormal_results, include_observations,
@@ -289,29 +292,29 @@ class Report:
         creator.newline()
         creator.newline()
         creator.set_font(bold_font(), 12)
-        creator.show_text("Sections included in this report")
+        creator.show_text(_("Sections included in this report"))
         creator.newline()
         creator.set_leading(10)
         creator.set_font(regular_font(), 10)
 
         if print_symptom_data:
-            creator.show_text(" • Symptoms Report")
+            creator.show_text(" • " + _("Symptoms Report"))
         if has_abnormal_results:
-            creator.show_text(" • Abnormal Results By Code Summary")
-            creator.show_text(" • Abnormal Results By Code Detail")
+            creator.show_text(" • " + _("Abnormal Results By Code Summary"))
+            creator.show_text(" • " + _("Abnormal Results By Code Detail"))
         if include_observations:
-            creator.show_text(" • All Lab Observations")
+            creator.show_text(" • " + _("All Lab Observations"))
         if print_pulse_stats_graph:
-            creator.show_text(" • Heart Rate Data Analysis")
+            creator.show_text(" • " + _("Heart Rate Data Analysis"))
         if print_food_data:
-            creator.show_text(" • Food Data Analysis")
+            creator.show_text(" • " + _("Food Data Analysis"))
 
     def add_symptom_data(self, creator, symptom_charts):
         if self.verbose:
             logger.info("Adding symptoms report...")
-        pages = [("Symptoms Report - Including Historical", symptom_charts.all_symptoms_path)]
+        pages = [(_("Symptoms Report - Including Historical"), symptom_charts.all_symptoms_path)]
         if symptom_charts.unresolved_path is not None:
-            pages.append(("Symptoms Report - Unresolved", symptom_charts.unresolved_path))
+            pages.append((_("Symptoms Report - Unresolved"), symptom_charts.unresolved_path))
         for title, image_path in pages:
             creator.add_page()
             creator.set_font(bold_font(), 15)
@@ -332,14 +335,14 @@ class Report:
         creator.add_page()
         creator.set_font(bold_font(), 15)
         creator.set_leading(20)
-        creator.show_text("Abnormal Results By Code Summary")
+        creator.show_text(_("Abnormal Results By Code Summary"))
         creator.set_leading(10)
         creator.newline()
 
         if includes_in_range:
-            table = [["RESULT CODE", "L OUT", "L IN", "OBSERVED", "H IN", "H OUT"]]
+            table = [[_("RESULT CODE"), _("L OUT"), _("L IN"), _("OBSERVED"), _("H IN"), _("H OUT")]]
         else:
-            table = [["RESULT CODE", "LOW OUT OF RANGE", "OBSERVED", "HIGH OUT OF RANGE"]]
+            table = [[_("RESULT CODE"), _("LOW OUT OF RANGE"), _("OBSERVED"), _("HIGH OUT OF RANGE")]]
         interpretations = Interpretation.ordered(include_in_range=includes_in_range)
         for code in sorted(interpretations_by_code):
             code_label = code[0:20] + ".." + code[-6:] if len(code) > 35 else code
@@ -361,14 +364,14 @@ class Report:
             return None
 
         self._add_by_date_tables(creator, store, store.abnormal_dates, codes, abnormal_result,
-                                 "Abnormal Results By Code", highlight_abnormal=False,
+                                 _("Abnormal Results By Code"), highlight_abnormal=False,
                                  gap_after_first_title=True)
 
     def add_observations_by_date_tables(self, creator, store):
         if self.verbose:
             logger.info("Writing all observations detail tables...")
         self._add_by_date_tables(creator, store, store.dates, store.codes, store.find_for_code,
-                                 "All Lab Observations", highlight_abnormal=self.highlight_abnormal,
+                                 _("All Lab Observations"), highlight_abnormal=self.highlight_abnormal,
                                  gap_after_first_title=False)
 
     def _add_by_date_tables(self, creator, store, dates, codes, result_for, title,
@@ -381,7 +384,7 @@ class Report:
         result_for(code, date) gives the observation for a cell, or None.
         """
         has_reference_dates = len(store.reference_dates) > 0
-        header = ["Observation Code", "Range"] if has_reference_dates else ["Observation Code"]
+        header = [_("Observation Code"), _("Range")] if has_reference_dates else [_("Observation Code")]
         code_columns = []
         for code in codes:
             if not has_reference_dates:
@@ -437,7 +440,7 @@ class Report:
                 creator.set_font(bold_font(), 15)
                 creator.set_leading(16)
                 if has_shown_first_page:
-                    creator.show_text(title + " (continued)")
+                    creator.show_text(_("{0} (continued)").format(title))
                 else:
                     creator.show_text(title)
                     if gap_after_first_title:
@@ -465,26 +468,27 @@ class Report:
         creator.add_page()
         creator.set_font(bold_font(), 15)
         creator.set_leading(16)
-        creator.show_text("Heart Rate Data Analysis")
+        creator.show_text(_("Heart Rate Data Analysis"))
         creator.newline()
         creator.set_leading(10)
         creator.set_font(regular_font(), 10)
         for vital in json_data["vitalSigns"]:
             if vital["vital"] == VitalSignCategory.PULSE.value:
-                text1 = _right_pad_with_spaces("Total readings:           "
+                text1 = _right_pad_with_spaces(_("Total readings:").ljust(26)
                                                + str(vital["count"]), 45)
-                text2 = _right_pad_with_spaces("Pulse average:            "
+                text2 = _right_pad_with_spaces(_("Pulse average:").ljust(26)
                                                + str(round(vital["avg"], 1)), 45)
-                text3 = _right_pad_with_spaces("Pulse standard deviation: "
+                text3 = _right_pad_with_spaces(_("Pulse standard deviation:").ljust(26)
                                                + str(round(vital["stDev"], 1)), 45)
                 in_motion_count = len(pulse_stats_graph.values_in_motion)
                 total_count = in_motion_count + len(pulse_stats_graph.values_resting)
                 percent_in_motion = in_motion_count / total_count * 100 if total_count else 0
-                creator.show_text(text1 + "Percent in motion: "
+                # Right-aligned labels, followed by a space
+                creator.show_text(text1 + _("Percent in motion:").rjust(18) + " "
                                   + str(round(percent_in_motion)) + "%")
-                creator.show_text(text2 + "Average in motion: "
+                creator.show_text(text2 + _("Average in motion:").rjust(18) + " "
                                   + str(round(pulse_stats_graph.avg_in_motion, 1)))
-                creator.show_text(text3 + "  Average resting: "
+                creator.show_text(text3 + _("Average resting:").rjust(18) + " "
                                   + str(round(pulse_stats_graph.avg_resting, 1)))
                 creator.newline()
         creator.show_image(
@@ -493,29 +497,28 @@ class Report:
         creator.newline()
         creator.set_leading(9)
         creator.set_font(regular_font(), 8)
-        creator.show_text(
-            "                                                   NOTES")
+        creator.show_text(" " * 51 + _("NOTES"))
         creator.newline()
-        creator.show_text(
-            "• \"Motion\" data found in Apple wearable observations. All pulse observations in clinical records data")
-        creator.show_text(
-            "  are assumed to be obtained in a non-motion state. The reliability of motion data may be questionable.")
-        creator.show_text(
-            "• \"Pulse spikes\" are instances where there is an increase of pulse by at least 40 BPM during 5 or")
-        creator.show_text("  fewer minutes.")
+        creator.show_text(_bullet(_(
+            "\"Motion\" data found in Apple wearable observations. All pulse observations in clinical "
+            "records data are assumed to be obtained in a non-motion state. The reliability of motion "
+            "data may be questionable.")))
+        creator.show_text(_bullet(_(
+            "\"Pulse spikes\" are instances where there is an increase of pulse by at least 40 BPM "
+            "during 5 or fewer minutes.")))
 
         creator.add_page()
         creator.set_font(bold_font(), 15)
         creator.set_leading(16)
-        creator.show_text("Heart Rate Data Analysis")
+        creator.show_text(_("Heart Rate Data Analysis"))
         creator.newline()
         creator.set_leading(10)
         creator.set_font(regular_font(), 10)
-        creator.show_text("Dates recorded:   "
+        creator.show_text(_("Dates recorded:").ljust(18)
                           + str(len(pulse_stats_graph.pulse_dates)))
-        creator.show_text("Earliest date:    " + datetime.fromordinal(
+        creator.show_text(_("Earliest date:").ljust(18) + datetime.fromordinal(
             pulse_stats_graph.pulse_dates[0]).strftime("%B %d, %Y"))
-        creator.show_text("Most recent date: " + datetime.fromordinal(
+        creator.show_text(_("Most recent date:").ljust(18) + datetime.fromordinal(
             pulse_stats_graph.pulse_dates[-1]).strftime("%B %d, %Y"))
         creator.newline()
         creator.show_image(
@@ -523,15 +526,12 @@ class Report:
         creator.newline()
         creator.set_leading(9)
         creator.set_font(regular_font(), 8)
-        creator.show_text(
-            "                                                   NOTES")
+        creator.show_text(" " * 51 + _("NOTES"))
         creator.newline()
-        creator.show_text(
-            "• \"Steps\" and \"Stand minutes\" data found in Apple wearable observations. Stand minutes are")
-        creator.show_text(
-            "  usually only counted when in motion, so true stand minutes will be higher, while true step")
-        creator.show_text(
-            "  count may vary in either direction from recorded values.")
+        creator.show_text(_bullet(_(
+            "\"Steps\" and \"Stand minutes\" data found in Apple wearable observations. Stand minutes "
+            "are usually only counted when in motion, so true stand minutes will be higher, while true "
+            "step count may vary in either direction from recorded values.")))
 
     def add_food_data(self, creator, food_chart):
         food_data = food_chart.food
@@ -540,44 +540,43 @@ class Report:
         creator.add_page()
         creator.set_font(bold_font(), 15)
         creator.set_leading(16)
-        creator.show_text("Food Data Analysis")
+        creator.show_text(_("Food Data Analysis"))
         creator.newline()
         creator.set_leading(10)
         creator.set_font(regular_font(), 10)
-        text1 = _right_pad_with_spaces("Total food records:      "
+        text1 = _right_pad_with_spaces(_("Total food records:").ljust(25)
                                        + str(food_data.record_count), 45)
-        text2 = _right_pad_with_spaces("Earliest food record:    "
+        text2 = _right_pad_with_spaces(_("Earliest food record:").ljust(25)
                                        + food_data.meal_times[0].strftime("%B %d, %Y"), 45)
-        text3 = _right_pad_with_spaces("Most recent food record: "
+        text3 = _right_pad_with_spaces(_("Most recent food record:").ljust(25)
                                        + food_data.meal_times[-1].strftime("%B %d, %Y"), 45)
-        creator.show_text(text1 + " Total meals recorded:  "
+        creator.show_text(text1 + " " + _("Total meals recorded:").ljust(23)
                           + str(len(food_data.meal_times)))
-        creator.show_text(text2 + " Total dates recorded:  "
+        creator.show_text(text2 + " " + _("Total dates recorded:").ljust(23)
                           + str(len(food_data.dates_recorded)))
-        creator.show_text(text3 + " Average meals per day: "
+        creator.show_text(text3 + " " + _("Average meals per day:").ljust(23)
                           + str(food_data.avg_meals_per_day))
         creator.newline()
         creator.newline()
         creator.set_font(bold_font(), 10)
-        creator.show_text("Most common foods recorded")
+        creator.show_text(_("Most common foods recorded"))
         creator.newline()
         creator.show_image(food_chart.path, 150, width=250)
 
         creator.newline()
         creator.set_leading(9)
         creator.set_font(regular_font(), 8)
-        creator.show_text(
-            "                                                   NOTES")
+        creator.show_text(" " * 51 + _("NOTES"))
 
         if food_data.has_warning_diets() or food_data.has_danger_diets():
             creator.show_text(
-                "Certain diets are contraindicated by the foods found. These include:")
+                _("Certain diets are contraindicated by the foods found. These include:"))
             if food_data.has_danger_diets():
                 creator.show_text(_wrap_text_to_fit_length(
-                    "   DANGER: " + ", ".join(food_data.get_top_n_danger_diets(10)), 100))
+                    _("DANGER:").rjust(10) + " " + ", ".join(food_data.get_top_n_danger_diets(10)), 100))
             if food_data.has_warning_diets():
                 creator.show_text(_wrap_text_to_fit_length(
-                    "  WARNING: " + ", ".join(food_data.get_top_n_warning_diets(10)), 100))
+                    _("WARNING:").rjust(10) + " " + ", ".join(food_data.get_top_n_warning_diets(10)), 100))
 
     def close(self, creator):
         creator.add_header_and_footer()

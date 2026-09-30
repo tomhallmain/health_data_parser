@@ -1,7 +1,10 @@
+import re
+
 import pytest
 
 from health_data_parser.ingest.symptoms_csv import (
     HEADER, TEMPLATE_HEADER, InvalidSymptomFile, read_symptoms, write_symptoms)
+from health_data_parser.utils.translations import _
 
 ROWS = (
     'Headache,2021-02,2021-06-15,"Medication A, medication b",Coffee,Mornings,2\n'
@@ -24,7 +27,8 @@ class TestReadSymptoms:
 
     def test_unknown_header_is_rejected_when_required(self, tmp_path):
         path = write(tmp_path, ["What", "When", "Until", "Meds", "Causes", "Notes", "How bad"])
-        with pytest.raises(InvalidSymptomFile, match="Expected columns"):
+        with pytest.raises(InvalidSymptomFile, match=re.escape(
+                _("Invalid CSV format. Expected columns: {0}").format(", ".join(HEADER)))):
             read_symptoms(path, require_known_header=True)
         # Without the requirement the header row is just skipped
         assert len(read_symptoms(path)[0]) == 2
@@ -51,7 +55,7 @@ class TestReadSymptoms:
 
 class TestWriteSymptoms:
     def test_round_trip_keeps_entered_values(self, tmp_path):
-        symptoms, _ = read_symptoms(write(tmp_path, TEMPLATE_HEADER))
+        symptoms, _errors = read_symptoms(write(tmp_path, TEMPLATE_HEADER))
         out = tmp_path / "out.csv"
         write_symptoms(out, symptoms)
 
@@ -62,7 +66,7 @@ class TestWriteSymptoms:
         ]
 
     def test_written_as_utf8_with_byte_order_mark(self, tmp_path):
-        symptoms, _ = read_symptoms(write(tmp_path, HEADER, "Céphalée,2021-02,,,,,1\n"))
+        symptoms, _errors = read_symptoms(write(tmp_path, HEADER, "Céphalée,2021-02,,,,,1\n"))
         out = tmp_path / "out.csv"
         write_symptoms(out, symptoms)
         assert out.read_bytes().startswith(b"\xef\xbb\xbf")

@@ -2,6 +2,7 @@ import csv
 from datetime import datetime
 import os
 from health_data_parser.utils.logger import setup_logger
+from health_data_parser.utils.translations import _
 
 logger = setup_logger('food_data')
 
@@ -126,7 +127,7 @@ class FoodData:
             if len(top_n) == n:
                 break
             top_n.append(
-                diet + " (" + str(self.danger_diets[diet]) + " records)")
+                _("{0} ({1} records)").format(diet, self.danger_diets[diet]))
         return top_n
 
     def get_top_n_warning_diets(self, n):
@@ -136,5 +137,5 @@ class FoodData:
             if len(top_n) == n:
                 break
             top_n.append(
-                diet + " (" + str(self.warning_diets[diet]) + " records)")
+                _("{0} ({1} records)").format(diet, self.warning_diets[diet]))
         return top_n

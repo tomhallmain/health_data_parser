@@ -6,6 +6,7 @@ from health_data_parser.options import (
     ParseOptions, parse_bool, parse_boundary, parse_skip_dates, parse_start_year)
 from health_data_parser.pipeline import DataParser
 from health_data_parser.utils.logger import setup_logger
+from health_data_parser.utils.translations import _
 
 logger = setup_logger('parse_data')
 
@@ -13,10 +14,10 @@ logger = setup_logger('parse_data')
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="health-data-parser",
-        description="Parse an Apple Health export (plus optional custom data) into a PDF "
-                    "report and JSON/CSV/text files.")
+        description=_("Parse an Apple Health export (plus optional custom data) into a PDF "
+                      "report and JSON/CSV/text files."))
     parser.add_argument("data_export_dir", metavar="EXPORT_DIR",
-                        help="Apple Health export directory (containing clinical-records/)")
+                        help=_("Apple Health export directory (containing clinical-records/)"))
 
     def option(name, **kwargs):
         # Each option under its original underscore name, plus a hyphenated alias
@@ -26,38 +27,38 @@ def build_parser():
         parser.add_argument(*names, **kwargs)
 
     option("output_dir", metavar="DIR",
-           help="Write outputs here instead of the export directory (created if missing)")
+           help=_("Write outputs here instead of the export directory (created if missing)"))
     option("only_clinical_records", action="store_true",
-           help="Do not parse export.xml (much faster)")
-    option("start_year", metavar="YEAR", help="Exclude results from before this year")
+           help=_("Do not parse export.xml (much faster)"))
+    option("start_year", metavar="YEAR", help=_("Exclude results from before this year"))
     option("skip_dates", metavar="DATES",
-           help="Exclude results from these dates (comma-separated, YYYY-MM-DD)")
+           help=_("Exclude results from these dates (comma-separated, YYYY-MM-DD)"))
     option("skip_long_values", action="store_true",
-           help="Exclude observations with excessively long result values (full diagnostic "
-                "report text mixed into a single observation)")
+           help=_("Exclude observations with excessively long result values (full diagnostic "
+                  "report text mixed into a single observation)"))
     option("filter_abnormal_in_range", action="store_true", dest="skip_in_range_abnormal_results",
-           help="Only collect abnormal results that are out of range, not those near the ends "
-                "of their range")
+           help=_("Only collect abnormal results that are out of range, not those near the ends "
+                  "of their range"))
     option("in_range_abnormal_boundary", metavar="FRACTION",
-           help="How close to either end of a range counts as abnormal (default 0.15, i.e. 15%%; "
-                "absolute value must be under 0.5)")
+           help=_("How close to either end of a range counts as abnormal (default 0.15, i.e. 15%%; "
+                  "absolute value must be under 0.5)"))
     option("extra_observations", metavar="CSV", dest="extra_observations_csv",
-           help="Laboratory data not in Apple Health, in the format of "
-                "sample_templates/sample_observations_data.csv")
+           help=_("Laboratory data not in Apple Health, in the format of "
+                  "sample_templates/sample_observations_data.csv"))
     option("symptom_data", metavar="CSV", dest="symptom_data_csv",
-           help="Current and past symptoms, for a timeline chart in the PDF report")
+           help=_("Current and past symptoms, for a timeline chart in the PDF report"))
     option("food_data", metavar="CSV", dest="food_data_csv",
-           help="Food log, for nutrition charts in the PDF report")
+           help=_("Food log, for nutrition charts in the PDF report"))
     option("report_highlight_abnormal_results", metavar="true|false",
-           help="Highlight abnormal results in the report's observation tables (default true)")
+           help=_("Highlight abnormal results in the report's observation tables (default true)"))
     option("birth_date", metavar="YYYY-MM-DD",
-           help="Subject birth date for the report, if not found in export.xml")
+           help=_("Subject birth date for the report, if not found in export.xml"))
     option("json_add_all_vitals", action="store_true",
-           help="Include every vital sign reading in observations.json (can be large with a "
-                "wearable)")
+           help=_("Include every vital sign reading in observations.json (can be large with a "
+                  "wearable)"))
     option("custom_only", action="store_true",
-           help="Skip the Apple Health export data; report only on the custom files given")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Log more detail")
+           help=_("Skip the Apple Health export data; report only on the custom files given"))
+    parser.add_argument("-v", "--verbose", action="store_true", help=_("Log more detail"))
     return parser
 
 

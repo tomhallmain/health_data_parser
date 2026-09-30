@@ -4,6 +4,8 @@ import json
 import os
 
 from health_data_parser.model.reference_range import Interpretation
+from health_data_parser.model.vitals import vital_label
+from health_data_parser.utils.translations import _
 
 OBSERVATIONS_JSON_FILENAME = "observations.json"
 
@@ -43,25 +45,33 @@ def summarize(json_data: dict):
 def summary_lines(json_data: dict):
     summary = summarize(json_data)
     lines = [
-        f"Total Observations: {summary['observation_count']}",
-        f"Vital Signs Observations: {summary['vital_signs_observation_count']}",
-        f"Unique Tests: {summary['unique_test_count']}",
+        _("Total Observations: {0}").format(summary['observation_count']),
+        _("Vital Signs Observations: {0}").format(summary['vital_signs_observation_count']),
+        _("Unique Tests: {0}").format(summary['unique_test_count']),
     ]
     if summary["earliest_result"] and summary["most_recent_result"]:
-        lines.append(f"Date Range: {summary['earliest_result']} to {summary['most_recent_result']}")
-    lines.append(f"Abnormal Results: {summary['abnormal_result_count']}")
-    lines.append(f"Tests With Abnormal Results: {summary['codes_with_abnormal_results_count']}")
+        lines.append(_("Date Range: {0} to {1}").format(summary['earliest_result'], summary['most_recent_result']))
+    lines.append(_("Abnormal Results: {0}").format(summary['abnormal_result_count']))
+    lines.append(_("Tests With Abnormal Results: {0}").format(summary['codes_with_abnormal_results_count']))
     return lines
 
 
 def result_status(observation: dict):
-    """Abnormal interpretation text, "Normal", or "" when there is no reference range."""
+    """The abnormal interpretation's label, "Normal", or "" when there is no
+    reference range (translated)."""
     reference_range = _reference_range(observation)
     if not reference_range:
         return ""
     if reference_range.get("isAbnormal"):
-        return reference_range.get("interpretation") or "Abnormal"
-    return "Normal"
+        return _interpretation_label(reference_range.get("interpretation")) or _("Abnormal")
+    return _("Normal")
+
+
+def _interpretation_label(text):
+    """The translated label for an interpretation's English name in
+    observations.json; unknown names as given."""
+    interpretation = Interpretation.from_text(text)
+    return interpretation.label if interpretation else text
 
 
 def lab_result_rows(json_data: dict):
@@ -102,18 +112,19 @@ def vital_sign_rows(json_data: dict):
         if not isinstance(most_recent, dict):
             most_recent = {}
         most_recent_value = most_recent.get("value")
-        # Times are serialized as "%Y-%m-%d %X %z" strings
+        # Times are strings starting with the date: ISO 8601, or "%Y-%m-%d %X %z"
+        # in files written before schemaVersion 1
         most_recent_date = str(most_recent.get("time") or "")[:10]
         if isinstance(most_recent_value, list):
             labels = vital.get("labels") or [vital.get("vital", "")] * len(most_recent_value)
             for i, value in enumerate(most_recent_value):
                 rows.append((
-                    _item(labels, i) or "", unit, _round(value), most_recent_date,
+                    vital_label(_item(labels, i) or ""), unit, _round(value), most_recent_date,
                     _round(_item(vital.get("min"), i)), _round(_item(vital.get("max"), i)),
                     _round(_item(vital.get("avg"), i)), count))
         else:
             rows.append((
-                vital.get("vital", ""), unit, _round(most_recent_value), most_recent_date,
+                vital_label(vital.get("vital", "")), unit, _round(most_recent_value), most_recent_date,
                 _round(vital.get("min")), _round(vital.get("max")),
                 _round(vital.get("avg")), count))
     return rows
@@ -129,16 +140,16 @@ def observation_counts_by_year(json_data: dict):
 
 
 def abnormal_counts_by_interpretation(json_data: dict):
-    """(interpretation, count) pairs ordered from low out of range to high out of range."""
+    """(interpretation label, count) pairs ordered from low out of range to high
+    out of range, then any other interpretations; labels translated."""
     counts = Counter()
     for observation in json_data.get("observations", []):
         reference_range = _reference_range(observation)
         if reference_range.get("isAbnormal"):
-            counts[reference_range.get("interpretation") or "Unclassified"] += 1
-    ordered = [interpretation.text for interpretation in Interpretation]
-    ordered = [text for text in ordered if text in counts]
-    ordered += sorted(text for text in counts if text not in ordered)
-    return [(text, counts[text]) for text in ordered]
+            counts[reference_range.get("interpretation")] += 1
+    ordered = [interpretation.text for interpretation in Interpretation if interpretation.text in counts]
+    ordered += sorted((text for text in counts if text not in ordered), key=lambda text: text or "")
+    return [(_interpretation_label(text) or _("Unclassified"), counts[text]) for text in ordered]
 
 
 def observation_counts_by_date(json_data: dict, abnormal_only=False):

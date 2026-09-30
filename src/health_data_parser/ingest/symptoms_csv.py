@@ -2,6 +2,7 @@ import csv
 
 from health_data_parser.model.symptom import Symptom
 from health_data_parser.utils.csv_files import read_csv_rows
+from health_data_parser.utils.translations import _
 
 # Written by the symptom manager
 HEADER = ["Name", "Start Date", "End Date", "Medications", "Stimulants", "Comment", "Severity"]
@@ -26,7 +27,7 @@ def read_symptoms(path, require_known_header=False):
         return [], []
     header, *data = rows
     if require_known_header and [cell.strip() for cell in header] not in (HEADER, TEMPLATE_HEADER):
-        raise InvalidSymptomFile("Invalid CSV format. Expected columns: " + ", ".join(HEADER))
+        raise InvalidSymptomFile(_("Invalid CSV format. Expected columns: {0}").format(", ".join(HEADER)))
     symptoms = []
     errors = []
     for row_number, row in enumerate(data, start=2):

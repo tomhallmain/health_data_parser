@@ -51,6 +51,10 @@ for _var, _subdir in [("HOME", ""), ("USERPROFILE", ""),
     _path.mkdir(parents=True, exist_ok=True)
     os.environ[_var] = str(_path)
 
+# English messages whatever the developer's locale: the translation module reads
+# LANG once, at import
+os.environ["LANG"] = "en_US.UTF-8"
+
 # Matplotlib: headless backend, built-in default rcParams (no user matplotlibrc or
 # styles), and a config/cache dir owned by the tests. That dir is kept between
 # runs so the font cache is not rebuilt every session.

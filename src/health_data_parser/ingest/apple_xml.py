@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 
 from health_data_parser.errors import HealthDataParseError
 from health_data_parser.model.units import HeightUnit, WeightUnit, TemperatureUnit, convert, get_age
+from health_data_parser.utils.translations import _
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('xml_parser')
@@ -35,7 +36,7 @@ class AppleHealthXMLParser:
             if self.verbose:
                 logger.error(f"Error details: {e}")
             raise HealthDataParseError(
-                f"An exception occurred in parsing XML export files: {e}") from e
+                _("An exception occurred in parsing XML export files: {0}").format(e)) from e
 
         vitals = self.vital_signs
         vitals.xml_observation_count = (blood_pressure_count + heart_rate_count

@@ -5,6 +5,7 @@ from typing import ClassVar
 
 from health_data_parser.errors import HealthDataParseError
 from health_data_parser.model.units import HeightUnit, WeightUnit, TemperatureUnit, get_age
+from health_data_parser.utils.translations import _
 
 
 @dataclass(frozen=True)
@@ -70,32 +71,32 @@ class ParseOptions:
     def __post_init__(self):
         self._validate_export_dir()
         if self.output_dir is not None and os.path.isfile(self.output_dir):
-            raise HealthDataParseError(f"Output directory \"{self.output_dir}\" is a file.")
+            raise HealthDataParseError(_("Output directory \"{0}\" is a file.").format(self.output_dir))
         if self.start_year is not None and not isinstance(self.start_year, int):
-            raise HealthDataParseError(f"\"{self.start_year}\" is not a valid year.")
+            raise HealthDataParseError(_("\"{0}\" is not a valid year.").format(self.start_year))
         if not abs(self.in_range_abnormal_boundary) < 0.5:
             raise HealthDataParseError(
-                f"\"{self.in_range_abnormal_boundary}\" is not a valid decimal-formatted percentage: "
-                "its absolute value must be less than 0.5.")
+                _("\"{0}\" is not a valid decimal-formatted percentage: its absolute value must "
+                  "be less than 0.5.").format(self.in_range_abnormal_boundary))
         for date in self.skip_dates:
-            _parse_iso_date(date, f"\"{','.join(self.skip_dates)}\" is not a valid list of dates "
-                                  "in format YYYY-MM-DD.")
+            _parse_iso_date(date, _("\"{0}\" is not a valid list of dates in format YYYY-MM-DD.").format(
+                ",".join(self.skip_dates)))
         if self.birth_date is not None:
             birth_date = _parse_iso_date(
-                self.birth_date, f"\"{self.birth_date}\" is not a valid date in format YYYY-MM-DD.")
+                self.birth_date, _("\"{0}\" is not a valid date in format YYYY-MM-DD.").format(self.birth_date))
             self.subject["birthDate"] = self.birth_date
             self.subject["age"] = get_age(birth_date)
 
     def _validate_export_dir(self):
         if self.data_export_dir is None or self.data_export_dir == "":
-            raise HealthDataParseError("Missing Apple Health data export directory path.")
+            raise HealthDataParseError(_("Missing Apple Health data export directory path."))
         if not os.path.isdir(self.data_export_dir):
             raise HealthDataParseError(
-                f"Apple Health data export directory path \"{self.data_export_dir}\" is invalid.")
+                _("Apple Health data export directory path \"{0}\" is invalid.").format(self.data_export_dir))
         if not os.path.isdir(self.base_dir) or len(os.listdir(self.base_dir)) == 0:
             raise HealthDataParseError(
-                f"Folder \"clinical-records\" not found in export folder \"{self.data_export_dir}\". "
-                "Ensure data has been connected to Apple Health before export.")
+                _("Folder \"clinical-records\" not found in export folder \"{0}\". Ensure data has "
+                  "been connected to Apple Health before export.").format(self.data_export_dir))
 
     @property
     def base_dir(self):
@@ -125,7 +126,7 @@ def parse_start_year(value: str):
     try:
         return int(value)
     except ValueError:
-        raise HealthDataParseError(f"\"{value}\" is not a valid year.") from None
+        raise HealthDataParseError(_("\"{0}\" is not a valid year.").format(value)) from None
 
 
 def parse_skip_dates(value: str):
@@ -136,7 +137,7 @@ def parse_boundary(value: str):
     try:
         return float(value)
     except ValueError:
-        raise HealthDataParseError(f"\"{value}\" is not a valid decimal-formatted percentage.") from None
+        raise HealthDataParseError(_("\"{0}\" is not a valid decimal-formatted percentage.").format(value)) from None
 
 
 def parse_bool(value: str, option_name: str):
@@ -145,4 +146,4 @@ def parse_bool(value: str, option_name: str):
         return True
     if lowered == "false":
         return False
-    raise HealthDataParseError(f"{option_name} value \"{value}\" is not a boolean (true or false).")
+    raise HealthDataParseError(_("{0} value \"{1}\" is not a boolean (true or false).").format(option_name, value))

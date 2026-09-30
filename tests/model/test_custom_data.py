@@ -4,6 +4,7 @@ import pytest
 
 from health_data_parser.model.food import FoodData
 from health_data_parser.model.symptom import SymptomSet
+from health_data_parser.utils.translations import _
 
 FOOD_CSV = (
     "logDateTime,logType,mealType,foodName,foodPrep,foodServingSize,categories,okDiets,warningDiets,dangerDiets\n"
@@ -48,7 +49,7 @@ class TestFoodData:
     def test_diet_seen_as_danger_moves_out_of_warning(self, food_csv):
         food_data = FoodData(str(food_csv), False)
         assert not food_data.has_warning_diets()
-        assert food_data.get_top_n_danger_diets(1) == ["Low FODMAP (2 records)"]
+        assert food_data.get_top_n_danger_diets(1) == [_("{0} ({1} records)").format("Low FODMAP", 2)]
 
     def test_missing_file_is_not_printed(self, tmp_path):
         assert not FoodData(str(tmp_path / "missing.csv"), False).to_print

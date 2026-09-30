@@ -15,6 +15,7 @@ from health_data_parser.reporting.charts.food import save_food_chart
 from health_data_parser.reporting.charts.symptoms import save_symptom_charts
 from health_data_parser.reporting.charts.vitals import VitalsStatsGraph
 from health_data_parser.reporting.outputs import Reporter
+from health_data_parser.utils.translations import _
 from health_data_parser.utils.logger import setup_logger
 
 logger = setup_logger('data_parser')
@@ -66,7 +67,7 @@ class DataParser:
             self.custom_reports = load_custom_reports(options.extra_observations_csv, self.verbose)
             if self.custom_reports is None:
                 raise HealthDataParseError(
-                    f"Failed to read extra observations data \"{options.extra_observations_csv}\".")
+                    _("Failed to read extra observations data \"{0}\".").format(options.extra_observations_csv))
 
         if options.food_data_csv is not None:
             try:
@@ -76,9 +77,9 @@ class DataParser:
             except Exception as e:
                 if self.verbose:
                     logger.error(f"Error processing food data: {e}")
-                raise HealthDataParseError("Failed to assemble or analyze food data provided.") from e
+                raise HealthDataParseError(_("Failed to assemble or analyze food data provided.")) from e
             if not self.food_data.to_print:
-                raise HealthDataParseError("Failed to assemble or analyze food data provided.")
+                raise HealthDataParseError(_("Failed to assemble or analyze food data provided."))
             self.custom_data_files.append(options.food_data_csv)
 
         if options.symptom_data_csv is not None:
@@ -88,7 +89,7 @@ class DataParser:
             except Exception as e:
                 if self.verbose:
                     logger.error(f"Error processing symptom data: {e}")
-                raise HealthDataParseError("Failed to assemble symptom data provided.") from e
+                raise HealthDataParseError(_("Failed to assemble symptom data provided.")) from e
             if self.symptom_charts is not None:
                 self.custom_data_files.append(options.symptom_data_csv)
 
@@ -126,7 +127,7 @@ class DataParser:
             logger.info("Processing complete, writing data to files...")
 
         if include_observations and len(self.store.observations) == 0:
-            raise HealthDataParseError("No relevant laboratory records found in exported Apple Health data")
+            raise HealthDataParseError(_("No relevant laboratory records found in exported Apple Health data"))
 
         if len(self.custom_data_files) > 0:
             logger.info("The compiled information includes some custom data not exported from Apple Health:")

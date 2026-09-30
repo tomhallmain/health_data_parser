@@ -1,6 +1,8 @@
 from enum import Enum
 import re
 
+from health_data_parser.utils.translations import _
+
 
 class Interpretation(Enum):
     """How an abnormal result relates to its reference range, in severity order."""
@@ -12,7 +14,26 @@ class Interpretation(Enum):
 
     @property
     def text(self):
+        """The English name, used as a key in observations.json."""
         return _INTERPRETATION_TEXT[self]
+
+    @property
+    def label(self):
+        """The name for display, translated."""
+        # Literal _() calls so pygettext extracts them
+        labels = {
+            Interpretation.LOW_OUT_OF_RANGE: _("LOW OUT OF RANGE"),
+            Interpretation.LOW_IN_RANGE: _("Low in range"),
+            Interpretation.NON_NEGATIVE: _("Non-negative result"),
+            Interpretation.HIGH_IN_RANGE: _("High in range"),
+            Interpretation.HIGH_OUT_OF_RANGE: _("HIGH OUT OF RANGE"),
+        }
+        return labels[self]
+
+    @classmethod
+    def from_text(cls, text):
+        """The interpretation with this English name, or None."""
+        return next((i for i in cls if i.text == text), None)
 
     @property
     def is_in_range(self):

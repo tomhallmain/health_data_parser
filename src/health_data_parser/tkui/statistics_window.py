@@ -7,6 +7,7 @@ from health_data_parser.analysis.summary import (
     OBSERVATIONS_JSON_FILENAME, load_observations_json, summary_lines,
     lab_result_rows, vital_sign_rows, observation_counts_by_date)
 from health_data_parser.utils.logger import setup_logger
+from health_data_parser.utils.translations import _
 
 logger = setup_logger('statistics_window')
 
@@ -73,7 +74,7 @@ class StatisticsWindow:
 
         for row in rows:
             is_abnormal = (abnormal_column is not None
-                           and row[abnormal_column] not in ("", "Normal"))
+                           and row[abnormal_column] not in ("", _("Normal")))
             tree.insert('', tk.END, values=row, tags=("abnormal",) if is_abnormal else ())
         return tree
 
