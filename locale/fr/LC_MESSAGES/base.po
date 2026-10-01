@@ -1,0 +1,1451 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"POT-Creation-Date: 2026-10-01 07:53-0400\n"
+"PO-Revision-Date: 2026-10-01 07:53-0400\n"
+"Last-Translator: Translator Name <translator@example.com>\n"
+"Language-Team: fr Team <<EMAIL>>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/health_data_parser/options.py:74 tests/cli/test_cli.py:97
+msgid "Output directory \"{0}\" is a file."
+msgstr "Le répertoire de sortie \"{0}\" est un fichier."
+
+#: src/health_data_parser/options.py:76 src/health_data_parser/options.py:129
+#: tests/cli/test_cli.py:69 tests/cli/test_cli.py:90
+msgid "\"{0}\" is not a valid year."
+msgstr "\"{0}\" n'est pas une année valide."
+
+#: src/health_data_parser/options.py:79 tests/cli/test_cli.py:73
+msgid ""
+"\"{0}\" is not a valid decimal-formatted percentage: its absolute value must"
+" be less than 0.5."
+msgstr ""
+"\"{0}\" n’est pas un pourcentage décimal valide : sa valeur absolue doit "
+"être inférieure à 0,5."
+
+#: src/health_data_parser/options.py:82 tests/cli/test_cli.py:71
+msgid "\"{0}\" is not a valid list of dates in format YYYY-MM-DD."
+msgstr "\"{0}\" n'est pas une liste valide de dates au format YYYY-MM-DD."
+
+#: src/health_data_parser/options.py:86 tests/cli/test_cli.py:77
+msgid "\"{0}\" is not a valid date in format YYYY-MM-DD."
+msgstr "\"{0}\" n'est pas une date valide au format YYYY-MM-DD."
+
+#: src/health_data_parser/options.py:92 tests/gui/test_run_panel.py:19
+msgid "Missing Apple Health data export directory path."
+msgstr "Chemin du répertoire d’exportation des données Apple Health manquant."
+
+#: src/health_data_parser/options.py:95 tests/cli/test_cli.py:33
+msgid "Apple Health data export directory path \"{0}\" is invalid."
+msgstr ""
+"Le chemin du répertoire d’exportation des données Apple Health \"{0}\" est "
+"invalide."
+
+#: src/health_data_parser/options.py:98 tests/cli/test_cli.py:60
+msgid ""
+"Folder \"clinical-records\" not found in export folder \"{0}\". Ensure data "
+"has been connected to Apple Health before export."
+msgstr ""
+"Dossier \"clinical-records\" introuvable dans le dossier d'exportation "
+"\"{0}\". Vérifiez que les données sont connectées à Apple Health avant "
+"l'export."
+
+#: src/health_data_parser/options.py:140 tests/cli/test_cli.py:76
+msgid "\"{0}\" is not a valid decimal-formatted percentage."
+msgstr "\"{0}\" n'est pas un pourcentage au format décimal valide."
+
+#: src/health_data_parser/options.py:149 tests/cli/test_cli.py:79
+msgid "{0} value \"{1}\" is not a boolean (true or false)."
+msgstr "{0} valeur \"{1}\" n'est pas un booléen (true ou false)."
+
+#: src/health_data_parser/pipeline.py:109
+msgid "Failed to read extra observations data \"{0}\"."
+msgstr "Échec de la lecture des données d'observations supplémentaires \"{0}\"."
+
+#: src/health_data_parser/pipeline.py:119
+#: src/health_data_parser/pipeline.py:121 tests/cli/test_cli.py:102
+msgid "Failed to assemble or analyze food data provided."
+msgstr ""
+"Échec du regroupement ou de l'analyse des données alimentaires fournies."
+
+#: src/health_data_parser/pipeline.py:131
+msgid "Failed to assemble symptom data provided."
+msgstr "Échec de l'assemblage des données de symptômes fournies."
+
+#: src/health_data_parser/pipeline.py:169
+msgid "No relevant laboratory records found in exported Apple Health data"
+msgstr ""
+"Aucun enregistrement de laboratoire pertinent trouvé dans les données Apple "
+"Health exportées"
+
+#: src/health_data_parser/analysis/summary.py:48
+#: tests/gui/test_main_window.py:52
+msgid "Total Observations: {0}"
+msgstr "Observations totales: {0}"
+
+#: src/health_data_parser/analysis/summary.py:49
+msgid "Vital Signs Observations: {0}"
+msgstr "Observations des signes vitaux : {0}"
+
+#: src/health_data_parser/analysis/summary.py:50
+msgid "Unique Tests: {0}"
+msgstr "Tests uniques : {0}"
+
+#: src/health_data_parser/analysis/summary.py:53
+#: tests/analysis/test_summary.py:102
+msgid "Date Range: {0} to {1}"
+msgstr "Plage de dates : {0} à {1}"
+
+#: src/health_data_parser/analysis/summary.py:54
+msgid "Abnormal Results: {0}"
+msgstr "Résultats anormaux : {0}"
+
+#: src/health_data_parser/analysis/summary.py:55
+msgid "Tests With Abnormal Results: {0}"
+msgstr "Tests avec résultats anormaux : {0}"
+
+#: src/health_data_parser/analysis/summary.py:66
+msgid "Abnormal"
+msgstr "Anormal"
+
+#: src/health_data_parser/analysis/summary.py:67
+#: src/health_data_parser/gui/models.py:90 tests/analysis/test_summary.py:112
+#: tests/gui/test_models.py:46 tests/test_pipeline.py:169
+msgid "Normal"
+msgstr "Normal"
+
+#: src/health_data_parser/analysis/summary.py:152
+msgid "Unclassified"
+msgstr "Non classé"
+
+#: src/health_data_parser/cli/diagnostic_reports.py:13
+msgid ""
+"\n"
+"Usage:\n"
+"\n"
+"   $ health-data-parser-reports path/to/observation_data.csv [options]\n"
+"\n"
+"Writes the observations in the CSV as DiagnosticReport JSON files next to it.\n"
+"\n"
+"    -h, --help\n"
+"        Print this help text\n"
+"\n"
+"    -v, --verbose\n"
+"        Run in verbose mode\n"
+msgstr ""
+" Utilisation :\n"
+"\n"
+"   $ health-data-parser-reports path/to/observation_data.csv [options]\n"
+"\n"
+"Écrit les observations du CSV en fichiers JSON DiagnosticReport à côté.\n"
+"\n"
+"    -h, --help\n"
+"        Affiche ce texte d'aide\n"
+"\n"
+"    -v, --verbose\n"
+"        Exécute en mode verbeux "
+
+#: src/health_data_parser/cli/parse.py:17
+msgid ""
+"Parse an Apple Health export (plus optional custom data) into a PDF report "
+"and JSON/CSV/text files."
+msgstr ""
+"Analyser une exportation Apple Health (avec éventuellement des données "
+"personnalisées) en un rapport PDF et des fichiers JSON/CSV/textes."
+
+#: src/health_data_parser/cli/parse.py:20
+msgid "Apple Health export directory (containing clinical-records/)"
+msgstr "Répertoire d’exportation Apple Health (contient clinical‑records/)"
+
+#: src/health_data_parser/cli/parse.py:30
+msgid ""
+"Write outputs here instead of the export directory (created if missing)"
+msgstr ""
+"Écris les sorties ici à la place du répertoire d’exportation (créé s’il "
+"manque)"
+
+#: src/health_data_parser/cli/parse.py:32
+msgid "Do not parse export.xml (much faster)"
+msgstr "Ne pas analyser export.xml (beaucoup plus rapide)"
+
+#: src/health_data_parser/cli/parse.py:33
+msgid "Exclude results from before this year"
+msgstr "Exclure les résultats antérieurs à cette année"
+
+#: src/health_data_parser/cli/parse.py:35
+msgid "Exclude results from these dates (comma-separated, YYYY-MM-DD)"
+msgstr ""
+"Exclure les résultats de ces dates (séparées par des virgules, AAAA-MM-JJ)"
+
+#: src/health_data_parser/cli/parse.py:37
+msgid ""
+"Exclude observations with excessively long result values (full diagnostic "
+"report text mixed into a single observation)"
+msgstr ""
+"Exclure les observations avec des valeurs de résultat excessivement longues "
+"(texte complet du rapport diagnostic intégré dans une seule observation)"
+
+#: src/health_data_parser/cli/parse.py:40
+msgid ""
+"Only collect abnormal results that are out of range, not those near the ends"
+" of their range"
+msgstr ""
+"Collecter uniquement les résultats anormaux hors limites, pas ceux proches "
+"des extrémités de leur plage"
+
+#: src/health_data_parser/cli/parse.py:43
+msgid ""
+"How close to either end of a range counts as abnormal (default 0.15, i.e. "
+"15%%; absolute value must be under 0.5)"
+msgstr ""
+"Quelle proximité à l’une ou l’autre extrémité d’une plage est considérée "
+"comme anormale (valeur par défaut 0.15, c’est‑à‑dire 15%% ; la valeur "
+"absolue doit être inférieure à 0.5)"
+
+#: src/health_data_parser/cli/parse.py:46
+msgid ""
+"Laboratory data not in Apple Health, in the format of "
+"sample_templates/sample_observations_data.csv"
+msgstr ""
+"Données de laboratoire non présentes dans Apple Health, au format "
+"sample_templates/sample_observations_data.csv"
+
+#: src/health_data_parser/cli/parse.py:49
+msgid "Current and past symptoms, for a timeline chart in the PDF report"
+msgstr ""
+"Symptômes actuels et passés pour un diagramme chronologique dans le rapport "
+"PDF"
+
+#: src/health_data_parser/cli/parse.py:51
+msgid "Food log, for nutrition charts in the PDF report"
+msgstr ""
+"Journal alimentaire, pour les graphiques nutritionnels dans le rapport PDF"
+
+#: src/health_data_parser/cli/parse.py:53
+msgid ""
+"Highlight abnormal results in the report's observation tables (default true)"
+msgstr ""
+"Mettre en évidence les résultats anormaux dans les tableaux d'observation du"
+" rapport (par défaut true)"
+
+#: src/health_data_parser/cli/parse.py:55
+#: src/health_data_parser/gui/run_panel.py:77
+msgid "Subject birth date for the report, if not found in export.xml"
+msgstr ""
+"Date de naissance du sujet pour le rapport, si non trouvée dans export.xml"
+
+#: src/health_data_parser/cli/parse.py:57
+msgid ""
+"Include every vital sign reading in observations.json (can be large with a "
+"wearable)"
+msgstr ""
+"Inclure chaque lecture des signes vitaux dans observations.json (peut être "
+"volumineux avec un dispositif portable)"
+
+#: src/health_data_parser/cli/parse.py:60
+msgid ""
+"Skip the Apple Health export data; report only on the custom files given"
+msgstr ""
+"Ignorer les données d’exportation Apple Health ; ne signaler que les "
+"fichiers personnalisés fournis"
+
+#: src/health_data_parser/cli/parse.py:61
+msgid "Log more detail"
+msgstr "Enregistrer plus de détails"
+
+#: src/health_data_parser/gui/charts.py:25
+msgid "Observations by Year"
+msgstr "Observations par année"
+
+#: src/health_data_parser/gui/charts.py:26
+#: src/health_data_parser/gui/charts.py:50
+msgid "Observations"
+msgstr "Observations"
+
+#: src/health_data_parser/gui/charts.py:28
+msgid "No observations"
+msgstr "Aucune observation"
+
+#: src/health_data_parser/gui/charts.py:32
+msgid "Abnormal Results by Interpretation"
+msgstr "Résultats anormaux par interprétation"
+
+#: src/health_data_parser/gui/charts.py:33
+msgid "Results"
+msgstr "Résultats"
+
+#: src/health_data_parser/gui/charts.py:36
+msgid "No abnormal results"
+msgstr "Aucun résultat anormal"
+
+#: src/health_data_parser/gui/charts.py:45
+msgid "Health Data Trends"
+msgstr "Tendances des données de santé"
+
+#: src/health_data_parser/gui/charts.py:50
+msgid "Observations per Date"
+msgstr "Observations par date"
+
+#: src/health_data_parser/gui/charts.py:52
+msgid "Abnormal Results per Date"
+msgstr "Résultats anormaux par date"
+
+#: src/health_data_parser/gui/charts.py:52
+msgid "Abnormal Results"
+msgstr "Résultats anormaux"
+
+#: src/health_data_parser/gui/charts.py:64
+msgid "No data"
+msgstr "Pas de données"
+
+#: src/health_data_parser/gui/main_window.py:34
+msgid "Reading custom data files..."
+msgstr "Lecture des fichiers de données personnalisés..."
+
+#: src/health_data_parser/gui/main_window.py:35
+msgid "Parsing export.xml..."
+msgstr "Analyse de export.xml..."
+
+#: src/health_data_parser/gui/main_window.py:36
+msgid "Reading clinical records..."
+msgstr "Lecture des dossiers cliniques..."
+
+#: src/health_data_parser/gui/main_window.py:37
+msgid "Analyzing results..."
+msgstr "Analyse des résultats..."
+
+#: src/health_data_parser/gui/main_window.py:38
+msgid "Charting wearable data..."
+msgstr "Tracer les données wearables..."
+
+#: src/health_data_parser/gui/main_window.py:39
+msgid "Writing output files and PDF..."
+msgstr "Création des fichiers de sortie et du PDF..."
+
+#: src/health_data_parser/gui/main_window.py:63
+msgid "Apple Health Data Parser"
+msgstr "Analyseur de données santé Apple"
+
+#: src/health_data_parser/gui/main_window.py:79
+msgid "Generate Report"
+msgstr "Générer le rapport"
+
+#: src/health_data_parser/gui/main_window.py:80
+msgid "Cancel"
+msgstr "Annuler"
+
+#: src/health_data_parser/gui/main_window.py:81
+msgid "Load Results..."
+msgstr "Charger les résultats..."
+
+#: src/health_data_parser/gui/main_window.py:104
+msgid "Summary"
+msgstr "Résumé"
+
+#: src/health_data_parser/gui/main_window.py:107
+msgid "Lab Results"
+msgstr "Résultats de laboratoire"
+
+#: src/health_data_parser/gui/main_window.py:110
+msgid "Vitals"
+msgstr "Signes vitaux"
+
+#: src/health_data_parser/gui/main_window.py:113
+msgid "Trends"
+msgstr "Tendances"
+
+#: src/health_data_parser/gui/main_window.py:115
+msgid "Symptoms"
+msgstr "Symptômes"
+
+#: src/health_data_parser/gui/main_window.py:127
+msgid "Log"
+msgstr "Journal"
+
+#: src/health_data_parser/gui/main_window.py:145
+msgid "Open PDF"
+msgstr "Ouvrir PDF"
+
+#: src/health_data_parser/gui/main_window.py:146
+msgid "Open Output Folder"
+msgstr "Ouvrir le dossier de sortie"
+
+#: src/health_data_parser/gui/main_window.py:165
+msgid "Filter lab results"
+msgstr "Filtrer les résultats de laboratoire"
+
+#: src/health_data_parser/gui/main_window.py:183
+msgid "Load Results"
+msgstr "Charger les résultats"
+
+#: src/health_data_parser/gui/main_window.py:218
+msgid "Starting..."
+msgstr "Démarrage..."
+
+#: src/health_data_parser/gui/main_window.py:225
+msgid "Cancelling after the current step..."
+msgstr "Annulation après l'étape actuelle..."
+
+#: src/health_data_parser/gui/main_window.py:238
+#: tests/gui/test_main_window.py:48
+msgid "Report generated."
+msgstr "Rapport généré."
+
+#: src/health_data_parser/gui/main_window.py:249
+msgid "Report Failed"
+msgstr "Échec du rapport"
+
+#: src/health_data_parser/gui/main_window.py:254
+msgid "Cancelled."
+msgstr "Annulé."
+
+#: src/health_data_parser/gui/main_window.py:269
+#: src/health_data_parser/gui/main_window.py:319
+#: src/health_data_parser/gui/symptoms.py:259
+#: src/health_data_parser/gui/symptoms.py:293
+#: src/health_data_parser/gui/symptoms.py:316
+#: src/health_data_parser/gui/symptoms.py:319
+#: src/health_data_parser/gui/symptoms.py:349
+msgid "Error"
+msgstr "Erreur"
+
+#: src/health_data_parser/gui/main_window.py:269
+msgid "Failed to load results: {0}"
+msgstr "Échec du chargement des résultats : {0}"
+
+#: src/health_data_parser/gui/main_window.py:274
+msgid "No {0} found in {1}."
+msgstr "Aucun {0} trouvé dans {1}."
+
+#: src/health_data_parser/gui/main_window.py:319
+msgid "Failed to create symptom file: {0}"
+msgstr "Échec de la création du fichier de symptômes : {0}"
+
+#: src/health_data_parser/gui/models.py:89
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Date"
+msgstr "Date"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Test"
+msgstr "Test"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Value"
+msgstr "Valeur"
+
+#: src/health_data_parser/gui/models.py:89
+#: src/health_data_parser/reporting/pdf/report.py:387
+msgid "Range"
+msgstr "Plage"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Status"
+msgstr "Statut"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Vital"
+msgstr "Vital"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Unit"
+msgstr "Unité"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Most Recent"
+msgstr "Le plus récent"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Min"
+msgstr "Min"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Max"
+msgstr "Max"
+
+#: src/health_data_parser/gui/models.py:96
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Average"
+msgstr "Moyen"
+
+#: src/health_data_parser/gui/models.py:96
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Count"
+msgstr "Nombre"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Name"
+msgstr "Nom"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Start Date"
+msgstr "Date de début"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "End Date"
+msgstr "Date de fin"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Medications"
+msgstr "Médicaments"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Stimulants"
+msgstr "Stimulants"
+
+#: src/health_data_parser/gui/models.py:159
+msgid "Comment"
+msgstr "Commentaire"
+
+#: src/health_data_parser/gui/models.py:159
+msgid "Severity"
+msgstr "Gravité"
+
+#: src/health_data_parser/gui/run_panel.py:25
+msgid "Skip long values"
+msgstr "Ignorer les valeurs longues"
+
+#: src/health_data_parser/gui/run_panel.py:26
+msgid "Add all vital sign readings to the JSON"
+msgstr "Ajoutez toutes les mesures des signes vitaux au JSON"
+
+#: src/health_data_parser/gui/run_panel.py:27
+msgid "Skip abnormal results that are in range"
+msgstr "Ignorer les résultats anormaux dans la plage"
+
+#: src/health_data_parser/gui/run_panel.py:28
+msgid "Highlight abnormal results in the report"
+msgstr "Surligner les résultats anormaux dans le rapport"
+
+#: src/health_data_parser/gui/run_panel.py:29
+msgid "Only clinical records (skip export.xml)"
+msgstr "Uniquement les dossiers cliniques (ignorer export.xml)"
+
+#: src/health_data_parser/gui/run_panel.py:30
+msgid "Report on the custom data files only"
+msgstr "Rapport uniquement sur les fichiers de données personnalisés"
+
+#: src/health_data_parser/gui/run_panel.py:31
+msgid "Verbose logging"
+msgstr "Journal détaillé"
+
+#: src/health_data_parser/gui/run_panel.py:38
+msgid "Height unit:"
+msgstr "Unité de hauteur:"
+
+#: src/health_data_parser/gui/run_panel.py:39
+msgid "Centimeters (cm)"
+msgstr "Centimètres (cm)"
+
+#: src/health_data_parser/gui/run_panel.py:39
+msgid "Meters (m)"
+msgstr "Mètres (m)"
+
+#: src/health_data_parser/gui/run_panel.py:40
+msgid "Feet (ft)"
+msgstr "pieds (ft)"
+
+#: src/health_data_parser/gui/run_panel.py:40
+msgid "Inches (in)"
+msgstr "Pouces (in)"
+
+#: src/health_data_parser/gui/run_panel.py:41
+msgid "Weight unit:"
+msgstr "Unité de poids:"
+
+#: src/health_data_parser/gui/run_panel.py:42
+msgid "Grams (g)"
+msgstr "Grammes (g)"
+
+#: src/health_data_parser/gui/run_panel.py:42
+msgid "Kilograms (kg)"
+msgstr "Kilogrammes (kg)"
+
+#: src/health_data_parser/gui/run_panel.py:43
+msgid "Pounds (lb)"
+msgstr "Livres (lb)"
+
+#: src/health_data_parser/gui/run_panel.py:44
+msgid "Temperature unit:"
+msgstr "Unité de température:"
+
+#: src/health_data_parser/gui/run_panel.py:45
+msgid "Celsius (°C)"
+msgstr "Celsius (°C)"
+
+#: src/health_data_parser/gui/run_panel.py:45
+msgid "Fahrenheit (°F)"
+msgstr "Fahrenheit (°F)"
+
+#: src/health_data_parser/gui/run_panel.py:58
+msgid "Apple Health Export Directory"
+msgstr "Répertoire d'exportation Apple Health"
+
+#: src/health_data_parser/gui/run_panel.py:59
+msgid "Output Directory"
+msgstr "Répertoire de sortie"
+
+#: src/health_data_parser/gui/run_panel.py:60
+msgid "The export directory"
+msgstr "Le répertoire d'exportation"
+
+#: src/health_data_parser/gui/run_panel.py:61
+msgid "Symptom Data"
+msgstr "Données de symptômes"
+
+#: src/health_data_parser/gui/run_panel.py:62
+msgid "Food Data"
+msgstr "Données alimentaires"
+
+#: src/health_data_parser/gui/run_panel.py:63
+msgid "Extra Observations"
+msgstr "Observations supplémentaires"
+
+#: src/health_data_parser/gui/run_panel.py:64
+msgid "Manage..."
+msgstr "Gérer..."
+
+#: src/health_data_parser/gui/run_panel.py:69
+msgid "Any"
+msgstr "Tous"
+
+#: src/health_data_parser/gui/run_panel.py:76
+msgid "Set"
+msgstr "Régler"
+
+#: src/health_data_parser/gui/run_panel.py:93
+msgid "Input Files"
+msgstr "Fichiers d’entrée"
+
+#: src/health_data_parser/gui/run_panel.py:95
+msgid "Apple Health export:"
+msgstr "Exportation Apple Health :"
+
+#: src/health_data_parser/gui/run_panel.py:96
+msgid "Output directory:"
+msgstr "Répertoire de sortie :"
+
+#: src/health_data_parser/gui/run_panel.py:100
+msgid "Symptom data:"
+msgstr "Données de symptômes :"
+
+#: src/health_data_parser/gui/run_panel.py:101
+msgid "Food data:"
+msgstr "Données alimentaires:"
+
+#: src/health_data_parser/gui/run_panel.py:102
+msgid "Extra observations:"
+msgstr "Observations supplémentaires:"
+
+#: src/health_data_parser/gui/run_panel.py:104
+msgid "Options"
+msgstr "Options"
+
+#: src/health_data_parser/gui/run_panel.py:106
+msgid "Start year:"
+msgstr "Année de début:"
+
+#: src/health_data_parser/gui/run_panel.py:107
+msgid "Skip dates:"
+msgstr "Passer les dates :"
+
+#: src/health_data_parser/gui/run_panel.py:108
+msgid "In-range abnormal boundary:"
+msgstr "Limite anormale en plage:"
+
+#: src/health_data_parser/gui/run_panel.py:109
+msgid "Birth date:"
+msgstr "Date de naissance:"
+
+#: src/health_data_parser/gui/symptoms.py:25
+msgid "Edit Symptom"
+msgstr "Modifier le symptôme"
+
+#: src/health_data_parser/gui/symptoms.py:25
+msgid "Add Symptom"
+msgstr "Ajouter un symptôme"
+
+#: src/health_data_parser/gui/symptoms.py:31
+#: src/health_data_parser/gui/symptoms.py:33
+msgid "Comma-separated"
+msgstr "Séparé par des virgules"
+
+#: src/health_data_parser/gui/symptoms.py:43
+msgid "Name:"
+msgstr "Nom :"
+
+#: src/health_data_parser/gui/symptoms.py:44
+msgid "Start date:"
+msgstr "Date de début:"
+
+#: src/health_data_parser/gui/symptoms.py:45
+msgid "End date:"
+msgstr "Date de fin:"
+
+#: src/health_data_parser/gui/symptoms.py:46
+msgid "Medications:"
+msgstr "Médicaments:"
+
+#: src/health_data_parser/gui/symptoms.py:47
+msgid "Stimulants:"
+msgstr "Stimulants:"
+
+#: src/health_data_parser/gui/symptoms.py:48
+msgid "Comment:"
+msgstr "Commentaire:"
+
+#: src/health_data_parser/gui/symptoms.py:49
+msgid "Severity (1-10):"
+msgstr "Gravité (1-10):"
+
+#: src/health_data_parser/gui/symptoms.py:73 tests/gui/test_symptoms.py:29
+msgid "Name is required."
+msgstr "Le nom est requis."
+
+#: src/health_data_parser/gui/symptoms.py:77 tests/gui/test_symptoms.py:41
+msgid "The end date is before the start date."
+msgstr "La date de fin est antérieure à la date de début."
+
+#: src/health_data_parser/gui/symptoms.py:99
+#: src/health_data_parser/gui/symptoms.py:310
+msgid "Import Symptoms"
+msgstr "Importer les symptômes"
+
+#: src/health_data_parser/gui/symptoms.py:102
+msgid "Import mode:"
+msgstr "Mode d'importation:"
+
+#: src/health_data_parser/gui/symptoms.py:104
+msgid "Append to the current symptoms"
+msgstr "Ajouter aux symptômes actuels"
+
+#: src/health_data_parser/gui/symptoms.py:105
+msgid "Replace the current symptoms"
+msgstr "Remplacer les symptômes actuels"
+
+#: src/health_data_parser/gui/symptoms.py:106
+msgid "Merge: update symptoms with the same name and dates, add the rest"
+msgstr ""
+"Fusionner : mettre à jour les symptômes ayant le même nom et les mêmes "
+"dates, ajouter le reste"
+
+#: src/health_data_parser/gui/symptoms.py:159
+msgid "Open..."
+msgstr "Ouvrir..."
+
+#: src/health_data_parser/gui/symptoms.py:160
+msgid "Save"
+msgstr "Enregistrer"
+
+#: src/health_data_parser/gui/symptoms.py:161
+msgid "Import..."
+msgstr "Importer..."
+
+#: src/health_data_parser/gui/symptoms.py:162
+msgid "Export..."
+msgstr "Exporter..."
+
+#: src/health_data_parser/gui/symptoms.py:163
+msgid "Add..."
+msgstr "Ajouter..."
+
+#: src/health_data_parser/gui/symptoms.py:164
+msgid "Edit..."
+msgstr "Modifier..."
+
+#: src/health_data_parser/gui/symptoms.py:165
+msgid "Delete"
+msgstr "Supprimer"
+
+#: src/health_data_parser/gui/symptoms.py:166
+msgid "Undo Delete"
+msgstr "Annuler la suppression"
+
+#: src/health_data_parser/gui/symptoms.py:174
+msgid "Search names, medications, stimulants and comments"
+msgstr "Rechercher noms, médicaments, stimulants et commentaires"
+
+#: src/health_data_parser/gui/symptoms.py:177
+msgid "Show resolved"
+msgstr "Afficher résolus"
+
+#: src/health_data_parser/gui/symptoms.py:179
+msgid "Between"
+msgstr "Entre"
+
+#: src/health_data_parser/gui/symptoms.py:192
+msgid "and"
+msgstr "et"
+
+#: src/health_data_parser/gui/symptoms.py:236
+msgid "Unsaved Symptoms"
+msgstr "Symptômes non enregistrés"
+
+#: src/health_data_parser/gui/symptoms.py:236
+msgid "Save the changes to the symptoms first?"
+msgstr "Enregistrer d'abord les modifications des symptômes ?"
+
+#: src/health_data_parser/gui/symptoms.py:259
+msgid "Failed to read \"{0}\": {1}"
+msgstr "Échec de la lecture de \"{0}\": {1}"
+
+#: src/health_data_parser/gui/symptoms.py:264
+#: src/health_data_parser/gui/symptoms.py:324
+msgid "Invalid Rows"
+msgstr "Lignes invalides"
+
+#: src/health_data_parser/gui/symptoms.py:264
+msgid "{0} rows could not be read and were left out."
+msgstr "{0} lignes n'ont pas pu être lues et ont été exclues."
+
+#: src/health_data_parser/gui/symptoms.py:277
+msgid "Open Symptoms"
+msgstr "Symptômes ouverts"
+
+#: src/health_data_parser/gui/symptoms.py:285
+msgid "Save Symptoms"
+msgstr "Enregistrer les symptômes"
+
+#: src/health_data_parser/gui/symptoms.py:293
+msgid "Failed to save symptoms: {0}"
+msgstr "Échec de l'enregistrement des symptômes : {0}"
+
+#: src/health_data_parser/gui/symptoms.py:319
+msgid "Failed to import CSV: {0}"
+msgstr "Échec de l'importation du CSV : {0}"
+
+#: src/health_data_parser/gui/symptoms.py:325
+msgid "Found {0} invalid rows. Continue importing valid rows?"
+msgstr ""
+"Trouvé {0} lignes invalides. Continuer à importer les lignes valides ?"
+
+#: src/health_data_parser/gui/symptoms.py:335
+msgid "Updated {0} symptoms and added {1}."
+msgstr "Mise à jour de {0} symptômes et ajout de {1}."
+
+#: src/health_data_parser/gui/symptoms.py:337
+msgid "Replaced the symptoms with {0} imported symptoms."
+msgstr "Les symptômes ont été remplacés par {0} symptômes importés."
+
+#: src/health_data_parser/gui/symptoms.py:339
+msgid "Added {0} symptoms."
+msgstr "Ajouté {0} symptômes."
+
+#: src/health_data_parser/gui/symptoms.py:340
+msgid "Import Complete"
+msgstr "Importation terminée"
+
+#: src/health_data_parser/gui/symptoms.py:343
+msgid "Export Symptoms"
+msgstr "Exporter les symptômes"
+
+#: src/health_data_parser/gui/symptoms.py:349
+msgid "Failed to export CSV: {0}"
+msgstr "Échec de l'export CSV : {0}"
+
+#: src/health_data_parser/gui/symptoms.py:351
+msgid "Export Complete"
+msgstr "Exportation terminée"
+
+#: src/health_data_parser/gui/symptoms.py:352
+msgid "Exported {0} symptoms."
+msgstr "Exportés {0} symptômes."
+
+#: src/health_data_parser/gui/symptoms.py:409
+msgid "(no file)"
+msgstr "(aucun fichier)"
+
+#: src/health_data_parser/gui/symptoms.py:410
+msgid "{0} (unsaved changes)"
+msgstr "{0} (modifications non enregistrées)"
+
+#: src/health_data_parser/gui/widgets.py:15
+msgid "CSV files (*.csv);;All files (*)"
+msgstr "Fichiers CSV (*.csv);;Tous les fichiers (*)"
+
+#: src/health_data_parser/gui/widgets.py:54
+msgid "Browse..."
+msgstr "Parcourir..."
+
+#: src/health_data_parser/gui/widgets.py:136
+msgid "Add"
+msgstr "Ajouter"
+
+#: src/health_data_parser/gui/widgets.py:137
+msgid "Remove"
+msgstr "Supprimer"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Not set"
+msgstr "Non défini"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Month"
+msgstr "Mois"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Day"
+msgstr "Jour"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Other text"
+msgstr "Autre texte"
+
+#: src/health_data_parser/gui/widgets.py:185
+msgid "e.g. Chronic"
+msgstr "p. ex. Chronique"
+
+#: src/health_data_parser/gui/worker.py:48 tests/gui/test_main_window.py:109
+msgid "Unexpected error: {0}"
+msgstr "Erreur inattendue : {0}"
+
+#: src/health_data_parser/ingest/apple_xml.py:39
+#: tests/ingest/test_apple_xml.py:168
+msgid "An exception occurred in parsing XML export files: {0}"
+msgstr ""
+"Une exception s'est produite lors de l'analyse des fichiers d'export XML : "
+"{0}"
+
+#: src/health_data_parser/ingest/custom_observations.py:20
+#: tests/ingest/test_custom_observations.py:89
+msgid "Missing custom observation results CSV file."
+msgstr "Fichier CSV des résultats d’observation personnalisés manquant."
+
+#: src/health_data_parser/ingest/custom_observations.py:25
+#: tests/cli/test_cli.py:130 tests/ingest/test_custom_observations.py:36
+msgid "Custom observation results CSV file \"{0}\" is invalid."
+msgstr ""
+"Le fichier CSV de résultats d’observation personnalisés \"{0}\" est "
+"invalide."
+
+#: src/health_data_parser/ingest/symptoms_csv.py:30
+#: tests/ingest/test_symptoms_csv.py:31
+msgid "Invalid CSV format. Expected columns: {0}"
+msgstr "Format CSV invalide. Colonnes attendues : {0}"
+
+#: src/health_data_parser/model/food.py:130
+#: src/health_data_parser/model/food.py:140 tests/model/test_custom_data.py:52
+msgid "{0} ({1} records)"
+msgstr "{0} ({1} enregistrements)"
+
+#: src/health_data_parser/model/reference_range.py:25
+#: src/health_data_parser/reporting/pdf/report.py:345
+#: tests/analysis/test_summary.py:113 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:128
+msgid "LOW OUT OF RANGE"
+msgstr "FAIBLE HORS PLAGE"
+
+#: src/health_data_parser/model/reference_range.py:26
+#: tests/analysis/test_summary.py:111 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:123 tests/test_pipeline.py:128
+#: tests/test_pipeline.py:171
+msgid "Low in range"
+msgstr "Faible dans la plage"
+
+#: src/health_data_parser/model/reference_range.py:27
+#: tests/test_pipeline.py:128
+msgid "Non-negative result"
+msgstr "Résultat non négatif"
+
+#: src/health_data_parser/model/reference_range.py:28
+#: tests/test_pipeline.py:129
+msgid "High in range"
+msgstr "Élevé dans la plage"
+
+#: src/health_data_parser/model/reference_range.py:29
+#: src/health_data_parser/reporting/pdf/report.py:345
+#: tests/analysis/test_summary.py:110 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:121 tests/test_pipeline.py:129
+#: tests/test_pipeline.py:170
+msgid "HIGH OUT OF RANGE"
+msgstr "Haut hors plage"
+
+#: src/health_data_parser/model/vitals.py:17
+msgid "Height"
+msgstr "Hauteur"
+
+#: src/health_data_parser/model/vitals.py:18
+msgid "Weight"
+msgstr "Poids"
+
+#: src/health_data_parser/model/vitals.py:19
+msgid "BMI"
+msgstr "IMC"
+
+#: src/health_data_parser/model/vitals.py:20
+msgid "Temperature"
+msgstr "Température"
+
+#: src/health_data_parser/model/vitals.py:21
+msgid "Pulse"
+msgstr "Pouls"
+
+#: src/health_data_parser/model/vitals.py:22
+msgid "Respiration"
+msgstr "Respiration"
+
+#: src/health_data_parser/model/vitals.py:23
+msgid "Blood Pressure"
+msgstr "Pression artérielle"
+
+#: src/health_data_parser/model/vitals.py:24
+msgid "BP Systolic"
+msgstr "Pression artérielle systolique"
+
+#: src/health_data_parser/model/vitals.py:25
+msgid "BP Diastolic"
+msgstr "TA Diastolique"
+
+#: src/health_data_parser/model/vitals.py:26
+msgid "Heart rate variability"
+msgstr "Variabilité de la fréquence cardiaque"
+
+#: src/health_data_parser/model/vitals.py:27
+msgid "SpO2"
+msgstr "SpO2"
+
+#: src/health_data_parser/model/vitals.py:28
+#: src/health_data_parser/reporting/charts/vitals.py:225
+msgid "Apple stand minutes"
+msgstr "Minutes du stand Apple"
+
+#: src/health_data_parser/model/vitals.py:29
+msgid "Steps"
+msgstr "Étapes"
+
+#: src/health_data_parser/reporting/outputs.py:35
+msgid "Laboratory Abnormal Results from Apple Health Data by Code"
+msgstr "Résultats anormaux de laboratoire des données Apple Health par code"
+
+#: src/health_data_parser/reporting/outputs.py:40 tests/test_pipeline.py:119
+msgid "Abnormal results found for code {0}:"
+msgstr "Résultats anormaux trouvés pour le code {0}:"
+
+#: src/health_data_parser/reporting/outputs.py:44 tests/test_pipeline.py:120
+#: tests/test_pipeline.py:122
+msgid "{0}: {1} - observed {2} - range {3}"
+msgstr "{0} : {1} - observé {2} - plage {3}"
+
+#: src/health_data_parser/reporting/outputs.py:48
+msgid "{0}: {1} - observed {2}"
+msgstr "{0}: {1} - observé {2}"
+
+#: src/health_data_parser/reporting/outputs.py:72
+msgid "Laboratory Abnormal Results by Interpretation from Apple Health Data"
+msgstr ""
+"Résultats anormaux de laboratoire selon interprétation des données Apple "
+"Health"
+
+#: src/health_data_parser/reporting/outputs.py:95
+msgid "Laboratory Abnormal Results from Apple Health Data"
+msgstr "Résultats anormaux de laboratoire provenant des données Apple Health"
+
+#: src/health_data_parser/reporting/outputs.py:119
+msgid "Laboratory Observations from Apple Health Data"
+msgstr "Observations de laboratoire à partir des données Apple Health"
+
+#: src/health_data_parser/reporting/outputs.py:122 tests/test_pipeline.py:147
+#: tests/test_pipeline.py:148
+msgid "{0} range"
+msgstr "{0} plage"
+
+#: src/health_data_parser/reporting/outputs.py:123 tests/test_pipeline.py:147
+#: tests/test_pipeline.py:148
+msgid "{0} result"
+msgstr "{0} résultat"
+
+#: src/health_data_parser/reporting/outputs.py:145
+msgid "An error occurred in writing observations data to CSV."
+msgstr ""
+"Une erreur s'est produite lors de l'écriture des données d'observations dans"
+" le CSV."
+
+#: src/health_data_parser/reporting/outputs.py:159
+msgid "An error occurred in writing observations data to JSON: {0}"
+msgstr ""
+"Une erreur s'est produite lors de l'écriture des données d'observations en "
+"JSON : {0}"
+
+#: src/health_data_parser/reporting/outputs.py:171
+msgid "An error occurred in writing observations data to PDF report: {0}"
+msgstr ""
+"Une erreur s'est produite lors de l'écriture des données d'observations dans"
+" le rapport PDF : {0}"
+
+#: src/health_data_parser/reporting/charts/symptoms.py:138
+msgid "PRIMARY CAUSE / STIMULANT"
+msgstr "CAUSE PRIMAIRE / STIMULANT"
+
+#: src/health_data_parser/reporting/charts/symptoms.py:141
+msgid "MEDICATION / TREATMENT"
+msgstr "MÉDICATION / TRAITEMENT"
+
+#: src/health_data_parser/reporting/charts/vitals.py:194
+msgid "Average heart rates over 24 hours (+/– one standard deviation)"
+msgstr "Fréquences cardiaques moyennes sur 24 heures (± un écart-type)"
+
+#: src/health_data_parser/reporting/charts/vitals.py:195
+#: src/health_data_parser/reporting/charts/vitals.py:223
+msgid "BPM"
+msgstr "BPM"
+
+#: src/health_data_parser/reporting/charts/vitals.py:196
+#: src/health_data_parser/reporting/charts/vitals.py:198
+#: src/health_data_parser/reporting/charts/vitals.py:200
+msgid "Time (minutes)"
+msgstr "Temps (minutes)"
+
+#: src/health_data_parser/reporting/charts/vitals.py:197
+msgid "Average motion context"
+msgstr "Contexte de mouvement moyen"
+
+#: src/health_data_parser/reporting/charts/vitals.py:199
+msgid "Counts of pulse spike"
+msgstr "Comptage des pics d’impulsion"
+
+#: src/health_data_parser/reporting/charts/vitals.py:222
+msgid "Average heart rates, steps and stand minutes by day"
+msgstr "Fréquence cardiaque moyenne, pas et minutes debout par jour"
+
+#: src/health_data_parser/reporting/charts/vitals.py:224
+msgid "Apple steps"
+msgstr "Étapes Apple"
+
+#: src/health_data_parser/reporting/charts/vitals.py:226
+msgid "BPM / stand min"
+msgstr "BPM / min d’attente"
+
+#: src/health_data_parser/reporting/charts/vitals.py:227
+msgid "Days"
+msgstr "Jours"
+
+#: src/health_data_parser/reporting/pdf/report.py:162
+#: tests/reporting/test_pdf_report_sections.py:135
+msgid "No abnormal results were found in Apple Health data export."
+msgstr ""
+"Aucun résultat anormal n’a été trouvé dans l’exportation des données Apple "
+"Health."
+
+#: src/health_data_parser/reporting/pdf/report.py:173
+#: src/health_data_parser/reporting/pdf/report.py:202
+msgid "UNKNOWN"
+msgstr "INCONNU"
+
+#: src/health_data_parser/reporting/pdf/report.py:174
+msgid "Subject: {0} | Report created: {1}"
+msgstr "Objet : {0} | Rapport créé : {1}"
+
+#: src/health_data_parser/reporting/pdf/report.py:184
+msgid "Health Records Report"
+msgstr "Rapport des dossiers de santé"
+
+#: src/health_data_parser/reporting/pdf/report.py:194
+#: src/health_data_parser/reporting/pdf/report.py:202
+msgid "Subject"
+msgstr "Objet"
+
+#: src/health_data_parser/reporting/pdf/report.py:196
+msgid "DOB"
+msgstr "Date de naissance"
+
+#: src/health_data_parser/reporting/pdf/report.py:198
+msgid "Age"
+msgstr "Âge"
+
+#: src/health_data_parser/reporting/pdf/report.py:200
+msgid "Sex"
+msgstr "Sexe"
+
+#: src/health_data_parser/reporting/pdf/report.py:204
+msgid "Lab records count"
+msgstr "Nombre d'enregistrements de laboratoire"
+
+#: src/health_data_parser/reporting/pdf/report.py:206
+msgid "Earliest record"
+msgstr "Enregistrement le plus ancien"
+
+#: src/health_data_parser/reporting/pdf/report.py:208
+msgid "Most recent record"
+msgstr "Enregistrement le plus récent"
+
+#: src/health_data_parser/reporting/pdf/report.py:210
+msgid "Report assembled"
+msgstr "Rapport assemblé"
+
+#: src/health_data_parser/reporting/pdf/report.py:225
+msgid "Summary of Vitals"
+msgstr "Résumé des paramètres vitaux"
+
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "StDev"
+msgstr "EcartTyp"
+
+#: src/health_data_parser/reporting/pdf/report.py:258
+msgid "WARNING: Abnormal results were found."
+msgstr "AVERTISSEMENT : Des résultats anormaux ont été trouvés."
+
+#: src/health_data_parser/reporting/pdf/report.py:262
+msgid "Lab codes with abnormal results"
+msgstr "Codes de laboratoire avec résultats anormaux"
+
+#: src/health_data_parser/reporting/pdf/report.py:264
+msgid "Total abnormal observations"
+msgstr "Total des observations anormales"
+
+#: src/health_data_parser/reporting/pdf/report.py:270
+msgid ""
+"NOTE: Reference ranges for tests are not static. The range displayed in all "
+"tables represents the most recent range available. A result classified as "
+"abnormal by an old range may be acceptable within current ranges."
+msgstr ""
+"NOTE : Les plages de référence des tests ne sont pas statiques. La plage "
+"affichée dans tous les tableaux représente la plage la plus récente "
+"disponible. Un résultat considéré comme anormal selon une ancienne plage "
+"peut être acceptable dans les plages actuelles."
+
+#: src/health_data_parser/reporting/pdf/report.py:279
+msgid ""
+"Abnormal results may include results within ranges at +/-{0} ends of the "
+"relevant range. These are labeled as lower severity with the labels \"High "
+"in range\" and \"Low in range\" or tags \"++\" and \"--\". Tags \"+++\" and "
+"\"---\" indicate high and low out of range. Tag \"+\" indicates a positive "
+"result."
+msgstr ""
+"Les résultats anormaux peuvent inclure des valeurs situées à +/-{0} des "
+"extrémités de la plage concernée. Elles sont classées avec une gravité "
+"moindre sous les libellés « High in range » et « Low in range » ou les "
+"balises « ++ » et « -- ». Les balises « +++ » et « --- » indiquent "
+"respectivement des valeurs hors plage élevées et basses. La balise « + » "
+"indique un résultat positif."
+
+#: src/health_data_parser/reporting/pdf/report.py:285
+msgid ""
+"All listed abnormal results are out of the relevant range. Tags \"+++\" and "
+"\"---\" indicate high and low out of range. Tag \"+\" indicates a positive "
+"result."
+msgstr ""
+"Tous les résultats anormaux répertoriés sont hors de la plage pertinente. "
+"Les balises \"+++\" et \"---\" indiquent respectivement des valeurs élevées "
+"et basses hors plage. La balise \"+\" indique un résultat positif."
+
+#: src/health_data_parser/reporting/pdf/report.py:295
+msgid "Sections included in this report"
+msgstr "Sections incluses dans ce rapport"
+
+#: src/health_data_parser/reporting/pdf/report.py:301
+msgid "Symptoms Report"
+msgstr "Rapport des symptômes"
+
+#: src/health_data_parser/reporting/pdf/report.py:303
+#: src/health_data_parser/reporting/pdf/report.py:338
+msgid "Abnormal Results By Code Summary"
+msgstr "Résumé des résultats anormaux par code"
+
+#: src/health_data_parser/reporting/pdf/report.py:304
+msgid "Abnormal Results By Code Detail"
+msgstr "Résultats anormaux par détail de code"
+
+#: src/health_data_parser/reporting/pdf/report.py:306
+#: src/health_data_parser/reporting/pdf/report.py:374
+#: tests/reporting/test_pdf_report_sections.py:101
+#: tests/reporting/test_pdf_report_sections.py:115
+#: tests/reporting/test_pdf_report_sections.py:136
+#: tests/utils/test_translations.py:79 tests/utils/test_translations.py:88
+msgid "All Lab Observations"
+msgstr "Toutes les observations du laboratoire"
+
+#: src/health_data_parser/reporting/pdf/report.py:308
+#: src/health_data_parser/reporting/pdf/report.py:471
+#: src/health_data_parser/reporting/pdf/report.py:513
+msgid "Heart Rate Data Analysis"
+msgstr "Analyse des données de fréquence cardiaque"
+
+#: src/health_data_parser/reporting/pdf/report.py:310
+#: src/health_data_parser/reporting/pdf/report.py:543
+msgid "Food Data Analysis"
+msgstr "Analyse des données alimentaires"
+
+#: src/health_data_parser/reporting/pdf/report.py:315
+msgid "Symptoms Report - Including Historical"
+msgstr "Rapport des symptômes – Historique inclus"
+
+#: src/health_data_parser/reporting/pdf/report.py:317
+msgid "Symptoms Report - Unresolved"
+msgstr "Rapport des symptômes - Non résolu"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+#: src/health_data_parser/reporting/pdf/report.py:345
+msgid "RESULT CODE"
+msgstr "CODE DE RÉSULTAT"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "L OUT"
+msgstr "SE DÉCONNECTER"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "L IN"
+msgstr "L DANS"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+#: src/health_data_parser/reporting/pdf/report.py:345
+msgid "OBSERVED"
+msgstr "OBSERVÉ"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "H IN"
+msgstr "H DANS"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "H OUT"
+msgstr "H SORTIE"
+
+#: src/health_data_parser/reporting/pdf/report.py:367
+msgid "Abnormal Results By Code"
+msgstr "Résultats anormaux par code"
+
+#: src/health_data_parser/reporting/pdf/report.py:387
+msgid "Observation Code"
+msgstr "Code d'observation"
+
+#: src/health_data_parser/reporting/pdf/report.py:443
+#: tests/reporting/test_pdf_report_sections.py:115
+msgid "{0} (continued)"
+msgstr "{0} (suite)"
+
+#: src/health_data_parser/reporting/pdf/report.py:477
+msgid "Total readings:"
+msgstr "Lectures totales:"
+
+#: src/health_data_parser/reporting/pdf/report.py:479
+msgid "Pulse average:"
+msgstr "Moyenne du pouls:"
+
+#: src/health_data_parser/reporting/pdf/report.py:481
+msgid "Pulse standard deviation:"
+msgstr "Écart type du pouls:"
+
+#: src/health_data_parser/reporting/pdf/report.py:487
+#: tests/reporting/test_pdf_report_sections.py:52
+#: tests/reporting/test_pdf_report_sections.py:57
+msgid "Percent in motion:"
+msgstr "Pourcentage en mouvement :"
+
+#: src/health_data_parser/reporting/pdf/report.py:489
+msgid "Average in motion:"
+msgstr "Moyenne en mouvement:"
+
+#: src/health_data_parser/reporting/pdf/report.py:491
+msgid "Average resting:"
+msgstr "Repos moyen:"
+
+#: src/health_data_parser/reporting/pdf/report.py:500
+#: src/health_data_parser/reporting/pdf/report.py:529
+#: src/health_data_parser/reporting/pdf/report.py:569
+msgid "NOTES"
+msgstr "Notes"
+
+#: src/health_data_parser/reporting/pdf/report.py:503
+msgid ""
+"\"Motion\" data found in Apple wearable observations. All pulse observations"
+" in clinical records data are assumed to be obtained in a non-motion state. "
+"The reliability of motion data may be questionable."
+msgstr ""
+"\"Motion\" données trouvées dans les observations des wearables Apple. "
+"Toutes les observations de pouls dans les données des dossiers cliniques "
+"sont supposées être obtenues en état de non‑mouvement. La fiabilité des "
+"données de mouvement peut être douteuse."
+
+#: src/health_data_parser/reporting/pdf/report.py:507
+msgid ""
+"\"Pulse spikes\" are instances where there is an increase of pulse by at "
+"least 40 BPM during 5 or fewer minutes."
+msgstr ""
+"\"Pics de pouls\" sont des cas où la fréquence cardiaque augmente d’au moins"
+" 40 BPM pendant 5 minutes ou moins."
+
+#: src/health_data_parser/reporting/pdf/report.py:517
+msgid "Dates recorded:"
+msgstr "Dates enregistrées :"
+
+#: src/health_data_parser/reporting/pdf/report.py:519
+msgid "Earliest date:"
+msgstr "Date la plus ancienne:"
+
+#: src/health_data_parser/reporting/pdf/report.py:521
+msgid "Most recent date:"
+msgstr "Date la plus récente :"
+
+#: src/health_data_parser/reporting/pdf/report.py:532
+msgid ""
+"\"Steps\" and \"Stand minutes\" data found in Apple wearable observations. "
+"Stand minutes are usually only counted when in motion, so true stand minutes"
+" will be higher, while true step count may vary in either direction from "
+"recorded values."
+msgstr ""
+"Données « Steps » et « Stand minutes » trouvées dans les observations des "
+"appareils Apple. Les minutes de station debout ne sont généralement comptées"
+" que lorsqu’on bouge, ainsi les minutes réelles seront supérieures, tandis "
+"que le nombre réel de pas peut varier dans les deux sens par rapport aux "
+"valeurs enregistrées."
+
+#: src/health_data_parser/reporting/pdf/report.py:547
+msgid "Total food records:"
+msgstr "Total des enregistrements alimentaires :"
+
+#: src/health_data_parser/reporting/pdf/report.py:549
+msgid "Earliest food record:"
+msgstr "Premier enregistrement alimentaire :"
+
+#: src/health_data_parser/reporting/pdf/report.py:551
+msgid "Most recent food record:"
+msgstr "Enregistrement alimentaire le plus récent :"
+
+#: src/health_data_parser/reporting/pdf/report.py:553
+msgid "Total meals recorded:"
+msgstr "Total des repas enregistrés:"
+
+#: src/health_data_parser/reporting/pdf/report.py:555
+msgid "Total dates recorded:"
+msgstr "Nombre total de dates enregistrées :"
+
+#: src/health_data_parser/reporting/pdf/report.py:557
+msgid "Average meals per day:"
+msgstr "Repas moyens par jour:"
+
+#: src/health_data_parser/reporting/pdf/report.py:562
+msgid "Most common foods recorded"
+msgstr "Aliments les plus courants enregistrés"
+
+#: src/health_data_parser/reporting/pdf/report.py:573
+msgid "Certain diets are contraindicated by the foods found. These include:"
+msgstr ""
+"Certaines diètes sont contre‑indiquées par les aliments trouvés. Elles "
+"comprennent :"
+
+#: src/health_data_parser/reporting/pdf/report.py:576
+msgid "DANGER:"
+msgstr "DANGER:"
+
+#: src/health_data_parser/reporting/pdf/report.py:579
+msgid "WARNING:"
+msgstr "AVERTISSEMENT:"
+
+#: tests/gui/test_models.py:45
+msgid "High"
+msgstr "Élevé"
+
+#: tests/utils/test_translations.py:73
+msgid "Some text that has no translation"
+msgstr "Un texte qui n’a pas de traduction"

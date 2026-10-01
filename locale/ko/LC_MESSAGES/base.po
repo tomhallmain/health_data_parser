@@ -1,0 +1,1391 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"POT-Creation-Date: 2026-10-01 07:53-0400\n"
+"PO-Revision-Date: 2026-10-01 07:53-0400\n"
+"Last-Translator: Translator Name <translator@example.com>\n"
+"Language-Team: ko Team <<EMAIL>>\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/health_data_parser/options.py:74 tests/cli/test_cli.py:97
+msgid "Output directory \"{0}\" is a file."
+msgstr "출력 디렉터리 \"{0}\"은 파일입니다."
+
+#: src/health_data_parser/options.py:76 src/health_data_parser/options.py:129
+#: tests/cli/test_cli.py:69 tests/cli/test_cli.py:90
+msgid "\"{0}\" is not a valid year."
+msgstr "\"{0}\" 은 올바른 연도가 아닙니다."
+
+#: src/health_data_parser/options.py:79 tests/cli/test_cli.py:73
+msgid ""
+"\"{0}\" is not a valid decimal-formatted percentage: its absolute value must"
+" be less than 0.5."
+msgstr "\"{0}\"은(는) 유효한 소수 형식 백분율이 아닙니다: 절대값은 0.5보다 작아야 합니다."
+
+#: src/health_data_parser/options.py:82 tests/cli/test_cli.py:71
+msgid "\"{0}\" is not a valid list of dates in format YYYY-MM-DD."
+msgstr "\"{0}\"은(는) YYYY-MM-DD 형식의 유효한 날짜 목록이 아닙니다."
+
+#: src/health_data_parser/options.py:86 tests/cli/test_cli.py:77
+msgid "\"{0}\" is not a valid date in format YYYY-MM-DD."
+msgstr "\"{0}\" 은(는) YYYY-MM-DD 형식의 유효한 날짜가 아닙니다."
+
+#: src/health_data_parser/options.py:92 tests/gui/test_run_panel.py:19
+msgid "Missing Apple Health data export directory path."
+msgstr "Apple Health 데이터 내보내기 디렉터리 경로가 없습니다."
+
+#: src/health_data_parser/options.py:95 tests/cli/test_cli.py:33
+msgid "Apple Health data export directory path \"{0}\" is invalid."
+msgstr "Apple Health 데이터 내보내기 디렉터리 경로 \"{0}\"가 올바르지 않습니다."
+
+#: src/health_data_parser/options.py:98 tests/cli/test_cli.py:60
+msgid ""
+"Folder \"clinical-records\" not found in export folder \"{0}\". Ensure data "
+"has been connected to Apple Health before export."
+msgstr ""
+"내보내기 폴더 \"{0}\"에 \"clinical-records\" 폴더가 없습니다. 내보내기 전에 데이터가 Apple Health에 "
+"연결되어 있는지 확인하십시오."
+
+#: src/health_data_parser/options.py:140 tests/cli/test_cli.py:76
+msgid "\"{0}\" is not a valid decimal-formatted percentage."
+msgstr "\"{0}\"은(는) 유효한 소수점 형식 백분율이 아닙니다."
+
+#: src/health_data_parser/options.py:149 tests/cli/test_cli.py:79
+msgid "{0} value \"{1}\" is not a boolean (true or false)."
+msgstr "{0} 값 \"{1}\" 은(는) 불리언이 아닙니다 (true 또는 false)."
+
+#: src/health_data_parser/pipeline.py:109
+msgid "Failed to read extra observations data \"{0}\"."
+msgstr "추가 관측 데이터 \"{0}\" 를 읽지 못했습니다."
+
+#: src/health_data_parser/pipeline.py:119
+#: src/health_data_parser/pipeline.py:121 tests/cli/test_cli.py:102
+msgid "Failed to assemble or analyze food data provided."
+msgstr "제공된 식품 데이터를 조합하거나 분석하는 데 실패했습니다."
+
+#: src/health_data_parser/pipeline.py:131
+msgid "Failed to assemble symptom data provided."
+msgstr "제공된 증상 데이터 조립에 실패했습니다."
+
+#: src/health_data_parser/pipeline.py:169
+msgid "No relevant laboratory records found in exported Apple Health data"
+msgstr "내보낸 Apple Health 데이터에서 관련 실험실 기록을 찾을 수 없습니다"
+
+#: src/health_data_parser/analysis/summary.py:48
+#: tests/gui/test_main_window.py:52
+msgid "Total Observations: {0}"
+msgstr "총 관측 수: {0}"
+
+#: src/health_data_parser/analysis/summary.py:49
+msgid "Vital Signs Observations: {0}"
+msgstr "생체 징후 관찰: {0}"
+
+#: src/health_data_parser/analysis/summary.py:50
+msgid "Unique Tests: {0}"
+msgstr "고유 테스트: {0}"
+
+#: src/health_data_parser/analysis/summary.py:53
+#: tests/analysis/test_summary.py:102
+msgid "Date Range: {0} to {1}"
+msgstr "날짜 범위: {0}에서 {1}까지"
+
+#: src/health_data_parser/analysis/summary.py:54
+msgid "Abnormal Results: {0}"
+msgstr "비정상 결과: {0}"
+
+#: src/health_data_parser/analysis/summary.py:55
+msgid "Tests With Abnormal Results: {0}"
+msgstr "비정상 결과 테스트: {0}"
+
+#: src/health_data_parser/analysis/summary.py:66
+msgid "Abnormal"
+msgstr "비정상"
+
+#: src/health_data_parser/analysis/summary.py:67
+#: src/health_data_parser/gui/models.py:90 tests/analysis/test_summary.py:112
+#: tests/gui/test_models.py:46 tests/test_pipeline.py:169
+msgid "Normal"
+msgstr "정상"
+
+#: src/health_data_parser/analysis/summary.py:152
+msgid "Unclassified"
+msgstr "미분류"
+
+#: src/health_data_parser/cli/diagnostic_reports.py:13
+msgid ""
+"\n"
+"Usage:\n"
+"\n"
+"   $ health-data-parser-reports path/to/observation_data.csv [options]\n"
+"\n"
+"Writes the observations in the CSV as DiagnosticReport JSON files next to it.\n"
+"\n"
+"    -h, --help\n"
+"        Print this help text\n"
+"\n"
+"    -v, --verbose\n"
+"        Run in verbose mode\n"
+msgstr ""
+" 사용법:\n"
+"\n"
+"   $ health-data-parser-reports path/to/observation_data.csv [options]\n"
+"\n"
+"CSV의 관측값을 DiagnosticReport JSON 파일로 옆에 저장합니다.\n"
+"\n"
+"    -h, --help\n"
+"        이 도움말 텍스트를 출력합니다.\n"
+"\n"
+"    -v, --verbose\n"
+"        자세한 모드로 실행합니다 "
+
+#: src/health_data_parser/cli/parse.py:17
+msgid ""
+"Parse an Apple Health export (plus optional custom data) into a PDF report "
+"and JSON/CSV/text files."
+msgstr ""
+"Apple Health 내보내기(옵션 사용자 정의 데이터 포함)를 PDF 보고서 및 JSON/CSV/텍스트 파일로 변환합니다."
+
+#: src/health_data_parser/cli/parse.py:20
+msgid "Apple Health export directory (containing clinical-records/)"
+msgstr "Apple Health 내보내기 디렉터리 (clinical-records/ 포함)"
+
+#: src/health_data_parser/cli/parse.py:30
+msgid ""
+"Write outputs here instead of the export directory (created if missing)"
+msgstr "내보내기 디렉터리 대신 여기 출력물을 기록합니다 (없으면 생성)"
+
+#: src/health_data_parser/cli/parse.py:32
+msgid "Do not parse export.xml (much faster)"
+msgstr "export.xml을 파싱하지 않음 (훨씬 빠름)"
+
+#: src/health_data_parser/cli/parse.py:33
+msgid "Exclude results from before this year"
+msgstr "올해 이전 결과 제외"
+
+#: src/health_data_parser/cli/parse.py:35
+msgid "Exclude results from these dates (comma-separated, YYYY-MM-DD)"
+msgstr "다음 날짜의 결과 제외(쉼표 구분, YYYY-MM-DD)"
+
+#: src/health_data_parser/cli/parse.py:37
+msgid ""
+"Exclude observations with excessively long result values (full diagnostic "
+"report text mixed into a single observation)"
+msgstr "결과값이 지나치게 긴 관측을 제외합니다 (전체 진단 보고서 텍스트가 하나의 관측에 혼합된 경우)"
+
+#: src/health_data_parser/cli/parse.py:40
+msgid ""
+"Only collect abnormal results that are out of range, not those near the ends"
+" of their range"
+msgstr "범위 밖의 비정상 결과만 수집하고, 범위 끝에 가까운 결과는 제외합니다"
+
+#: src/health_data_parser/cli/parse.py:43
+msgid ""
+"How close to either end of a range counts as abnormal (default 0.15, i.e. "
+"15%%; absolute value must be under 0.5)"
+msgstr ""
+"범위 양쪽 끝 중 어느 쪽에 얼마나 가까우면 비정상으로 간주되는지 (기본값 0.15, 즉 15%%; 절대값은 0.5 미만이어야 함)"
+
+#: src/health_data_parser/cli/parse.py:46
+msgid ""
+"Laboratory data not in Apple Health, in the format of "
+"sample_templates/sample_observations_data.csv"
+msgstr ""
+"Apple Health에 없는 실험실 데이터, sample_templates/sample_observations_data.csv 형식"
+
+#: src/health_data_parser/cli/parse.py:49
+msgid "Current and past symptoms, for a timeline chart in the PDF report"
+msgstr "PDF 보고서의 타임라인 차트를 위한 현재 및 과거 증상"
+
+#: src/health_data_parser/cli/parse.py:51
+msgid "Food log, for nutrition charts in the PDF report"
+msgstr "식품 기록, PDF 보고서의 영양 차트용"
+
+#: src/health_data_parser/cli/parse.py:53
+msgid ""
+"Highlight abnormal results in the report's observation tables (default true)"
+msgstr "보고서 관찰 표에서 비정상 결과를 강조 표시 (기본값 true)"
+
+#: src/health_data_parser/cli/parse.py:55
+#: src/health_data_parser/gui/run_panel.py:77
+msgid "Subject birth date for the report, if not found in export.xml"
+msgstr "보고서를 위한 피험자 생년월일, export.xml에 없을 경우"
+
+#: src/health_data_parser/cli/parse.py:57
+msgid ""
+"Include every vital sign reading in observations.json (can be large with a "
+"wearable)"
+msgstr "observations.json에 모든 활력징후 데이터를 포함합니다(웨어러블 사용 시 크기가 클 수 있음)"
+
+#: src/health_data_parser/cli/parse.py:60
+msgid ""
+"Skip the Apple Health export data; report only on the custom files given"
+msgstr "Apple Health 내보내기 데이터를 건너뛰고 제공된 사용자 정의 파일만 보고"
+
+#: src/health_data_parser/cli/parse.py:61
+msgid "Log more detail"
+msgstr "자세한 내용 더 기록"
+
+#: src/health_data_parser/gui/charts.py:25
+msgid "Observations by Year"
+msgstr "연도별 관측"
+
+#: src/health_data_parser/gui/charts.py:26
+#: src/health_data_parser/gui/charts.py:50
+msgid "Observations"
+msgstr "관찰"
+
+#: src/health_data_parser/gui/charts.py:28
+msgid "No observations"
+msgstr "관측 없음"
+
+#: src/health_data_parser/gui/charts.py:32
+msgid "Abnormal Results by Interpretation"
+msgstr "해석별 비정상 결과"
+
+#: src/health_data_parser/gui/charts.py:33
+msgid "Results"
+msgstr "결과"
+
+#: src/health_data_parser/gui/charts.py:36
+msgid "No abnormal results"
+msgstr "비정상적인 결과가 없습니다"
+
+#: src/health_data_parser/gui/charts.py:45
+msgid "Health Data Trends"
+msgstr "건강 데이터 트렌드"
+
+#: src/health_data_parser/gui/charts.py:50
+msgid "Observations per Date"
+msgstr "날짜별 관측"
+
+#: src/health_data_parser/gui/charts.py:52
+msgid "Abnormal Results per Date"
+msgstr "날짜별 비정상 결과"
+
+#: src/health_data_parser/gui/charts.py:52
+msgid "Abnormal Results"
+msgstr "비정상 결과"
+
+#: src/health_data_parser/gui/charts.py:64
+msgid "No data"
+msgstr "데이터 없음"
+
+#: src/health_data_parser/gui/main_window.py:34
+msgid "Reading custom data files..."
+msgstr "사용자 지정 데이터 파일을 읽는 중..."
+
+#: src/health_data_parser/gui/main_window.py:35
+msgid "Parsing export.xml..."
+msgstr "export.xml을 파싱 중..."
+
+#: src/health_data_parser/gui/main_window.py:36
+msgid "Reading clinical records..."
+msgstr "임상 기록을 읽는 중..."
+
+#: src/health_data_parser/gui/main_window.py:37
+msgid "Analyzing results..."
+msgstr "결과 분석 중..."
+
+#: src/health_data_parser/gui/main_window.py:38
+msgid "Charting wearable data..."
+msgstr "웨어러블 데이터 차트 생성..."
+
+#: src/health_data_parser/gui/main_window.py:39
+msgid "Writing output files and PDF..."
+msgstr "출력 파일 및 PDF 작성 중..."
+
+#: src/health_data_parser/gui/main_window.py:63
+msgid "Apple Health Data Parser"
+msgstr "Apple 건강 데이터 파서"
+
+#: src/health_data_parser/gui/main_window.py:79
+msgid "Generate Report"
+msgstr "보고서 생성"
+
+#: src/health_data_parser/gui/main_window.py:80
+msgid "Cancel"
+msgstr "취소"
+
+#: src/health_data_parser/gui/main_window.py:81
+msgid "Load Results..."
+msgstr "결과 로드 중..."
+
+#: src/health_data_parser/gui/main_window.py:104
+msgid "Summary"
+msgstr "요약"
+
+#: src/health_data_parser/gui/main_window.py:107
+msgid "Lab Results"
+msgstr "검사 결과"
+
+#: src/health_data_parser/gui/main_window.py:110
+msgid "Vitals"
+msgstr "바이탈"
+
+#: src/health_data_parser/gui/main_window.py:113
+msgid "Trends"
+msgstr "트렌드"
+
+#: src/health_data_parser/gui/main_window.py:115
+msgid "Symptoms"
+msgstr "증상"
+
+#: src/health_data_parser/gui/main_window.py:127
+msgid "Log"
+msgstr "로그"
+
+#: src/health_data_parser/gui/main_window.py:145
+msgid "Open PDF"
+msgstr "PDF 열기"
+
+#: src/health_data_parser/gui/main_window.py:146
+msgid "Open Output Folder"
+msgstr "출력 폴더 열기"
+
+#: src/health_data_parser/gui/main_window.py:165
+msgid "Filter lab results"
+msgstr "검사 결과 필터링"
+
+#: src/health_data_parser/gui/main_window.py:183
+msgid "Load Results"
+msgstr "결과 불러오기"
+
+#: src/health_data_parser/gui/main_window.py:218
+msgid "Starting..."
+msgstr "시작 중..."
+
+#: src/health_data_parser/gui/main_window.py:225
+msgid "Cancelling after the current step..."
+msgstr "현재 단계 이후 취소 중..."
+
+#: src/health_data_parser/gui/main_window.py:238
+#: tests/gui/test_main_window.py:48
+msgid "Report generated."
+msgstr "보고서가 생성되었습니다."
+
+#: src/health_data_parser/gui/main_window.py:249
+msgid "Report Failed"
+msgstr "보고서 실패"
+
+#: src/health_data_parser/gui/main_window.py:254
+msgid "Cancelled."
+msgstr "취소되었습니다."
+
+#: src/health_data_parser/gui/main_window.py:269
+#: src/health_data_parser/gui/main_window.py:319
+#: src/health_data_parser/gui/symptoms.py:259
+#: src/health_data_parser/gui/symptoms.py:293
+#: src/health_data_parser/gui/symptoms.py:316
+#: src/health_data_parser/gui/symptoms.py:319
+#: src/health_data_parser/gui/symptoms.py:349
+msgid "Error"
+msgstr "오류"
+
+#: src/health_data_parser/gui/main_window.py:269
+msgid "Failed to load results: {0}"
+msgstr "결과를 불러오는 데 실패했습니다: {0}"
+
+#: src/health_data_parser/gui/main_window.py:274
+msgid "No {0} found in {1}."
+msgstr "{1}에 {0}이(가) 없습니다."
+
+#: src/health_data_parser/gui/main_window.py:319
+msgid "Failed to create symptom file: {0}"
+msgstr "증상 파일을 생성하지 못했습니다: {0}"
+
+#: src/health_data_parser/gui/models.py:89
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Date"
+msgstr "날짜"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Test"
+msgstr "테스트"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Value"
+msgstr "값"
+
+#: src/health_data_parser/gui/models.py:89
+#: src/health_data_parser/reporting/pdf/report.py:387
+msgid "Range"
+msgstr "범위"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Status"
+msgstr "상태"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Vital"
+msgstr "필수"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Unit"
+msgstr "단위"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Most Recent"
+msgstr "최신"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Min"
+msgstr "분"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Max"
+msgstr "맥스"
+
+#: src/health_data_parser/gui/models.py:96
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Average"
+msgstr "평균"
+
+#: src/health_data_parser/gui/models.py:96
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Count"
+msgstr "카운트"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Name"
+msgstr "이름 *"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Start Date"
+msgstr "시작일"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "End Date"
+msgstr "종료일"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Medications"
+msgstr "약물"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Stimulants"
+msgstr "흥분제"
+
+#: src/health_data_parser/gui/models.py:159
+msgid "Comment"
+msgstr "댓글"
+
+#: src/health_data_parser/gui/models.py:159
+msgid "Severity"
+msgstr "심각도"
+
+#: src/health_data_parser/gui/run_panel.py:25
+msgid "Skip long values"
+msgstr "긴 값 건너뛰기"
+
+#: src/health_data_parser/gui/run_panel.py:26
+msgid "Add all vital sign readings to the JSON"
+msgstr "모든 활력징후 측정값을 JSON에 추가"
+
+#: src/health_data_parser/gui/run_panel.py:27
+msgid "Skip abnormal results that are in range"
+msgstr "범위 내 비정상 결과 건너뛰기"
+
+#: src/health_data_parser/gui/run_panel.py:28
+msgid "Highlight abnormal results in the report"
+msgstr "보고서에서 이상 결과를 강조 표시"
+
+#: src/health_data_parser/gui/run_panel.py:29
+msgid "Only clinical records (skip export.xml)"
+msgstr "임상 기록만 (export.xml 건너뛰기)"
+
+#: src/health_data_parser/gui/run_panel.py:30
+msgid "Report on the custom data files only"
+msgstr "맞춤 데이터 파일만 보고"
+
+#: src/health_data_parser/gui/run_panel.py:31
+msgid "Verbose logging"
+msgstr "상세 로그"
+
+#: src/health_data_parser/gui/run_panel.py:38
+msgid "Height unit:"
+msgstr "높이 단위:"
+
+#: src/health_data_parser/gui/run_panel.py:39
+msgid "Centimeters (cm)"
+msgstr "센티미터 (cm)"
+
+#: src/health_data_parser/gui/run_panel.py:39
+msgid "Meters (m)"
+msgstr "미터 (m)"
+
+#: src/health_data_parser/gui/run_panel.py:40
+msgid "Feet (ft)"
+msgstr "피트 (ft)"
+
+#: src/health_data_parser/gui/run_panel.py:40
+msgid "Inches (in)"
+msgstr "인치 (in)"
+
+#: src/health_data_parser/gui/run_panel.py:41
+msgid "Weight unit:"
+msgstr "무게 단위:"
+
+#: src/health_data_parser/gui/run_panel.py:42
+msgid "Grams (g)"
+msgstr "그램 (g)"
+
+#: src/health_data_parser/gui/run_panel.py:42
+msgid "Kilograms (kg)"
+msgstr "킬로그램 (kg)"
+
+#: src/health_data_parser/gui/run_panel.py:43
+msgid "Pounds (lb)"
+msgstr "파운드 (lb)"
+
+#: src/health_data_parser/gui/run_panel.py:44
+msgid "Temperature unit:"
+msgstr "온도 단위:"
+
+#: src/health_data_parser/gui/run_panel.py:45
+msgid "Celsius (°C)"
+msgstr "섭씨 (°C)"
+
+#: src/health_data_parser/gui/run_panel.py:45
+msgid "Fahrenheit (°F)"
+msgstr "화씨 (°F)"
+
+#: src/health_data_parser/gui/run_panel.py:58
+msgid "Apple Health Export Directory"
+msgstr "Apple Health 내보내기 디렉터리"
+
+#: src/health_data_parser/gui/run_panel.py:59
+msgid "Output Directory"
+msgstr "출력 디렉터리"
+
+#: src/health_data_parser/gui/run_panel.py:60
+msgid "The export directory"
+msgstr "내보내기 디렉터리"
+
+#: src/health_data_parser/gui/run_panel.py:61
+msgid "Symptom Data"
+msgstr "증상 데이터"
+
+#: src/health_data_parser/gui/run_panel.py:62
+msgid "Food Data"
+msgstr "식품 데이터"
+
+#: src/health_data_parser/gui/run_panel.py:63
+msgid "Extra Observations"
+msgstr "추가 관찰"
+
+#: src/health_data_parser/gui/run_panel.py:64
+msgid "Manage..."
+msgstr "관리..."
+
+#: src/health_data_parser/gui/run_panel.py:69
+msgid "Any"
+msgstr "모두"
+
+#: src/health_data_parser/gui/run_panel.py:76
+msgid "Set"
+msgstr "설치하기"
+
+#: src/health_data_parser/gui/run_panel.py:93
+msgid "Input Files"
+msgstr "입력 파일"
+
+#: src/health_data_parser/gui/run_panel.py:95
+msgid "Apple Health export:"
+msgstr "Apple Health 내보내기:"
+
+#: src/health_data_parser/gui/run_panel.py:96
+msgid "Output directory:"
+msgstr "출력 디렉터리:"
+
+#: src/health_data_parser/gui/run_panel.py:100
+msgid "Symptom data:"
+msgstr "증상 데이터:"
+
+#: src/health_data_parser/gui/run_panel.py:101
+msgid "Food data:"
+msgstr "식품 데이터:"
+
+#: src/health_data_parser/gui/run_panel.py:102
+msgid "Extra observations:"
+msgstr "추가 관찰:"
+
+#: src/health_data_parser/gui/run_panel.py:104
+msgid "Options"
+msgstr "옵션"
+
+#: src/health_data_parser/gui/run_panel.py:106
+msgid "Start year:"
+msgstr "시작 연도:"
+
+#: src/health_data_parser/gui/run_panel.py:107
+msgid "Skip dates:"
+msgstr "날짜 건너뛰기:"
+
+#: src/health_data_parser/gui/run_panel.py:108
+msgid "In-range abnormal boundary:"
+msgstr "범위 내 비정상 경계:"
+
+#: src/health_data_parser/gui/run_panel.py:109
+msgid "Birth date:"
+msgstr "생년월일:"
+
+#: src/health_data_parser/gui/symptoms.py:25
+msgid "Edit Symptom"
+msgstr "증상 편집"
+
+#: src/health_data_parser/gui/symptoms.py:25
+msgid "Add Symptom"
+msgstr "증상 추가"
+
+#: src/health_data_parser/gui/symptoms.py:31
+#: src/health_data_parser/gui/symptoms.py:33
+msgid "Comma-separated"
+msgstr "쉼표 구분"
+
+#: src/health_data_parser/gui/symptoms.py:43
+msgid "Name:"
+msgstr "이름:"
+
+#: src/health_data_parser/gui/symptoms.py:44
+msgid "Start date:"
+msgstr "시작 날짜:"
+
+#: src/health_data_parser/gui/symptoms.py:45
+msgid "End date:"
+msgstr "종료일:"
+
+#: src/health_data_parser/gui/symptoms.py:46
+msgid "Medications:"
+msgstr "약:"
+
+#: src/health_data_parser/gui/symptoms.py:47
+msgid "Stimulants:"
+msgstr "각성제:"
+
+#: src/health_data_parser/gui/symptoms.py:48
+msgid "Comment:"
+msgstr "댓글:"
+
+#: src/health_data_parser/gui/symptoms.py:49
+msgid "Severity (1-10):"
+msgstr "심각도 (1-10):"
+
+#: src/health_data_parser/gui/symptoms.py:73 tests/gui/test_symptoms.py:29
+msgid "Name is required."
+msgstr "이름은 필수입니다."
+
+#: src/health_data_parser/gui/symptoms.py:77 tests/gui/test_symptoms.py:41
+msgid "The end date is before the start date."
+msgstr "종료 날짜가 시작 날짜보다 앞섭니다."
+
+#: src/health_data_parser/gui/symptoms.py:99
+#: src/health_data_parser/gui/symptoms.py:310
+msgid "Import Symptoms"
+msgstr "증상 가져오기"
+
+#: src/health_data_parser/gui/symptoms.py:102
+msgid "Import mode:"
+msgstr "가져오기 모드:"
+
+#: src/health_data_parser/gui/symptoms.py:104
+msgid "Append to the current symptoms"
+msgstr "현재 증상에 추가"
+
+#: src/health_data_parser/gui/symptoms.py:105
+msgid "Replace the current symptoms"
+msgstr "현재 증상을 교체하기"
+
+#: src/health_data_parser/gui/symptoms.py:106
+msgid "Merge: update symptoms with the same name and dates, add the rest"
+msgstr "병합: 동일한 이름과 날짜의 증상을 업데이트하고 나머지를 추가"
+
+#: src/health_data_parser/gui/symptoms.py:159
+msgid "Open..."
+msgstr "열기..."
+
+#: src/health_data_parser/gui/symptoms.py:160
+msgid "Save"
+msgstr "저장"
+
+#: src/health_data_parser/gui/symptoms.py:161
+msgid "Import..."
+msgstr "가져오기..."
+
+#: src/health_data_parser/gui/symptoms.py:162
+msgid "Export..."
+msgstr "내보내기..."
+
+#: src/health_data_parser/gui/symptoms.py:163
+msgid "Add..."
+msgstr "추가..."
+
+#: src/health_data_parser/gui/symptoms.py:164
+msgid "Edit..."
+msgstr "편집..."
+
+#: src/health_data_parser/gui/symptoms.py:165
+msgid "Delete"
+msgstr "삭제"
+
+#: src/health_data_parser/gui/symptoms.py:166
+msgid "Undo Delete"
+msgstr "삭제 실행 취소"
+
+#: src/health_data_parser/gui/symptoms.py:174
+msgid "Search names, medications, stimulants and comments"
+msgstr "이름, 약물, 자극제 및 댓글 검색"
+
+#: src/health_data_parser/gui/symptoms.py:177
+msgid "Show resolved"
+msgstr "해결된 항목 표시"
+
+#: src/health_data_parser/gui/symptoms.py:179
+msgid "Between"
+msgstr "사이"
+
+#: src/health_data_parser/gui/symptoms.py:192
+msgid "and"
+msgstr "그리고"
+
+#: src/health_data_parser/gui/symptoms.py:236
+msgid "Unsaved Symptoms"
+msgstr "저장되지 않은 증상"
+
+#: src/health_data_parser/gui/symptoms.py:236
+msgid "Save the changes to the symptoms first?"
+msgstr "증상에 대한 변경 사항을 먼저 저장하시겠습니까?"
+
+#: src/health_data_parser/gui/symptoms.py:259
+msgid "Failed to read \"{0}\": {1}"
+msgstr "\"{0}\" 읽기에 실패했습니다: {1}"
+
+#: src/health_data_parser/gui/symptoms.py:264
+#: src/health_data_parser/gui/symptoms.py:324
+msgid "Invalid Rows"
+msgstr "잘못된 행"
+
+#: src/health_data_parser/gui/symptoms.py:264
+msgid "{0} rows could not be read and were left out."
+msgstr "{0} 행을 읽을 수 없으며 제외되었습니다."
+
+#: src/health_data_parser/gui/symptoms.py:277
+msgid "Open Symptoms"
+msgstr "증상 열기"
+
+#: src/health_data_parser/gui/symptoms.py:285
+msgid "Save Symptoms"
+msgstr "증상 저장"
+
+#: src/health_data_parser/gui/symptoms.py:293
+msgid "Failed to save symptoms: {0}"
+msgstr "증상 저장에 실패했습니다: {0}"
+
+#: src/health_data_parser/gui/symptoms.py:319
+msgid "Failed to import CSV: {0}"
+msgstr "CSV 가져오기 실패: {0}"
+
+#: src/health_data_parser/gui/symptoms.py:325
+msgid "Found {0} invalid rows. Continue importing valid rows?"
+msgstr "잘못된 행이 {0}개 발견되었습니다. 유효한 행을 계속 가져오시겠습니까?"
+
+#: src/health_data_parser/gui/symptoms.py:335
+msgid "Updated {0} symptoms and added {1}."
+msgstr "업데이트된 {0} 증상과 추가된 {1}."
+
+#: src/health_data_parser/gui/symptoms.py:337
+msgid "Replaced the symptoms with {0} imported symptoms."
+msgstr "증상을 {0}개의 가져온 증상으로 교체했습니다."
+
+#: src/health_data_parser/gui/symptoms.py:339
+msgid "Added {0} symptoms."
+msgstr "증상이 {0}개 추가되었습니다."
+
+#: src/health_data_parser/gui/symptoms.py:340
+msgid "Import Complete"
+msgstr "가져오기 완료"
+
+#: src/health_data_parser/gui/symptoms.py:343
+msgid "Export Symptoms"
+msgstr "증상 내보내기"
+
+#: src/health_data_parser/gui/symptoms.py:349
+msgid "Failed to export CSV: {0}"
+msgstr "CSV 내보내기 실패: {0}"
+
+#: src/health_data_parser/gui/symptoms.py:351
+msgid "Export Complete"
+msgstr "내보내기 완료"
+
+#: src/health_data_parser/gui/symptoms.py:352
+msgid "Exported {0} symptoms."
+msgstr "내보낸 {0} 증상."
+
+#: src/health_data_parser/gui/symptoms.py:409
+msgid "(no file)"
+msgstr "(파일 없음)"
+
+#: src/health_data_parser/gui/symptoms.py:410
+msgid "{0} (unsaved changes)"
+msgstr "{0} (저장되지 않은 변경 사항)"
+
+#: src/health_data_parser/gui/widgets.py:15
+msgid "CSV files (*.csv);;All files (*)"
+msgstr "CSV 파일 (*.csv);;모든 파일 (*)"
+
+#: src/health_data_parser/gui/widgets.py:54
+msgid "Browse..."
+msgstr "찾아보기..."
+
+#: src/health_data_parser/gui/widgets.py:136
+msgid "Add"
+msgstr "추가"
+
+#: src/health_data_parser/gui/widgets.py:137
+msgid "Remove"
+msgstr "제거"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Not set"
+msgstr "설정되지 않음"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Month"
+msgstr "월"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Day"
+msgstr "일"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Other text"
+msgstr "다른 텍스트"
+
+#: src/health_data_parser/gui/widgets.py:185
+msgid "e.g. Chronic"
+msgstr "예: 만성"
+
+#: src/health_data_parser/gui/worker.py:48 tests/gui/test_main_window.py:109
+msgid "Unexpected error: {0}"
+msgstr "예기치 않은 오류: {0}"
+
+#: src/health_data_parser/ingest/apple_xml.py:39
+#: tests/ingest/test_apple_xml.py:168
+msgid "An exception occurred in parsing XML export files: {0}"
+msgstr "XML 내보내기 파일 구문 분석 중 예외가 발생했습니다: {0}"
+
+#: src/health_data_parser/ingest/custom_observations.py:20
+#: tests/ingest/test_custom_observations.py:89
+msgid "Missing custom observation results CSV file."
+msgstr "사용자 지정 관측 결과 CSV 파일이 없습니다."
+
+#: src/health_data_parser/ingest/custom_observations.py:25
+#: tests/cli/test_cli.py:130 tests/ingest/test_custom_observations.py:36
+msgid "Custom observation results CSV file \"{0}\" is invalid."
+msgstr "사용자 지정 관찰 결과 CSV 파일 \"{0}\"이(가) 올바르지 않습니다."
+
+#: src/health_data_parser/ingest/symptoms_csv.py:30
+#: tests/ingest/test_symptoms_csv.py:31
+msgid "Invalid CSV format. Expected columns: {0}"
+msgstr "CSV 형식이 잘못되었습니다. 예상 열: {0}"
+
+#: src/health_data_parser/model/food.py:130
+#: src/health_data_parser/model/food.py:140 tests/model/test_custom_data.py:52
+msgid "{0} ({1} records)"
+msgstr "{0} ({1} 레코드)"
+
+#: src/health_data_parser/model/reference_range.py:25
+#: src/health_data_parser/reporting/pdf/report.py:345
+#: tests/analysis/test_summary.py:113 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:128
+msgid "LOW OUT OF RANGE"
+msgstr "범위 밖 낮음"
+
+#: src/health_data_parser/model/reference_range.py:26
+#: tests/analysis/test_summary.py:111 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:123 tests/test_pipeline.py:128
+#: tests/test_pipeline.py:171
+msgid "Low in range"
+msgstr "범위가 낮음"
+
+#: src/health_data_parser/model/reference_range.py:27
+#: tests/test_pipeline.py:128
+msgid "Non-negative result"
+msgstr "비음수 결과"
+
+#: src/health_data_parser/model/reference_range.py:28
+#: tests/test_pipeline.py:129
+msgid "High in range"
+msgstr "범위가 높음"
+
+#: src/health_data_parser/model/reference_range.py:29
+#: src/health_data_parser/reporting/pdf/report.py:345
+#: tests/analysis/test_summary.py:110 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:121 tests/test_pipeline.py:129
+#: tests/test_pipeline.py:170
+msgid "HIGH OUT OF RANGE"
+msgstr "높음, 범위 초과"
+
+#: src/health_data_parser/model/vitals.py:17
+msgid "Height"
+msgstr "높이"
+
+#: src/health_data_parser/model/vitals.py:18
+msgid "Weight"
+msgstr "무게"
+
+#: src/health_data_parser/model/vitals.py:19
+msgid "BMI"
+msgstr "BMI"
+
+#: src/health_data_parser/model/vitals.py:20
+msgid "Temperature"
+msgstr "온도"
+
+#: src/health_data_parser/model/vitals.py:21
+msgid "Pulse"
+msgstr "맥박"
+
+#: src/health_data_parser/model/vitals.py:22
+msgid "Respiration"
+msgstr "호흡"
+
+#: src/health_data_parser/model/vitals.py:23
+msgid "Blood Pressure"
+msgstr "혈압"
+
+#: src/health_data_parser/model/vitals.py:24
+msgid "BP Systolic"
+msgstr "수축기 혈압"
+
+#: src/health_data_parser/model/vitals.py:25
+msgid "BP Diastolic"
+msgstr "혈압 이완기"
+
+#: src/health_data_parser/model/vitals.py:26
+msgid "Heart rate variability"
+msgstr "심박 변동성"
+
+#: src/health_data_parser/model/vitals.py:27
+msgid "SpO2"
+msgstr "SpO2"
+
+#: src/health_data_parser/model/vitals.py:28
+#: src/health_data_parser/reporting/charts/vitals.py:225
+msgid "Apple stand minutes"
+msgstr "Apple 스탠드 회의록"
+
+#: src/health_data_parser/model/vitals.py:29
+msgid "Steps"
+msgstr "단계"
+
+#: src/health_data_parser/reporting/outputs.py:35
+msgid "Laboratory Abnormal Results from Apple Health Data by Code"
+msgstr "코드별 Apple Health 데이터에서 추출한 이상 실험실 결과"
+
+#: src/health_data_parser/reporting/outputs.py:40 tests/test_pipeline.py:119
+msgid "Abnormal results found for code {0}:"
+msgstr "코드 {0}에 대한 비정상 결과가 발견되었습니다:"
+
+#: src/health_data_parser/reporting/outputs.py:44 tests/test_pipeline.py:120
+#: tests/test_pipeline.py:122
+msgid "{0}: {1} - observed {2} - range {3}"
+msgstr "{0}: {1} - 관측 {2} - 범위 {3}"
+
+#: src/health_data_parser/reporting/outputs.py:48
+msgid "{0}: {1} - observed {2}"
+msgstr "{0}: {1} - 관측된 {2}"
+
+#: src/health_data_parser/reporting/outputs.py:72
+msgid "Laboratory Abnormal Results by Interpretation from Apple Health Data"
+msgstr "Apple Health 데이터의 실험실 비정상 결과(해석별)"
+
+#: src/health_data_parser/reporting/outputs.py:95
+msgid "Laboratory Abnormal Results from Apple Health Data"
+msgstr "Apple Health 데이터의 검사 이상 결과"
+
+#: src/health_data_parser/reporting/outputs.py:119
+msgid "Laboratory Observations from Apple Health Data"
+msgstr "Apple Health 데이터의 실험실 관찰"
+
+#: src/health_data_parser/reporting/outputs.py:122 tests/test_pipeline.py:147
+#: tests/test_pipeline.py:148
+msgid "{0} range"
+msgstr "{0} 범위"
+
+#: src/health_data_parser/reporting/outputs.py:123 tests/test_pipeline.py:147
+#: tests/test_pipeline.py:148
+msgid "{0} result"
+msgstr "{0} 결과"
+
+#: src/health_data_parser/reporting/outputs.py:145
+msgid "An error occurred in writing observations data to CSV."
+msgstr "관측 데이터를 CSV에 기록하는 중 오류가 발생했습니다."
+
+#: src/health_data_parser/reporting/outputs.py:159
+msgid "An error occurred in writing observations data to JSON: {0}"
+msgstr "관측 데이터를 JSON으로 기록하는 중 오류가 발생했습니다: {0}"
+
+#: src/health_data_parser/reporting/outputs.py:171
+msgid "An error occurred in writing observations data to PDF report: {0}"
+msgstr "관측 데이터 PDF 보고서에 쓰는 중 오류가 발생했습니다: {0}"
+
+#: src/health_data_parser/reporting/charts/symptoms.py:138
+msgid "PRIMARY CAUSE / STIMULANT"
+msgstr "주요 원인 / 자극물"
+
+#: src/health_data_parser/reporting/charts/symptoms.py:141
+msgid "MEDICATION / TREATMENT"
+msgstr "투약 / 치료"
+
+#: src/health_data_parser/reporting/charts/vitals.py:194
+msgid "Average heart rates over 24 hours (+/– one standard deviation)"
+msgstr "24시간 평균 심박수 (± 1표준편차)"
+
+#: src/health_data_parser/reporting/charts/vitals.py:195
+#: src/health_data_parser/reporting/charts/vitals.py:223
+msgid "BPM"
+msgstr "BPM"
+
+#: src/health_data_parser/reporting/charts/vitals.py:196
+#: src/health_data_parser/reporting/charts/vitals.py:198
+#: src/health_data_parser/reporting/charts/vitals.py:200
+msgid "Time (minutes)"
+msgstr "시간 (분)"
+
+#: src/health_data_parser/reporting/charts/vitals.py:197
+msgid "Average motion context"
+msgstr "평균 모션 컨텍스트"
+
+#: src/health_data_parser/reporting/charts/vitals.py:199
+msgid "Counts of pulse spike"
+msgstr "펄스 스파이크 수"
+
+#: src/health_data_parser/reporting/charts/vitals.py:222
+msgid "Average heart rates, steps and stand minutes by day"
+msgstr "일별 평균 심박수, 걸음 수 및 서 있는 시간"
+
+#: src/health_data_parser/reporting/charts/vitals.py:224
+msgid "Apple steps"
+msgstr "Apple 단계"
+
+#: src/health_data_parser/reporting/charts/vitals.py:226
+msgid "BPM / stand min"
+msgstr "BPM / 대기분"
+
+#: src/health_data_parser/reporting/charts/vitals.py:227
+msgid "Days"
+msgstr "일"
+
+#: src/health_data_parser/reporting/pdf/report.py:162
+#: tests/reporting/test_pdf_report_sections.py:135
+msgid "No abnormal results were found in Apple Health data export."
+msgstr "Apple Health 데이터 내보내기에서 비정상적인 결과가 발견되지 않았습니다."
+
+#: src/health_data_parser/reporting/pdf/report.py:173
+#: src/health_data_parser/reporting/pdf/report.py:202
+msgid "UNKNOWN"
+msgstr "알 수 없음"
+
+#: src/health_data_parser/reporting/pdf/report.py:174
+msgid "Subject: {0} | Report created: {1}"
+msgstr "제목: {0} | 보고서 생성: {1}"
+
+#: src/health_data_parser/reporting/pdf/report.py:184
+msgid "Health Records Report"
+msgstr "건강 기록 보고서"
+
+#: src/health_data_parser/reporting/pdf/report.py:194
+#: src/health_data_parser/reporting/pdf/report.py:202
+msgid "Subject"
+msgstr "제목"
+
+#: src/health_data_parser/reporting/pdf/report.py:196
+msgid "DOB"
+msgstr "생년월일"
+
+#: src/health_data_parser/reporting/pdf/report.py:198
+msgid "Age"
+msgstr "연령"
+
+#: src/health_data_parser/reporting/pdf/report.py:200
+msgid "Sex"
+msgstr "섹스"
+
+#: src/health_data_parser/reporting/pdf/report.py:204
+msgid "Lab records count"
+msgstr "실험실 기록 수"
+
+#: src/health_data_parser/reporting/pdf/report.py:206
+msgid "Earliest record"
+msgstr "가장 이른 기록"
+
+#: src/health_data_parser/reporting/pdf/report.py:208
+msgid "Most recent record"
+msgstr "가장 최근 기록"
+
+#: src/health_data_parser/reporting/pdf/report.py:210
+msgid "Report assembled"
+msgstr "보고서가 조립되었습니다"
+
+#: src/health_data_parser/reporting/pdf/report.py:225
+msgid "Summary of Vitals"
+msgstr "바이탈 요약"
+
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "StDev"
+msgstr "표준편차"
+
+#: src/health_data_parser/reporting/pdf/report.py:258
+msgid "WARNING: Abnormal results were found."
+msgstr "경고: 비정상적인 결과가 발견되었습니다."
+
+#: src/health_data_parser/reporting/pdf/report.py:262
+msgid "Lab codes with abnormal results"
+msgstr "비정상 결과가 있는 검사 코드"
+
+#: src/health_data_parser/reporting/pdf/report.py:264
+msgid "Total abnormal observations"
+msgstr "비정상 관측 총계"
+
+#: src/health_data_parser/reporting/pdf/report.py:270
+msgid ""
+"NOTE: Reference ranges for tests are not static. The range displayed in all "
+"tables represents the most recent range available. A result classified as "
+"abnormal by an old range may be acceptable within current ranges."
+msgstr ""
+"참고: 검사의 기준 범위는 고정되어 있지 않습니다. 모든 표에 표시된 범위는 최신 범위를 나타냅니다. 이전 범위에 따라 비정상으로 분류된"
+" 결과도 현재 범위 내에서는 허용될 수 있습니다."
+
+#: src/health_data_parser/reporting/pdf/report.py:279
+msgid ""
+"Abnormal results may include results within ranges at +/-{0} ends of the "
+"relevant range. These are labeled as lower severity with the labels \"High "
+"in range\" and \"Low in range\" or tags \"++\" and \"--\". Tags \"+++\" and "
+"\"---\" indicate high and low out of range. Tag \"+\" indicates a positive "
+"result."
+msgstr ""
+"비정상 결과에는 관련 범위의 +/-{0} 끝부분에 해당하는 결과가 포함될 수 있습니다. 이는 \\\"High in range\\\"와 "
+"\\\"Low in range\\\" 또는 태그 \\\"++\\\"와 \\\"--\\\"로 낮은 심각도로 표시됩니다. 태그 "
+"\\\"+++\\\"와 \\\"---\\\"는 범위 초과 높은값 및 낮은값을 나타냅니다. 태그 \\\"+\\\"는 양성 결과를 "
+"의미합니다."
+
+#: src/health_data_parser/reporting/pdf/report.py:285
+msgid ""
+"All listed abnormal results are out of the relevant range. Tags \"+++\" and "
+"\"---\" indicate high and low out of range. Tag \"+\" indicates a positive "
+"result."
+msgstr ""
+"목록에 있는 모든 비정상 결과는 해당 범위를 벗어났습니다. \"+++\"와 \"---\" 태그는 각각 높은 범위 초과와 낮은 범위 초과를"
+" 나타냅니다. \"+\" 태그는 양성 결과를 의미합니다."
+
+#: src/health_data_parser/reporting/pdf/report.py:295
+msgid "Sections included in this report"
+msgstr "이 보고서에 포함된 섹션"
+
+#: src/health_data_parser/reporting/pdf/report.py:301
+msgid "Symptoms Report"
+msgstr "증상 보고서"
+
+#: src/health_data_parser/reporting/pdf/report.py:303
+#: src/health_data_parser/reporting/pdf/report.py:338
+msgid "Abnormal Results By Code Summary"
+msgstr "코드별 비정상 결과 요약"
+
+#: src/health_data_parser/reporting/pdf/report.py:304
+msgid "Abnormal Results By Code Detail"
+msgstr "코드별 비정상 결과 상세"
+
+#: src/health_data_parser/reporting/pdf/report.py:306
+#: src/health_data_parser/reporting/pdf/report.py:374
+#: tests/reporting/test_pdf_report_sections.py:101
+#: tests/reporting/test_pdf_report_sections.py:115
+#: tests/reporting/test_pdf_report_sections.py:136
+#: tests/utils/test_translations.py:79 tests/utils/test_translations.py:88
+msgid "All Lab Observations"
+msgstr "모든 실험실 관찰"
+
+#: src/health_data_parser/reporting/pdf/report.py:308
+#: src/health_data_parser/reporting/pdf/report.py:471
+#: src/health_data_parser/reporting/pdf/report.py:513
+msgid "Heart Rate Data Analysis"
+msgstr "심박수 데이터 분석"
+
+#: src/health_data_parser/reporting/pdf/report.py:310
+#: src/health_data_parser/reporting/pdf/report.py:543
+msgid "Food Data Analysis"
+msgstr "식품 데이터 분석"
+
+#: src/health_data_parser/reporting/pdf/report.py:315
+msgid "Symptoms Report - Including Historical"
+msgstr "증상 보고서 - 이력 포함"
+
+#: src/health_data_parser/reporting/pdf/report.py:317
+msgid "Symptoms Report - Unresolved"
+msgstr "증상 보고서 - 미해결"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+#: src/health_data_parser/reporting/pdf/report.py:345
+msgid "RESULT CODE"
+msgstr "결과 코드"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "L OUT"
+msgstr "로그아웃"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "L IN"
+msgstr "L 인"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+#: src/health_data_parser/reporting/pdf/report.py:345
+msgid "OBSERVED"
+msgstr "관찰됨"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "H IN"
+msgstr "H 인"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "H OUT"
+msgstr "H 출력"
+
+#: src/health_data_parser/reporting/pdf/report.py:367
+msgid "Abnormal Results By Code"
+msgstr "코드별 비정상 결과"
+
+#: src/health_data_parser/reporting/pdf/report.py:387
+msgid "Observation Code"
+msgstr "관측 코드"
+
+#: src/health_data_parser/reporting/pdf/report.py:443
+#: tests/reporting/test_pdf_report_sections.py:115
+msgid "{0} (continued)"
+msgstr "{0} (계속)"
+
+#: src/health_data_parser/reporting/pdf/report.py:477
+msgid "Total readings:"
+msgstr "전체 읽기:"
+
+#: src/health_data_parser/reporting/pdf/report.py:479
+msgid "Pulse average:"
+msgstr "맥박 평균:"
+
+#: src/health_data_parser/reporting/pdf/report.py:481
+msgid "Pulse standard deviation:"
+msgstr "펄스 표준 편차:"
+
+#: src/health_data_parser/reporting/pdf/report.py:487
+#: tests/reporting/test_pdf_report_sections.py:52
+#: tests/reporting/test_pdf_report_sections.py:57
+msgid "Percent in motion:"
+msgstr "모션 중 퍼센트:"
+
+#: src/health_data_parser/reporting/pdf/report.py:489
+msgid "Average in motion:"
+msgstr "동작 중 평균:"
+
+#: src/health_data_parser/reporting/pdf/report.py:491
+msgid "Average resting:"
+msgstr "평균 휴식:"
+
+#: src/health_data_parser/reporting/pdf/report.py:500
+#: src/health_data_parser/reporting/pdf/report.py:529
+#: src/health_data_parser/reporting/pdf/report.py:569
+msgid "NOTES"
+msgstr "메모"
+
+#: src/health_data_parser/reporting/pdf/report.py:503
+msgid ""
+"\"Motion\" data found in Apple wearable observations. All pulse observations"
+" in clinical records data are assumed to be obtained in a non-motion state. "
+"The reliability of motion data may be questionable."
+msgstr ""
+"\"Motion\" 데이터가 Apple 웨어러블 관찰에서 발견되었습니다. 임상 기록 데이터의 모든 맥박 관찰은 비동작 상태에서 얻어진 "
+"것으로 간주됩니다. 모션 데이터의 신뢰성은 의심될 수 있습니다."
+
+#: src/health_data_parser/reporting/pdf/report.py:507
+msgid ""
+"\"Pulse spikes\" are instances where there is an increase of pulse by at "
+"least 40 BPM during 5 or fewer minutes."
+msgstr "\"맥박 스파이크\"는 5분 이하 동안 맥박이 최소 40 BPM 증가하는 경우를 말합니다."
+
+#: src/health_data_parser/reporting/pdf/report.py:517
+msgid "Dates recorded:"
+msgstr "기록된 날짜:"
+
+#: src/health_data_parser/reporting/pdf/report.py:519
+msgid "Earliest date:"
+msgstr "가장 이른 날짜:"
+
+#: src/health_data_parser/reporting/pdf/report.py:521
+msgid "Most recent date:"
+msgstr "가장 최근 날짜:"
+
+#: src/health_data_parser/reporting/pdf/report.py:532
+msgid ""
+"\"Steps\" and \"Stand minutes\" data found in Apple wearable observations. "
+"Stand minutes are usually only counted when in motion, so true stand minutes"
+" will be higher, while true step count may vary in either direction from "
+"recorded values."
+msgstr ""
+"\"Steps\" 및 \"Stand minutes\" 데이터가 Apple 웨어러블 관측에서 발견되었습니다. Stand minutes는 "
+"보통 움직일 때만 계산되므로 실제 Stand minutes는 더 높고, 실제 걸음 수는 기록된 값보다 양쪽으로 변동될 수 있습니다."
+
+#: src/health_data_parser/reporting/pdf/report.py:547
+msgid "Total food records:"
+msgstr "총 식품 기록:"
+
+#: src/health_data_parser/reporting/pdf/report.py:549
+msgid "Earliest food record:"
+msgstr "가장 이른 식품 기록:"
+
+#: src/health_data_parser/reporting/pdf/report.py:551
+msgid "Most recent food record:"
+msgstr "가장 최근 음식 기록:"
+
+#: src/health_data_parser/reporting/pdf/report.py:553
+msgid "Total meals recorded:"
+msgstr "총 기록된 식사 수:"
+
+#: src/health_data_parser/reporting/pdf/report.py:555
+msgid "Total dates recorded:"
+msgstr "기록된 총 날짜:"
+
+#: src/health_data_parser/reporting/pdf/report.py:557
+msgid "Average meals per day:"
+msgstr "하루 평균 식사 횟수:"
+
+#: src/health_data_parser/reporting/pdf/report.py:562
+msgid "Most common foods recorded"
+msgstr "기록된 가장 흔한 식품"
+
+#: src/health_data_parser/reporting/pdf/report.py:573
+msgid "Certain diets are contraindicated by the foods found. These include:"
+msgstr "발견된 식품으로 인해 특정 식단은 금기됩니다. 포함되는 식단은 다음과 같습니다:"
+
+#: src/health_data_parser/reporting/pdf/report.py:576
+msgid "DANGER:"
+msgstr "위험:"
+
+#: src/health_data_parser/reporting/pdf/report.py:579
+msgid "WARNING:"
+msgstr "경고:"
+
+#: tests/gui/test_models.py:45
+msgid "High"
+msgstr "높음"
+
+#: tests/utils/test_translations.py:73
+msgid "Some text that has no translation"
+msgstr "번역이 없는 텍스트"

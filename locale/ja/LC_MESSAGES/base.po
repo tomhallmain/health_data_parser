@@ -1,0 +1,1386 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"POT-Creation-Date: 2026-10-01 07:53-0400\n"
+"PO-Revision-Date: 2026-10-01 07:53-0400\n"
+"Last-Translator: Translator Name <translator@example.com>\n"
+"Language-Team: ja Team <<EMAIL>>\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/health_data_parser/options.py:74 tests/cli/test_cli.py:97
+msgid "Output directory \"{0}\" is a file."
+msgstr "出力ディレクトリ「{0}」はファイルです。"
+
+#: src/health_data_parser/options.py:76 src/health_data_parser/options.py:129
+#: tests/cli/test_cli.py:69 tests/cli/test_cli.py:90
+msgid "\"{0}\" is not a valid year."
+msgstr "\"{0}\" は有効な年ではありません。"
+
+#: src/health_data_parser/options.py:79 tests/cli/test_cli.py:73
+msgid ""
+"\"{0}\" is not a valid decimal-formatted percentage: its absolute value must"
+" be less than 0.5."
+msgstr "「{0}」は有効な小数形式のパーセンテージではありません：絶対値は0.5未満である必要があります。"
+
+#: src/health_data_parser/options.py:82 tests/cli/test_cli.py:71
+msgid "\"{0}\" is not a valid list of dates in format YYYY-MM-DD."
+msgstr "「{0}」はYYYY-MM-DD形式の有効な日付リストではありません。"
+
+#: src/health_data_parser/options.py:86 tests/cli/test_cli.py:77
+msgid "\"{0}\" is not a valid date in format YYYY-MM-DD."
+msgstr "\"{0}\" は YYYY-MM-DD 形式の有効な日付ではありません。"
+
+#: src/health_data_parser/options.py:92 tests/gui/test_run_panel.py:19
+msgid "Missing Apple Health data export directory path."
+msgstr "Apple Health データエクスポートディレクトリのパスがありません。"
+
+#: src/health_data_parser/options.py:95 tests/cli/test_cli.py:33
+msgid "Apple Health data export directory path \"{0}\" is invalid."
+msgstr "Apple Health のデータエクスポートディレクトリパス「{0}」が無効です。"
+
+#: src/health_data_parser/options.py:98 tests/cli/test_cli.py:60
+msgid ""
+"Folder \"clinical-records\" not found in export folder \"{0}\". Ensure data "
+"has been connected to Apple Health before export."
+msgstr ""
+"エクスポートフォルダー「{0}」にフォルダー「clinical-records」が見つかりません。エクスポート前にデータがApple "
+"Healthに接続されていることを確認してください。"
+
+#: src/health_data_parser/options.py:140 tests/cli/test_cli.py:76
+msgid "\"{0}\" is not a valid decimal-formatted percentage."
+msgstr "「{0}」は有効な小数形式のパーセンテージではありません。"
+
+#: src/health_data_parser/options.py:149 tests/cli/test_cli.py:79
+msgid "{0} value \"{1}\" is not a boolean (true or false)."
+msgstr "{0} の値 \"{1}\" はブール値ではありません (true または false)。"
+
+#: src/health_data_parser/pipeline.py:109
+msgid "Failed to read extra observations data \"{0}\"."
+msgstr "余分な観測データ \"{0}\" の読み取りに失敗しました。"
+
+#: src/health_data_parser/pipeline.py:119
+#: src/health_data_parser/pipeline.py:121 tests/cli/test_cli.py:102
+msgid "Failed to assemble or analyze food data provided."
+msgstr "提供された食品データの組み立てまたは分析に失敗しました。"
+
+#: src/health_data_parser/pipeline.py:131
+msgid "Failed to assemble symptom data provided."
+msgstr "提供された症状データの組み立てに失敗しました。"
+
+#: src/health_data_parser/pipeline.py:169
+msgid "No relevant laboratory records found in exported Apple Health data"
+msgstr "エクスポートされたApple Healthデータに関連する検査記録が見つかりません"
+
+#: src/health_data_parser/analysis/summary.py:48
+#: tests/gui/test_main_window.py:52
+msgid "Total Observations: {0}"
+msgstr "総観測数: {0}"
+
+#: src/health_data_parser/analysis/summary.py:49
+msgid "Vital Signs Observations: {0}"
+msgstr "バイタルサインの観察結果：{0}"
+
+#: src/health_data_parser/analysis/summary.py:50
+msgid "Unique Tests: {0}"
+msgstr "ユニークテスト：{0}"
+
+#: src/health_data_parser/analysis/summary.py:53
+#: tests/analysis/test_summary.py:102
+msgid "Date Range: {0} to {1}"
+msgstr "期間: {0} から {1}"
+
+#: src/health_data_parser/analysis/summary.py:54
+msgid "Abnormal Results: {0}"
+msgstr "異常な結果: {0}"
+
+#: src/health_data_parser/analysis/summary.py:55
+msgid "Tests With Abnormal Results: {0}"
+msgstr "異常結果のテスト：{0}"
+
+#: src/health_data_parser/analysis/summary.py:66
+msgid "Abnormal"
+msgstr "異常"
+
+#: src/health_data_parser/analysis/summary.py:67
+#: src/health_data_parser/gui/models.py:90 tests/analysis/test_summary.py:112
+#: tests/gui/test_models.py:46 tests/test_pipeline.py:169
+msgid "Normal"
+msgstr "通常"
+
+#: src/health_data_parser/analysis/summary.py:152
+msgid "Unclassified"
+msgstr "未分類"
+
+#: src/health_data_parser/cli/diagnostic_reports.py:13
+msgid ""
+"\n"
+"Usage:\n"
+"\n"
+"   $ health-data-parser-reports path/to/observation_data.csv [options]\n"
+"\n"
+"Writes the observations in the CSV as DiagnosticReport JSON files next to it.\n"
+"\n"
+"    -h, --help\n"
+"        Print this help text\n"
+"\n"
+"    -v, --verbose\n"
+"        Run in verbose mode\n"
+msgstr ""
+" 使用方法:\n"
+"\n"
+"   $ health-data-parser-reports path/to/observation_data.csv [options]\n"
+"\n"
+"CSV の観測データを書き出し、隣に DiagnosticReport JSON ファイルを作成します。\n"
+"\n"
+"    -h, --help\n"
+"        このヘルプテキストを表示します\n"
+"\n"
+"    -v, --verbose\n"
+"        冗長モードで実行します "
+
+#: src/health_data_parser/cli/parse.py:17
+msgid ""
+"Parse an Apple Health export (plus optional custom data) into a PDF report "
+"and JSON/CSV/text files."
+msgstr "Apple Healthのエクスポート（オプションのカスタムデータ含む）をPDFレポートとJSON/CSV/テキストファイルに変換する。"
+
+#: src/health_data_parser/cli/parse.py:20
+msgid "Apple Health export directory (containing clinical-records/)"
+msgstr "Apple Health エクスポートディレクトリ（clinical-records/ を含む）"
+
+#: src/health_data_parser/cli/parse.py:30
+msgid ""
+"Write outputs here instead of the export directory (created if missing)"
+msgstr "エクスポートディレクトリの代わりにここに出力を書き込みます（存在しない場合は作成）"
+
+#: src/health_data_parser/cli/parse.py:32
+msgid "Do not parse export.xml (much faster)"
+msgstr "export.xml を解析しない（はるかに高速）"
+
+#: src/health_data_parser/cli/parse.py:33
+msgid "Exclude results from before this year"
+msgstr "今年以前の結果を除外する"
+
+#: src/health_data_parser/cli/parse.py:35
+msgid "Exclude results from these dates (comma-separated, YYYY-MM-DD)"
+msgstr "これらの日付の結果を除外（カンマ区切り、YYYY-MM-DD）"
+
+#: src/health_data_parser/cli/parse.py:37
+msgid ""
+"Exclude observations with excessively long result values (full diagnostic "
+"report text mixed into a single observation)"
+msgstr "結果値が過度に長い観測を除外する（診断レポート全体のテキストが単一の観測に混ざっている）"
+
+#: src/health_data_parser/cli/parse.py:40
+msgid ""
+"Only collect abnormal results that are out of range, not those near the ends"
+" of their range"
+msgstr "範囲外の異常結果のみを収集し、範囲の端に近いものは除外する"
+
+#: src/health_data_parser/cli/parse.py:43
+msgid ""
+"How close to either end of a range counts as abnormal (default 0.15, i.e. "
+"15%%; absolute value must be under 0.5)"
+msgstr "範囲のどちらの端にどれだけ近いかを異常とみなすか (デフォルト 0.15、すなわち 15%%；絶対値は 0.5 未満である必要があります)"
+
+#: src/health_data_parser/cli/parse.py:46
+msgid ""
+"Laboratory data not in Apple Health, in the format of "
+"sample_templates/sample_observations_data.csv"
+msgstr ""
+"Apple Healthに含まれない検査データ、sample_templates/sample_observations_data.csv の形式で"
+
+#: src/health_data_parser/cli/parse.py:49
+msgid "Current and past symptoms, for a timeline chart in the PDF report"
+msgstr "PDFレポートのタイムラインチャート用、現在および過去の症状"
+
+#: src/health_data_parser/cli/parse.py:51
+msgid "Food log, for nutrition charts in the PDF report"
+msgstr "食品ログ、PDFレポートの栄養チャート用"
+
+#: src/health_data_parser/cli/parse.py:53
+msgid ""
+"Highlight abnormal results in the report's observation tables (default true)"
+msgstr "レポートの観察テーブルで異常結果をハイライトする（デフォルト true）"
+
+#: src/health_data_parser/cli/parse.py:55
+#: src/health_data_parser/gui/run_panel.py:77
+msgid "Subject birth date for the report, if not found in export.xml"
+msgstr "レポート用の対象者の生年月日、export.xml に見つからない場合"
+
+#: src/health_data_parser/cli/parse.py:57
+msgid ""
+"Include every vital sign reading in observations.json (can be large with a "
+"wearable)"
+msgstr "observations.json にすべてのバイタルサイン測定値を含める（ウェアラブル使用時は大きくなる可能性あり）"
+
+#: src/health_data_parser/cli/parse.py:60
+msgid ""
+"Skip the Apple Health export data; report only on the custom files given"
+msgstr "Apple Health のエクスポートデータはスキップし、指定されたカスタムファイルのみ報告する"
+
+#: src/health_data_parser/cli/parse.py:61
+msgid "Log more detail"
+msgstr "詳細をさらに記録"
+
+#: src/health_data_parser/gui/charts.py:25
+msgid "Observations by Year"
+msgstr "年別観測"
+
+#: src/health_data_parser/gui/charts.py:26
+#: src/health_data_parser/gui/charts.py:50
+msgid "Observations"
+msgstr "観測"
+
+#: src/health_data_parser/gui/charts.py:28
+msgid "No observations"
+msgstr "観測なし"
+
+#: src/health_data_parser/gui/charts.py:32
+msgid "Abnormal Results by Interpretation"
+msgstr "解釈別異常結果"
+
+#: src/health_data_parser/gui/charts.py:33
+msgid "Results"
+msgstr "結果"
+
+#: src/health_data_parser/gui/charts.py:36
+msgid "No abnormal results"
+msgstr "異常な結果はありません"
+
+#: src/health_data_parser/gui/charts.py:45
+msgid "Health Data Trends"
+msgstr "健康データのトレンド"
+
+#: src/health_data_parser/gui/charts.py:50
+msgid "Observations per Date"
+msgstr "日付ごとの観測"
+
+#: src/health_data_parser/gui/charts.py:52
+msgid "Abnormal Results per Date"
+msgstr "日付別異常結果"
+
+#: src/health_data_parser/gui/charts.py:52
+msgid "Abnormal Results"
+msgstr "異常な結果"
+
+#: src/health_data_parser/gui/charts.py:64
+msgid "No data"
+msgstr "データなし"
+
+#: src/health_data_parser/gui/main_window.py:34
+msgid "Reading custom data files..."
+msgstr "カスタムデータファイルを読み込み中..."
+
+#: src/health_data_parser/gui/main_window.py:35
+msgid "Parsing export.xml..."
+msgstr "export.xml を解析中..."
+
+#: src/health_data_parser/gui/main_window.py:36
+msgid "Reading clinical records..."
+msgstr "臨床記録を読み込み中..."
+
+#: src/health_data_parser/gui/main_window.py:37
+msgid "Analyzing results..."
+msgstr "結果を分析中..."
+
+#: src/health_data_parser/gui/main_window.py:38
+msgid "Charting wearable data..."
+msgstr "ウェアラブルデータをチャート化..."
+
+#: src/health_data_parser/gui/main_window.py:39
+msgid "Writing output files and PDF..."
+msgstr "出力ファイルとPDFを書き込み中..."
+
+#: src/health_data_parser/gui/main_window.py:63
+msgid "Apple Health Data Parser"
+msgstr "Apple 健康データパーサー"
+
+#: src/health_data_parser/gui/main_window.py:79
+msgid "Generate Report"
+msgstr "レポート生成"
+
+#: src/health_data_parser/gui/main_window.py:80
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: src/health_data_parser/gui/main_window.py:81
+msgid "Load Results..."
+msgstr "結果を読み込み中..."
+
+#: src/health_data_parser/gui/main_window.py:104
+msgid "Summary"
+msgstr "概要"
+
+#: src/health_data_parser/gui/main_window.py:107
+msgid "Lab Results"
+msgstr "検査結果"
+
+#: src/health_data_parser/gui/main_window.py:110
+msgid "Vitals"
+msgstr "バイタル"
+
+#: src/health_data_parser/gui/main_window.py:113
+msgid "Trends"
+msgstr "トレンド"
+
+#: src/health_data_parser/gui/main_window.py:115
+msgid "Symptoms"
+msgstr "症状"
+
+#: src/health_data_parser/gui/main_window.py:127
+msgid "Log"
+msgstr "ログ"
+
+#: src/health_data_parser/gui/main_window.py:145
+msgid "Open PDF"
+msgstr "PDFを開く"
+
+#: src/health_data_parser/gui/main_window.py:146
+msgid "Open Output Folder"
+msgstr "出力フォルダーを開く"
+
+#: src/health_data_parser/gui/main_window.py:165
+msgid "Filter lab results"
+msgstr "検査結果を絞り込む"
+
+#: src/health_data_parser/gui/main_window.py:183
+msgid "Load Results"
+msgstr "結果を読み込む"
+
+#: src/health_data_parser/gui/main_window.py:218
+msgid "Starting..."
+msgstr "開始中..."
+
+#: src/health_data_parser/gui/main_window.py:225
+msgid "Cancelling after the current step..."
+msgstr "現在の手順の後にキャンセルしています..."
+
+#: src/health_data_parser/gui/main_window.py:238
+#: tests/gui/test_main_window.py:48
+msgid "Report generated."
+msgstr "レポートが生成されました。"
+
+#: src/health_data_parser/gui/main_window.py:249
+msgid "Report Failed"
+msgstr "レポート失敗"
+
+#: src/health_data_parser/gui/main_window.py:254
+msgid "Cancelled."
+msgstr "キャンセルしました。"
+
+#: src/health_data_parser/gui/main_window.py:269
+#: src/health_data_parser/gui/main_window.py:319
+#: src/health_data_parser/gui/symptoms.py:259
+#: src/health_data_parser/gui/symptoms.py:293
+#: src/health_data_parser/gui/symptoms.py:316
+#: src/health_data_parser/gui/symptoms.py:319
+#: src/health_data_parser/gui/symptoms.py:349
+msgid "Error"
+msgstr "エラー"
+
+#: src/health_data_parser/gui/main_window.py:269
+msgid "Failed to load results: {0}"
+msgstr "結果の読み込みに失敗しました: {0}"
+
+#: src/health_data_parser/gui/main_window.py:274
+msgid "No {0} found in {1}."
+msgstr "{1}に{0}が見つかりません。"
+
+#: src/health_data_parser/gui/main_window.py:319
+msgid "Failed to create symptom file: {0}"
+msgstr "症状ファイルの作成に失敗しました: {0}"
+
+#: src/health_data_parser/gui/models.py:89
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Date"
+msgstr "日付"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Test"
+msgstr "テスト"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Value"
+msgstr "値"
+
+#: src/health_data_parser/gui/models.py:89
+#: src/health_data_parser/reporting/pdf/report.py:387
+msgid "Range"
+msgstr "範囲"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Status"
+msgstr "ステータス"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Vital"
+msgstr "必須"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Unit"
+msgstr "ユニット"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Most Recent"
+msgstr "最新"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Min"
+msgstr "分"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Max"
+msgstr "マックス"
+
+#: src/health_data_parser/gui/models.py:96
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Average"
+msgstr "平均"
+
+#: src/health_data_parser/gui/models.py:96
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Count"
+msgstr "カウント"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Name"
+msgstr "お名前 (必須)"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Start Date"
+msgstr "開始日"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "End Date"
+msgstr "終了日"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Medications"
+msgstr "薬剤"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Stimulants"
+msgstr "興奮剤"
+
+#: src/health_data_parser/gui/models.py:159
+msgid "Comment"
+msgstr "コメント"
+
+#: src/health_data_parser/gui/models.py:159
+msgid "Severity"
+msgstr "重大度"
+
+#: src/health_data_parser/gui/run_panel.py:25
+msgid "Skip long values"
+msgstr "長い値をスキップ"
+
+#: src/health_data_parser/gui/run_panel.py:26
+msgid "Add all vital sign readings to the JSON"
+msgstr "すべてのバイタルサイン測定値をJSONに追加"
+
+#: src/health_data_parser/gui/run_panel.py:27
+msgid "Skip abnormal results that are in range"
+msgstr "範囲内の異常結果をスキップ"
+
+#: src/health_data_parser/gui/run_panel.py:28
+msgid "Highlight abnormal results in the report"
+msgstr "レポートの異常結果をハイライトする"
+
+#: src/health_data_parser/gui/run_panel.py:29
+msgid "Only clinical records (skip export.xml)"
+msgstr "臨床記録のみ（export.xml をスキップ）"
+
+#: src/health_data_parser/gui/run_panel.py:30
+msgid "Report on the custom data files only"
+msgstr "カスタムデータファイルのみを報告"
+
+#: src/health_data_parser/gui/run_panel.py:31
+msgid "Verbose logging"
+msgstr "詳細ログ"
+
+#: src/health_data_parser/gui/run_panel.py:38
+msgid "Height unit:"
+msgstr "高さの単位:"
+
+#: src/health_data_parser/gui/run_panel.py:39
+msgid "Centimeters (cm)"
+msgstr "センチメートル (cm)"
+
+#: src/health_data_parser/gui/run_panel.py:39
+msgid "Meters (m)"
+msgstr "メートル (m)"
+
+#: src/health_data_parser/gui/run_panel.py:40
+msgid "Feet (ft)"
+msgstr "フィート (ft)"
+
+#: src/health_data_parser/gui/run_panel.py:40
+msgid "Inches (in)"
+msgstr "インチ (in)"
+
+#: src/health_data_parser/gui/run_panel.py:41
+msgid "Weight unit:"
+msgstr "重量単位:"
+
+#: src/health_data_parser/gui/run_panel.py:42
+msgid "Grams (g)"
+msgstr "グラム (g)"
+
+#: src/health_data_parser/gui/run_panel.py:42
+msgid "Kilograms (kg)"
+msgstr "キログラム (kg)"
+
+#: src/health_data_parser/gui/run_panel.py:43
+msgid "Pounds (lb)"
+msgstr "ポンド (lb)"
+
+#: src/health_data_parser/gui/run_panel.py:44
+msgid "Temperature unit:"
+msgstr "温度単位:"
+
+#: src/health_data_parser/gui/run_panel.py:45
+msgid "Celsius (°C)"
+msgstr "摂氏 (°C)"
+
+#: src/health_data_parser/gui/run_panel.py:45
+msgid "Fahrenheit (°F)"
+msgstr "華氏 (°F)"
+
+#: src/health_data_parser/gui/run_panel.py:58
+msgid "Apple Health Export Directory"
+msgstr "Apple Health エクスポートディレクトリ"
+
+#: src/health_data_parser/gui/run_panel.py:59
+msgid "Output Directory"
+msgstr "出力ディレクトリ"
+
+#: src/health_data_parser/gui/run_panel.py:60
+msgid "The export directory"
+msgstr "エクスポートディレクトリ"
+
+#: src/health_data_parser/gui/run_panel.py:61
+msgid "Symptom Data"
+msgstr "症状データ"
+
+#: src/health_data_parser/gui/run_panel.py:62
+msgid "Food Data"
+msgstr "食品データ"
+
+#: src/health_data_parser/gui/run_panel.py:63
+msgid "Extra Observations"
+msgstr "追加の観察"
+
+#: src/health_data_parser/gui/run_panel.py:64
+msgid "Manage..."
+msgstr "管理..."
+
+#: src/health_data_parser/gui/run_panel.py:69
+msgid "Any"
+msgstr "すべて"
+
+#: src/health_data_parser/gui/run_panel.py:76
+msgid "Set"
+msgstr "セット"
+
+#: src/health_data_parser/gui/run_panel.py:93
+msgid "Input Files"
+msgstr "入力ファイル"
+
+#: src/health_data_parser/gui/run_panel.py:95
+msgid "Apple Health export:"
+msgstr "Apple Health エクスポート:"
+
+#: src/health_data_parser/gui/run_panel.py:96
+msgid "Output directory:"
+msgstr "出力ディレクトリ:"
+
+#: src/health_data_parser/gui/run_panel.py:100
+msgid "Symptom data:"
+msgstr "症状データ:"
+
+#: src/health_data_parser/gui/run_panel.py:101
+msgid "Food data:"
+msgstr "食品データ:"
+
+#: src/health_data_parser/gui/run_panel.py:102
+msgid "Extra observations:"
+msgstr "追加の観察："
+
+#: src/health_data_parser/gui/run_panel.py:104
+msgid "Options"
+msgstr "オプションズ"
+
+#: src/health_data_parser/gui/run_panel.py:106
+msgid "Start year:"
+msgstr "開始年:"
+
+#: src/health_data_parser/gui/run_panel.py:107
+msgid "Skip dates:"
+msgstr "日付をスキップ："
+
+#: src/health_data_parser/gui/run_panel.py:108
+msgid "In-range abnormal boundary:"
+msgstr "範囲内異常境界:"
+
+#: src/health_data_parser/gui/run_panel.py:109
+msgid "Birth date:"
+msgstr "生年月日："
+
+#: src/health_data_parser/gui/symptoms.py:25
+msgid "Edit Symptom"
+msgstr "症状を編集"
+
+#: src/health_data_parser/gui/symptoms.py:25
+msgid "Add Symptom"
+msgstr "症状を追加"
+
+#: src/health_data_parser/gui/symptoms.py:31
+#: src/health_data_parser/gui/symptoms.py:33
+msgid "Comma-separated"
+msgstr "カンマ区切り"
+
+#: src/health_data_parser/gui/symptoms.py:43
+msgid "Name:"
+msgstr "名前:"
+
+#: src/health_data_parser/gui/symptoms.py:44
+msgid "Start date:"
+msgstr "開始日："
+
+#: src/health_data_parser/gui/symptoms.py:45
+msgid "End date:"
+msgstr "終了日:"
+
+#: src/health_data_parser/gui/symptoms.py:46
+msgid "Medications:"
+msgstr "薬:"
+
+#: src/health_data_parser/gui/symptoms.py:47
+msgid "Stimulants:"
+msgstr "興奮剤:"
+
+#: src/health_data_parser/gui/symptoms.py:48
+msgid "Comment:"
+msgstr "コメント："
+
+#: src/health_data_parser/gui/symptoms.py:49
+msgid "Severity (1-10):"
+msgstr "重大度 (1-10):"
+
+#: src/health_data_parser/gui/symptoms.py:73 tests/gui/test_symptoms.py:29
+msgid "Name is required."
+msgstr "名前は必須です。"
+
+#: src/health_data_parser/gui/symptoms.py:77 tests/gui/test_symptoms.py:41
+msgid "The end date is before the start date."
+msgstr "終了日が開始日より前です。"
+
+#: src/health_data_parser/gui/symptoms.py:99
+#: src/health_data_parser/gui/symptoms.py:310
+msgid "Import Symptoms"
+msgstr "症状をインポート"
+
+#: src/health_data_parser/gui/symptoms.py:102
+msgid "Import mode:"
+msgstr "インポートモード："
+
+#: src/health_data_parser/gui/symptoms.py:104
+msgid "Append to the current symptoms"
+msgstr "現在の症状に追加"
+
+#: src/health_data_parser/gui/symptoms.py:105
+msgid "Replace the current symptoms"
+msgstr "現在の症状を置き換える"
+
+#: src/health_data_parser/gui/symptoms.py:106
+msgid "Merge: update symptoms with the same name and dates, add the rest"
+msgstr "マージ: 同名・同日付の症状を更新し、残りを追加"
+
+#: src/health_data_parser/gui/symptoms.py:159
+msgid "Open..."
+msgstr "開く..."
+
+#: src/health_data_parser/gui/symptoms.py:160
+msgid "Save"
+msgstr "保存"
+
+#: src/health_data_parser/gui/symptoms.py:161
+msgid "Import..."
+msgstr "インポート..."
+
+#: src/health_data_parser/gui/symptoms.py:162
+msgid "Export..."
+msgstr "エクスポート..."
+
+#: src/health_data_parser/gui/symptoms.py:163
+msgid "Add..."
+msgstr "追加..."
+
+#: src/health_data_parser/gui/symptoms.py:164
+msgid "Edit..."
+msgstr "編集..."
+
+#: src/health_data_parser/gui/symptoms.py:165
+msgid "Delete"
+msgstr "削除"
+
+#: src/health_data_parser/gui/symptoms.py:166
+msgid "Undo Delete"
+msgstr "削除を元に戻す"
+
+#: src/health_data_parser/gui/symptoms.py:174
+msgid "Search names, medications, stimulants and comments"
+msgstr "名前、薬剤、興奮剤、コメントを検索"
+
+#: src/health_data_parser/gui/symptoms.py:177
+msgid "Show resolved"
+msgstr "解決済みを表示"
+
+#: src/health_data_parser/gui/symptoms.py:179
+msgid "Between"
+msgstr "間"
+
+#: src/health_data_parser/gui/symptoms.py:192
+msgid "and"
+msgstr "と"
+
+#: src/health_data_parser/gui/symptoms.py:236
+msgid "Unsaved Symptoms"
+msgstr "未保存の症状"
+
+#: src/health_data_parser/gui/symptoms.py:236
+msgid "Save the changes to the symptoms first?"
+msgstr "症状への変更を先に保存しますか？"
+
+#: src/health_data_parser/gui/symptoms.py:259
+msgid "Failed to read \"{0}\": {1}"
+msgstr "\"{0}\" の読み取りに失敗しました: {1}"
+
+#: src/health_data_parser/gui/symptoms.py:264
+#: src/health_data_parser/gui/symptoms.py:324
+msgid "Invalid Rows"
+msgstr "無効な行"
+
+#: src/health_data_parser/gui/symptoms.py:264
+msgid "{0} rows could not be read and were left out."
+msgstr "{0} 行を読み取れず、除外されました。"
+
+#: src/health_data_parser/gui/symptoms.py:277
+msgid "Open Symptoms"
+msgstr "症状を開く"
+
+#: src/health_data_parser/gui/symptoms.py:285
+msgid "Save Symptoms"
+msgstr "症状を保存"
+
+#: src/health_data_parser/gui/symptoms.py:293
+msgid "Failed to save symptoms: {0}"
+msgstr "症状の保存に失敗しました: {0}"
+
+#: src/health_data_parser/gui/symptoms.py:319
+msgid "Failed to import CSV: {0}"
+msgstr "CSV のインポートに失敗しました: {0}"
+
+#: src/health_data_parser/gui/symptoms.py:325
+msgid "Found {0} invalid rows. Continue importing valid rows?"
+msgstr "無効な行が{0}件見つかりました。有効な行のインポートを続行しますか？"
+
+#: src/health_data_parser/gui/symptoms.py:335
+msgid "Updated {0} symptoms and added {1}."
+msgstr "更新された{0}症状と追加された{1}。"
+
+#: src/health_data_parser/gui/symptoms.py:337
+msgid "Replaced the symptoms with {0} imported symptoms."
+msgstr "症状を{0}件のインポートされた症状に置き換えました。"
+
+#: src/health_data_parser/gui/symptoms.py:339
+msgid "Added {0} symptoms."
+msgstr "症状が{0}件追加されました。"
+
+#: src/health_data_parser/gui/symptoms.py:340
+msgid "Import Complete"
+msgstr "インポート完了"
+
+#: src/health_data_parser/gui/symptoms.py:343
+msgid "Export Symptoms"
+msgstr "症状をエクスポート"
+
+#: src/health_data_parser/gui/symptoms.py:349
+msgid "Failed to export CSV: {0}"
+msgstr "CSV のエクスポートに失敗しました: {0}"
+
+#: src/health_data_parser/gui/symptoms.py:351
+msgid "Export Complete"
+msgstr "エクスポート完了"
+
+#: src/health_data_parser/gui/symptoms.py:352
+msgid "Exported {0} symptoms."
+msgstr "エクスポートされた{0}症状。"
+
+#: src/health_data_parser/gui/symptoms.py:409
+msgid "(no file)"
+msgstr "(ファイルなし)"
+
+#: src/health_data_parser/gui/symptoms.py:410
+msgid "{0} (unsaved changes)"
+msgstr "{0}（未保存の変更）"
+
+#: src/health_data_parser/gui/widgets.py:15
+msgid "CSV files (*.csv);;All files (*)"
+msgstr "CSV ファイル (*.csv);;すべてのファイル (*)"
+
+#: src/health_data_parser/gui/widgets.py:54
+msgid "Browse..."
+msgstr "閲覧..."
+
+#: src/health_data_parser/gui/widgets.py:136
+msgid "Add"
+msgstr "追加"
+
+#: src/health_data_parser/gui/widgets.py:137
+msgid "Remove"
+msgstr "削除"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Not set"
+msgstr "未設定"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Month"
+msgstr "月"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Day"
+msgstr "日"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Other text"
+msgstr "その他のテキスト"
+
+#: src/health_data_parser/gui/widgets.py:185
+msgid "e.g. Chronic"
+msgstr "例: 慢性"
+
+#: src/health_data_parser/gui/worker.py:48 tests/gui/test_main_window.py:109
+msgid "Unexpected error: {0}"
+msgstr "予期しないエラー: {0}"
+
+#: src/health_data_parser/ingest/apple_xml.py:39
+#: tests/ingest/test_apple_xml.py:168
+msgid "An exception occurred in parsing XML export files: {0}"
+msgstr "XMLエクスポートファイルの解析中に例外が発生しました: {0}"
+
+#: src/health_data_parser/ingest/custom_observations.py:20
+#: tests/ingest/test_custom_observations.py:89
+msgid "Missing custom observation results CSV file."
+msgstr "カスタム観測結果のCSVファイルが見つかりません。"
+
+#: src/health_data_parser/ingest/custom_observations.py:25
+#: tests/cli/test_cli.py:130 tests/ingest/test_custom_observations.py:36
+msgid "Custom observation results CSV file \"{0}\" is invalid."
+msgstr "カスタム観測結果CSVファイル「{0}」は無効です。"
+
+#: src/health_data_parser/ingest/symptoms_csv.py:30
+#: tests/ingest/test_symptoms_csv.py:31
+msgid "Invalid CSV format. Expected columns: {0}"
+msgstr "CSV形式が無効です。期待される列: {0}"
+
+#: src/health_data_parser/model/food.py:130
+#: src/health_data_parser/model/food.py:140 tests/model/test_custom_data.py:52
+msgid "{0} ({1} records)"
+msgstr "{0} ({1} 件のレコード)"
+
+#: src/health_data_parser/model/reference_range.py:25
+#: src/health_data_parser/reporting/pdf/report.py:345
+#: tests/analysis/test_summary.py:113 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:128
+msgid "LOW OUT OF RANGE"
+msgstr "範囲外の低値"
+
+#: src/health_data_parser/model/reference_range.py:26
+#: tests/analysis/test_summary.py:111 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:123 tests/test_pipeline.py:128
+#: tests/test_pipeline.py:171
+msgid "Low in range"
+msgstr "範囲が低い"
+
+#: src/health_data_parser/model/reference_range.py:27
+#: tests/test_pipeline.py:128
+msgid "Non-negative result"
+msgstr "非負の結果"
+
+#: src/health_data_parser/model/reference_range.py:28
+#: tests/test_pipeline.py:129
+msgid "High in range"
+msgstr "範囲が高い"
+
+#: src/health_data_parser/model/reference_range.py:29
+#: src/health_data_parser/reporting/pdf/report.py:345
+#: tests/analysis/test_summary.py:110 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:121 tests/test_pipeline.py:129
+#: tests/test_pipeline.py:170
+msgid "HIGH OUT OF RANGE"
+msgstr "高すぎて範囲外"
+
+#: src/health_data_parser/model/vitals.py:17
+msgid "Height"
+msgstr "高さ"
+
+#: src/health_data_parser/model/vitals.py:18
+msgid "Weight"
+msgstr "重量"
+
+#: src/health_data_parser/model/vitals.py:19
+msgid "BMI"
+msgstr "BMI"
+
+#: src/health_data_parser/model/vitals.py:20
+msgid "Temperature"
+msgstr "温度"
+
+#: src/health_data_parser/model/vitals.py:21
+msgid "Pulse"
+msgstr "パルス"
+
+#: src/health_data_parser/model/vitals.py:22
+msgid "Respiration"
+msgstr "呼吸"
+
+#: src/health_data_parser/model/vitals.py:23
+msgid "Blood Pressure"
+msgstr "血圧"
+
+#: src/health_data_parser/model/vitals.py:24
+msgid "BP Systolic"
+msgstr "収縮期血圧"
+
+#: src/health_data_parser/model/vitals.py:25
+msgid "BP Diastolic"
+msgstr "血圧拡張期"
+
+#: src/health_data_parser/model/vitals.py:26
+msgid "Heart rate variability"
+msgstr "心拍変動"
+
+#: src/health_data_parser/model/vitals.py:27
+msgid "SpO2"
+msgstr "SpO2"
+
+#: src/health_data_parser/model/vitals.py:28
+#: src/health_data_parser/reporting/charts/vitals.py:225
+msgid "Apple stand minutes"
+msgstr "Appleスタンドの議事録"
+
+#: src/health_data_parser/model/vitals.py:29
+msgid "Steps"
+msgstr "手順"
+
+#: src/health_data_parser/reporting/outputs.py:35
+msgid "Laboratory Abnormal Results from Apple Health Data by Code"
+msgstr "コード別のApple Healthデータからの異常検査結果"
+
+#: src/health_data_parser/reporting/outputs.py:40 tests/test_pipeline.py:119
+msgid "Abnormal results found for code {0}:"
+msgstr "コード{0}の異常な結果が見つかりました:"
+
+#: src/health_data_parser/reporting/outputs.py:44 tests/test_pipeline.py:120
+#: tests/test_pipeline.py:122
+msgid "{0}: {1} - observed {2} - range {3}"
+msgstr "{0}: {1} - 観測 {2} - 範囲 {3}"
+
+#: src/health_data_parser/reporting/outputs.py:48
+msgid "{0}: {1} - observed {2}"
+msgstr "{0}: {1} - 観測された {2}"
+
+#: src/health_data_parser/reporting/outputs.py:72
+msgid "Laboratory Abnormal Results by Interpretation from Apple Health Data"
+msgstr "Apple Health データからの検査異常結果（解釈別）"
+
+#: src/health_data_parser/reporting/outputs.py:95
+msgid "Laboratory Abnormal Results from Apple Health Data"
+msgstr "Apple Healthデータからの検査異常結果"
+
+#: src/health_data_parser/reporting/outputs.py:119
+msgid "Laboratory Observations from Apple Health Data"
+msgstr "Apple Healthデータからの検査結果"
+
+#: src/health_data_parser/reporting/outputs.py:122 tests/test_pipeline.py:147
+#: tests/test_pipeline.py:148
+msgid "{0} range"
+msgstr "{0}範囲"
+
+#: src/health_data_parser/reporting/outputs.py:123 tests/test_pipeline.py:147
+#: tests/test_pipeline.py:148
+msgid "{0} result"
+msgstr "{0} 結果"
+
+#: src/health_data_parser/reporting/outputs.py:145
+msgid "An error occurred in writing observations data to CSV."
+msgstr "観測データをCSVに書き込む際にエラーが発生しました。"
+
+#: src/health_data_parser/reporting/outputs.py:159
+msgid "An error occurred in writing observations data to JSON: {0}"
+msgstr "観測データをJSONに書き込む際にエラーが発生しました: {0}"
+
+#: src/health_data_parser/reporting/outputs.py:171
+msgid "An error occurred in writing observations data to PDF report: {0}"
+msgstr "観測データをPDFレポートに書き込む際にエラーが発生しました: {0}"
+
+#: src/health_data_parser/reporting/charts/symptoms.py:138
+msgid "PRIMARY CAUSE / STIMULANT"
+msgstr "一次原因 / 刺激剤"
+
+#: src/health_data_parser/reporting/charts/symptoms.py:141
+msgid "MEDICATION / TREATMENT"
+msgstr "投薬 / 治療"
+
+#: src/health_data_parser/reporting/charts/vitals.py:194
+msgid "Average heart rates over 24 hours (+/– one standard deviation)"
+msgstr "24時間の平均心拍数（± 1 標準偏差）"
+
+#: src/health_data_parser/reporting/charts/vitals.py:195
+#: src/health_data_parser/reporting/charts/vitals.py:223
+msgid "BPM"
+msgstr "BPM"
+
+#: src/health_data_parser/reporting/charts/vitals.py:196
+#: src/health_data_parser/reporting/charts/vitals.py:198
+#: src/health_data_parser/reporting/charts/vitals.py:200
+msgid "Time (minutes)"
+msgstr "時間（分）"
+
+#: src/health_data_parser/reporting/charts/vitals.py:197
+msgid "Average motion context"
+msgstr "平均モーションコンテキスト"
+
+#: src/health_data_parser/reporting/charts/vitals.py:199
+msgid "Counts of pulse spike"
+msgstr "パルススパイクのカウント"
+
+#: src/health_data_parser/reporting/charts/vitals.py:222
+msgid "Average heart rates, steps and stand minutes by day"
+msgstr "日別平均心拍数、歩数、立位時間"
+
+#: src/health_data_parser/reporting/charts/vitals.py:224
+msgid "Apple steps"
+msgstr "Appleの手順"
+
+#: src/health_data_parser/reporting/charts/vitals.py:226
+msgid "BPM / stand min"
+msgstr "BPM / 待機分"
+
+#: src/health_data_parser/reporting/charts/vitals.py:227
+msgid "Days"
+msgstr "日"
+
+#: src/health_data_parser/reporting/pdf/report.py:162
+#: tests/reporting/test_pdf_report_sections.py:135
+msgid "No abnormal results were found in Apple Health data export."
+msgstr "Apple Health データエクスポートで異常な結果は見つかりませんでした。"
+
+#: src/health_data_parser/reporting/pdf/report.py:173
+#: src/health_data_parser/reporting/pdf/report.py:202
+msgid "UNKNOWN"
+msgstr "不明"
+
+#: src/health_data_parser/reporting/pdf/report.py:174
+msgid "Subject: {0} | Report created: {1}"
+msgstr "件名: {0} | レポート作成: {1}"
+
+#: src/health_data_parser/reporting/pdf/report.py:184
+msgid "Health Records Report"
+msgstr "健康記録レポート"
+
+#: src/health_data_parser/reporting/pdf/report.py:194
+#: src/health_data_parser/reporting/pdf/report.py:202
+msgid "Subject"
+msgstr "件名"
+
+#: src/health_data_parser/reporting/pdf/report.py:196
+msgid "DOB"
+msgstr "生年月日"
+
+#: src/health_data_parser/reporting/pdf/report.py:198
+msgid "Age"
+msgstr "年齢"
+
+#: src/health_data_parser/reporting/pdf/report.py:200
+msgid "Sex"
+msgstr "セックス"
+
+#: src/health_data_parser/reporting/pdf/report.py:204
+msgid "Lab records count"
+msgstr "ラボ記録数"
+
+#: src/health_data_parser/reporting/pdf/report.py:206
+msgid "Earliest record"
+msgstr "最初の記録"
+
+#: src/health_data_parser/reporting/pdf/report.py:208
+msgid "Most recent record"
+msgstr "最新のレコード"
+
+#: src/health_data_parser/reporting/pdf/report.py:210
+msgid "Report assembled"
+msgstr "レポートが作成されました"
+
+#: src/health_data_parser/reporting/pdf/report.py:225
+msgid "Summary of Vitals"
+msgstr "バイタル概要"
+
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "StDev"
+msgstr "標準偏差"
+
+#: src/health_data_parser/reporting/pdf/report.py:258
+msgid "WARNING: Abnormal results were found."
+msgstr "警告: 異常な結果が見つかりました。"
+
+#: src/health_data_parser/reporting/pdf/report.py:262
+msgid "Lab codes with abnormal results"
+msgstr "異常結果の検査コード"
+
+#: src/health_data_parser/reporting/pdf/report.py:264
+msgid "Total abnormal observations"
+msgstr "異常観測の総数"
+
+#: src/health_data_parser/reporting/pdf/report.py:270
+msgid ""
+"NOTE: Reference ranges for tests are not static. The range displayed in all "
+"tables represents the most recent range available. A result classified as "
+"abnormal by an old range may be acceptable within current ranges."
+msgstr ""
+"注：検査の基準範囲は固定されていません。すべての表に表示されている範囲は、最も新しい範囲を示しています。古い基準で異常と分類された結果でも、現在の基準範囲内では許容される場合があります。"
+
+#: src/health_data_parser/reporting/pdf/report.py:279
+msgid ""
+"Abnormal results may include results within ranges at +/-{0} ends of the "
+"relevant range. These are labeled as lower severity with the labels \"High "
+"in range\" and \"Low in range\" or tags \"++\" and \"--\". Tags \"+++\" and "
+"\"---\" indicate high and low out of range. Tag \"+\" indicates a positive "
+"result."
+msgstr ""
+"異常な結果には、対象範囲の +/-{0} 端部に位置する結果が含まれることがあります。これらは「High in range」および「Low in "
+"range」あるいはタグ「++」と「--」で低い重症度としてラベル付けされます。タグ「+++」と「---」は範囲外の高い/低い値を示します。タグ「+」は陽性結果を示します。"
+
+#: src/health_data_parser/reporting/pdf/report.py:285
+msgid ""
+"All listed abnormal results are out of the relevant range. Tags \"+++\" and "
+"\"---\" indicate high and low out of range. Tag \"+\" indicates a positive "
+"result."
+msgstr ""
+"一覧にある異常結果はすべて該当範囲外です。タグ「+++」と「---」はそれぞれ上限と下限を超えていることを示し、タグ「+」は陽性結果を示します。"
+
+#: src/health_data_parser/reporting/pdf/report.py:295
+msgid "Sections included in this report"
+msgstr "このレポートに含まれるセクション"
+
+#: src/health_data_parser/reporting/pdf/report.py:301
+msgid "Symptoms Report"
+msgstr "症状レポート"
+
+#: src/health_data_parser/reporting/pdf/report.py:303
+#: src/health_data_parser/reporting/pdf/report.py:338
+msgid "Abnormal Results By Code Summary"
+msgstr "コード別異常結果の概要"
+
+#: src/health_data_parser/reporting/pdf/report.py:304
+msgid "Abnormal Results By Code Detail"
+msgstr "コード別異常結果の詳細"
+
+#: src/health_data_parser/reporting/pdf/report.py:306
+#: src/health_data_parser/reporting/pdf/report.py:374
+#: tests/reporting/test_pdf_report_sections.py:101
+#: tests/reporting/test_pdf_report_sections.py:115
+#: tests/reporting/test_pdf_report_sections.py:136
+#: tests/utils/test_translations.py:79 tests/utils/test_translations.py:88
+msgid "All Lab Observations"
+msgstr "すべてのラボ観察"
+
+#: src/health_data_parser/reporting/pdf/report.py:308
+#: src/health_data_parser/reporting/pdf/report.py:471
+#: src/health_data_parser/reporting/pdf/report.py:513
+msgid "Heart Rate Data Analysis"
+msgstr "心拍数データ分析"
+
+#: src/health_data_parser/reporting/pdf/report.py:310
+#: src/health_data_parser/reporting/pdf/report.py:543
+msgid "Food Data Analysis"
+msgstr "食品データ分析"
+
+#: src/health_data_parser/reporting/pdf/report.py:315
+msgid "Symptoms Report - Including Historical"
+msgstr "症状レポート - 履歴を含む"
+
+#: src/health_data_parser/reporting/pdf/report.py:317
+msgid "Symptoms Report - Unresolved"
+msgstr "症状レポート - 未解決"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+#: src/health_data_parser/reporting/pdf/report.py:345
+msgid "RESULT CODE"
+msgstr "結果コード"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "L OUT"
+msgstr "ログアウト"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "L IN"
+msgstr "L イン"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+#: src/health_data_parser/reporting/pdf/report.py:345
+msgid "OBSERVED"
+msgstr "観測済み"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "H IN"
+msgstr "H イン"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "H OUT"
+msgstr "H 出力"
+
+#: src/health_data_parser/reporting/pdf/report.py:367
+msgid "Abnormal Results By Code"
+msgstr "コード別異常結果"
+
+#: src/health_data_parser/reporting/pdf/report.py:387
+msgid "Observation Code"
+msgstr "観測コード"
+
+#: src/health_data_parser/reporting/pdf/report.py:443
+#: tests/reporting/test_pdf_report_sections.py:115
+msgid "{0} (continued)"
+msgstr "{0}（続き）"
+
+#: src/health_data_parser/reporting/pdf/report.py:477
+msgid "Total readings:"
+msgstr "総読数:"
+
+#: src/health_data_parser/reporting/pdf/report.py:479
+msgid "Pulse average:"
+msgstr "脈拍平均："
+
+#: src/health_data_parser/reporting/pdf/report.py:481
+msgid "Pulse standard deviation:"
+msgstr "パルス標準偏差:"
+
+#: src/health_data_parser/reporting/pdf/report.py:487
+#: tests/reporting/test_pdf_report_sections.py:52
+#: tests/reporting/test_pdf_report_sections.py:57
+msgid "Percent in motion:"
+msgstr "モーションのパーセンテージ:"
+
+#: src/health_data_parser/reporting/pdf/report.py:489
+msgid "Average in motion:"
+msgstr "モーション中の平均:"
+
+#: src/health_data_parser/reporting/pdf/report.py:491
+msgid "Average resting:"
+msgstr "平均休息："
+
+#: src/health_data_parser/reporting/pdf/report.py:500
+#: src/health_data_parser/reporting/pdf/report.py:529
+#: src/health_data_parser/reporting/pdf/report.py:569
+msgid "NOTES"
+msgstr "メモ"
+
+#: src/health_data_parser/reporting/pdf/report.py:503
+msgid ""
+"\"Motion\" data found in Apple wearable observations. All pulse observations"
+" in clinical records data are assumed to be obtained in a non-motion state. "
+"The reliability of motion data may be questionable."
+msgstr ""
+"Apple "
+"のウェアラブル観測で「Motion」データが見つかりました。臨床記録データのすべての脈拍観測は、非動作状態で取得されたとみなされます。モーションデータの信頼性は疑わしい可能性があります。"
+
+#: src/health_data_parser/reporting/pdf/report.py:507
+msgid ""
+"\"Pulse spikes\" are instances where there is an increase of pulse by at "
+"least 40 BPM during 5 or fewer minutes."
+msgstr "\"パルススパイク\"は、5分以内に脈拍が40 BPM以上上昇するケースです。"
+
+#: src/health_data_parser/reporting/pdf/report.py:517
+msgid "Dates recorded:"
+msgstr "記録された日付："
+
+#: src/health_data_parser/reporting/pdf/report.py:519
+msgid "Earliest date:"
+msgstr "最も早い日付:"
+
+#: src/health_data_parser/reporting/pdf/report.py:521
+msgid "Most recent date:"
+msgstr "最新の日付："
+
+#: src/health_data_parser/reporting/pdf/report.py:532
+msgid ""
+"\"Steps\" and \"Stand minutes\" data found in Apple wearable observations. "
+"Stand minutes are usually only counted when in motion, so true stand minutes"
+" will be higher, while true step count may vary in either direction from "
+"recorded values."
+msgstr ""
+"「Steps」および「Stand minutes」のデータがAppleウェアラブルの観測で見つかりました。Stand "
+"minutesは通常、動いているときだけカウントされるため、実際のStand "
+"minutesはそれより多くなり、Step数は記録値と比べて増減する可能性があります。"
+
+#: src/health_data_parser/reporting/pdf/report.py:547
+msgid "Total food records:"
+msgstr "食品記録の合計："
+
+#: src/health_data_parser/reporting/pdf/report.py:549
+msgid "Earliest food record:"
+msgstr "最古の食事記録："
+
+#: src/health_data_parser/reporting/pdf/report.py:551
+msgid "Most recent food record:"
+msgstr "最新の食事記録："
+
+#: src/health_data_parser/reporting/pdf/report.py:553
+msgid "Total meals recorded:"
+msgstr "記録された食事の合計："
+
+#: src/health_data_parser/reporting/pdf/report.py:555
+msgid "Total dates recorded:"
+msgstr "記録された合計日付："
+
+#: src/health_data_parser/reporting/pdf/report.py:557
+msgid "Average meals per day:"
+msgstr "1日の平均食事回数:"
+
+#: src/health_data_parser/reporting/pdf/report.py:562
+msgid "Most common foods recorded"
+msgstr "記録された最も一般的な食品"
+
+#: src/health_data_parser/reporting/pdf/report.py:573
+msgid "Certain diets are contraindicated by the foods found. These include:"
+msgstr "見つかった食品により、特定の食事は禁忌となります。含まれるものは次のとおりです："
+
+#: src/health_data_parser/reporting/pdf/report.py:576
+msgid "DANGER:"
+msgstr "危険："
+
+#: src/health_data_parser/reporting/pdf/report.py:579
+msgid "WARNING:"
+msgstr "警告:"
+
+#: tests/gui/test_models.py:45
+msgid "High"
+msgstr "ハイ"
+
+#: tests/utils/test_translations.py:73
+msgid "Some text that has no translation"
+msgstr "翻訳がないテキスト"

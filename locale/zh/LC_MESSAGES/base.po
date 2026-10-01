@@ -1,0 +1,1380 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"POT-Creation-Date: 2026-10-01 07:53-0400\n"
+"PO-Revision-Date: 2026-10-01 07:53-0400\n"
+"Last-Translator: Translator Name <translator@example.com>\n"
+"Language-Team: zh Team <<EMAIL>>\n"
+"Language: zh\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/health_data_parser/options.py:74 tests/cli/test_cli.py:97
+msgid "Output directory \"{0}\" is a file."
+msgstr "输出目录 \"{0}\" 是一个文件。"
+
+#: src/health_data_parser/options.py:76 src/health_data_parser/options.py:129
+#: tests/cli/test_cli.py:69 tests/cli/test_cli.py:90
+msgid "\"{0}\" is not a valid year."
+msgstr "\"{0}\" 不是有效的年份。"
+
+#: src/health_data_parser/options.py:79 tests/cli/test_cli.py:73
+msgid ""
+"\"{0}\" is not a valid decimal-formatted percentage: its absolute value must"
+" be less than 0.5."
+msgstr "“{0}”不是有效的小数形式百分比：其绝对值必须小于0.5。"
+
+#: src/health_data_parser/options.py:82 tests/cli/test_cli.py:71
+msgid "\"{0}\" is not a valid list of dates in format YYYY-MM-DD."
+msgstr "\"{0}\" 不是有效的 YYYY-MM-DD 日期列表。"
+
+#: src/health_data_parser/options.py:86 tests/cli/test_cli.py:77
+msgid "\"{0}\" is not a valid date in format YYYY-MM-DD."
+msgstr "\"{0}\" 不是有效的日期格式 YYYY-MM-DD。"
+
+#: src/health_data_parser/options.py:92 tests/gui/test_run_panel.py:19
+msgid "Missing Apple Health data export directory path."
+msgstr "缺少 Apple Health 数据导出目录路径。"
+
+#: src/health_data_parser/options.py:95 tests/cli/test_cli.py:33
+msgid "Apple Health data export directory path \"{0}\" is invalid."
+msgstr "Apple Health 数据导出目录路径 \"{0}\" 无效。"
+
+#: src/health_data_parser/options.py:98 tests/cli/test_cli.py:60
+msgid ""
+"Folder \"clinical-records\" not found in export folder \"{0}\". Ensure data "
+"has been connected to Apple Health before export."
+msgstr "在导出文件夹“{0}”中未找到文件夹“clinical-records”。请确保在导出前已将数据连接到 Apple Health。"
+
+#: src/health_data_parser/options.py:140 tests/cli/test_cli.py:76
+msgid "\"{0}\" is not a valid decimal-formatted percentage."
+msgstr "“{0}”不是有效的十进制格式百分比。"
+
+#: src/health_data_parser/options.py:149 tests/cli/test_cli.py:79
+msgid "{0} value \"{1}\" is not a boolean (true or false)."
+msgstr "{0} 值 \"{1}\" 不是布尔值 (true 或 false)。"
+
+#: src/health_data_parser/pipeline.py:109
+msgid "Failed to read extra observations data \"{0}\"."
+msgstr "读取额外观测数据 \"{0}\" 失败。"
+
+#: src/health_data_parser/pipeline.py:119
+#: src/health_data_parser/pipeline.py:121 tests/cli/test_cli.py:102
+msgid "Failed to assemble or analyze food data provided."
+msgstr "未能组装或分析提供的食品数据。"
+
+#: src/health_data_parser/pipeline.py:131
+msgid "Failed to assemble symptom data provided."
+msgstr "未能组装提供的症状数据。"
+
+#: src/health_data_parser/pipeline.py:169
+msgid "No relevant laboratory records found in exported Apple Health data"
+msgstr "在导出的 Apple Health 数据中未找到相关实验室记录"
+
+#: src/health_data_parser/analysis/summary.py:48
+#: tests/gui/test_main_window.py:52
+msgid "Total Observations: {0}"
+msgstr "观察总数：{0}"
+
+#: src/health_data_parser/analysis/summary.py:49
+msgid "Vital Signs Observations: {0}"
+msgstr "生命体征观察：{0}"
+
+#: src/health_data_parser/analysis/summary.py:50
+msgid "Unique Tests: {0}"
+msgstr "唯一测试：{0}"
+
+#: src/health_data_parser/analysis/summary.py:53
+#: tests/analysis/test_summary.py:102
+msgid "Date Range: {0} to {1}"
+msgstr "日期范围：{0}至{1}"
+
+#: src/health_data_parser/analysis/summary.py:54
+msgid "Abnormal Results: {0}"
+msgstr "异常结果：{0}"
+
+#: src/health_data_parser/analysis/summary.py:55
+msgid "Tests With Abnormal Results: {0}"
+msgstr "异常结果的测试：{0}"
+
+#: src/health_data_parser/analysis/summary.py:66
+msgid "Abnormal"
+msgstr "异常"
+
+#: src/health_data_parser/analysis/summary.py:67
+#: src/health_data_parser/gui/models.py:90 tests/analysis/test_summary.py:112
+#: tests/gui/test_models.py:46 tests/test_pipeline.py:169
+msgid "Normal"
+msgstr "正常"
+
+#: src/health_data_parser/analysis/summary.py:152
+msgid "Unclassified"
+msgstr "未分类"
+
+#: src/health_data_parser/cli/diagnostic_reports.py:13
+msgid ""
+"\n"
+"Usage:\n"
+"\n"
+"   $ health-data-parser-reports path/to/observation_data.csv [options]\n"
+"\n"
+"Writes the observations in the CSV as DiagnosticReport JSON files next to it.\n"
+"\n"
+"    -h, --help\n"
+"        Print this help text\n"
+"\n"
+"    -v, --verbose\n"
+"        Run in verbose mode\n"
+msgstr ""
+" 用法:\n"
+"\n"
+"   $ health-data-parser-reports path/to/observation_data.csv [options]\n"
+"\n"
+"将 CSV 中的观察结果写入相邻的 DiagnosticReport JSON 文件。\n"
+"\n"
+"    -h, --help\n"
+"        打印此帮助文本\n"
+"\n"
+"    -v, --verbose\n"
+"        以详细模式运行 "
+
+#: src/health_data_parser/cli/parse.py:17
+msgid ""
+"Parse an Apple Health export (plus optional custom data) into a PDF report "
+"and JSON/CSV/text files."
+msgstr "解析 Apple Health 导出（加上可选的自定义数据），生成 PDF 报告和 JSON/CSV/文本文件。"
+
+#: src/health_data_parser/cli/parse.py:20
+msgid "Apple Health export directory (containing clinical-records/)"
+msgstr "Apple Health 导出目录（包含 clinical-records/）"
+
+#: src/health_data_parser/cli/parse.py:30
+msgid ""
+"Write outputs here instead of the export directory (created if missing)"
+msgstr "在此写入输出，而不是导出目录（若不存在则创建）"
+
+#: src/health_data_parser/cli/parse.py:32
+msgid "Do not parse export.xml (much faster)"
+msgstr "不要解析 export.xml（更快）"
+
+#: src/health_data_parser/cli/parse.py:33
+msgid "Exclude results from before this year"
+msgstr "排除本年前的结果"
+
+#: src/health_data_parser/cli/parse.py:35
+msgid "Exclude results from these dates (comma-separated, YYYY-MM-DD)"
+msgstr "排除这些日期的结果（逗号分隔，YYYY-MM-DD）"
+
+#: src/health_data_parser/cli/parse.py:37
+msgid ""
+"Exclude observations with excessively long result values (full diagnostic "
+"report text mixed into a single observation)"
+msgstr "排除结果值过长的观察（完整的诊断报告文本混在单个观察中）"
+
+#: src/health_data_parser/cli/parse.py:40
+msgid ""
+"Only collect abnormal results that are out of range, not those near the ends"
+" of their range"
+msgstr "仅收集超出范围的异常结果，而不是那些接近其范围边缘的结果"
+
+#: src/health_data_parser/cli/parse.py:43
+msgid ""
+"How close to either end of a range counts as abnormal (default 0.15, i.e. "
+"15%%; absolute value must be under 0.5)"
+msgstr "距离范围任一端多近算异常（默认 0.15，即 15%%；绝对值必须小于 0.5）"
+
+#: src/health_data_parser/cli/parse.py:46
+msgid ""
+"Laboratory data not in Apple Health, in the format of "
+"sample_templates/sample_observations_data.csv"
+msgstr ""
+"实验室数据未在 Apple Health 中，格式为 sample_templates/sample_observations_data.csv"
+
+#: src/health_data_parser/cli/parse.py:49
+msgid "Current and past symptoms, for a timeline chart in the PDF report"
+msgstr "PDF报告中时间轴图表的当前与过去症状"
+
+#: src/health_data_parser/cli/parse.py:51
+msgid "Food log, for nutrition charts in the PDF report"
+msgstr "食物日志，用于 PDF 报告中的营养图表"
+
+#: src/health_data_parser/cli/parse.py:53
+msgid ""
+"Highlight abnormal results in the report's observation tables (default true)"
+msgstr "在报告的观察表中突出显示异常结果（默认 true）"
+
+#: src/health_data_parser/cli/parse.py:55
+#: src/health_data_parser/gui/run_panel.py:77
+msgid "Subject birth date for the report, if not found in export.xml"
+msgstr "报告的受试者出生日期，如果在 export.xml 中未找到"
+
+#: src/health_data_parser/cli/parse.py:57
+msgid ""
+"Include every vital sign reading in observations.json (can be large with a "
+"wearable)"
+msgstr "在 observations.json 中包含所有生命体征读取（使用可穿戴设备时可能会很大）"
+
+#: src/health_data_parser/cli/parse.py:60
+msgid ""
+"Skip the Apple Health export data; report only on the custom files given"
+msgstr "跳过 Apple Health 导出数据，仅报告提供的自定义文件"
+
+#: src/health_data_parser/cli/parse.py:61
+msgid "Log more detail"
+msgstr "记录更多细节"
+
+#: src/health_data_parser/gui/charts.py:25
+msgid "Observations by Year"
+msgstr "按年份观察"
+
+#: src/health_data_parser/gui/charts.py:26
+#: src/health_data_parser/gui/charts.py:50
+msgid "Observations"
+msgstr "观察"
+
+#: src/health_data_parser/gui/charts.py:28
+msgid "No observations"
+msgstr "无观察"
+
+#: src/health_data_parser/gui/charts.py:32
+msgid "Abnormal Results by Interpretation"
+msgstr "按解释分类的异常结果"
+
+#: src/health_data_parser/gui/charts.py:33
+msgid "Results"
+msgstr "结果"
+
+#: src/health_data_parser/gui/charts.py:36
+msgid "No abnormal results"
+msgstr "无异常结果"
+
+#: src/health_data_parser/gui/charts.py:45
+msgid "Health Data Trends"
+msgstr "健康数据趋势"
+
+#: src/health_data_parser/gui/charts.py:50
+msgid "Observations per Date"
+msgstr "按日期观察"
+
+#: src/health_data_parser/gui/charts.py:52
+msgid "Abnormal Results per Date"
+msgstr "按日期的异常结果"
+
+#: src/health_data_parser/gui/charts.py:52
+msgid "Abnormal Results"
+msgstr "异常结果"
+
+#: src/health_data_parser/gui/charts.py:64
+msgid "No data"
+msgstr "无数据"
+
+#: src/health_data_parser/gui/main_window.py:34
+msgid "Reading custom data files..."
+msgstr "正在读取自定义数据文件..."
+
+#: src/health_data_parser/gui/main_window.py:35
+msgid "Parsing export.xml..."
+msgstr "正在解析 export.xml..."
+
+#: src/health_data_parser/gui/main_window.py:36
+msgid "Reading clinical records..."
+msgstr "正在读取临床记录..."
+
+#: src/health_data_parser/gui/main_window.py:37
+msgid "Analyzing results..."
+msgstr "分析结果中..."
+
+#: src/health_data_parser/gui/main_window.py:38
+msgid "Charting wearable data..."
+msgstr "绘制可穿戴数据..."
+
+#: src/health_data_parser/gui/main_window.py:39
+msgid "Writing output files and PDF..."
+msgstr "正在写入输出文件和 PDF..."
+
+#: src/health_data_parser/gui/main_window.py:63
+msgid "Apple Health Data Parser"
+msgstr "Apple 健康数据解析器"
+
+#: src/health_data_parser/gui/main_window.py:79
+msgid "Generate Report"
+msgstr "生成报告"
+
+#: src/health_data_parser/gui/main_window.py:80
+msgid "Cancel"
+msgstr "取消"
+
+#: src/health_data_parser/gui/main_window.py:81
+msgid "Load Results..."
+msgstr "加载结果..."
+
+#: src/health_data_parser/gui/main_window.py:104
+msgid "Summary"
+msgstr "摘要"
+
+#: src/health_data_parser/gui/main_window.py:107
+msgid "Lab Results"
+msgstr "实验室结果"
+
+#: src/health_data_parser/gui/main_window.py:110
+msgid "Vitals"
+msgstr "生命体征"
+
+#: src/health_data_parser/gui/main_window.py:113
+msgid "Trends"
+msgstr "趋势"
+
+#: src/health_data_parser/gui/main_window.py:115
+msgid "Symptoms"
+msgstr "症状"
+
+#: src/health_data_parser/gui/main_window.py:127
+msgid "Log"
+msgstr "日志"
+
+#: src/health_data_parser/gui/main_window.py:145
+msgid "Open PDF"
+msgstr "打开 PDF"
+
+#: src/health_data_parser/gui/main_window.py:146
+msgid "Open Output Folder"
+msgstr "打开输出文件夹"
+
+#: src/health_data_parser/gui/main_window.py:165
+msgid "Filter lab results"
+msgstr "筛选实验结果"
+
+#: src/health_data_parser/gui/main_window.py:183
+msgid "Load Results"
+msgstr "加载结果"
+
+#: src/health_data_parser/gui/main_window.py:218
+msgid "Starting..."
+msgstr "启动中..."
+
+#: src/health_data_parser/gui/main_window.py:225
+msgid "Cancelling after the current step..."
+msgstr "取消当前步骤后..."
+
+#: src/health_data_parser/gui/main_window.py:238
+#: tests/gui/test_main_window.py:48
+msgid "Report generated."
+msgstr "报告已生成。"
+
+#: src/health_data_parser/gui/main_window.py:249
+msgid "Report Failed"
+msgstr "报告失败"
+
+#: src/health_data_parser/gui/main_window.py:254
+msgid "Cancelled."
+msgstr "已取消。"
+
+#: src/health_data_parser/gui/main_window.py:269
+#: src/health_data_parser/gui/main_window.py:319
+#: src/health_data_parser/gui/symptoms.py:259
+#: src/health_data_parser/gui/symptoms.py:293
+#: src/health_data_parser/gui/symptoms.py:316
+#: src/health_data_parser/gui/symptoms.py:319
+#: src/health_data_parser/gui/symptoms.py:349
+msgid "Error"
+msgstr "错误"
+
+#: src/health_data_parser/gui/main_window.py:269
+msgid "Failed to load results: {0}"
+msgstr "加载结果失败: {0}"
+
+#: src/health_data_parser/gui/main_window.py:274
+msgid "No {0} found in {1}."
+msgstr "在{1}中未找到{0}。"
+
+#: src/health_data_parser/gui/main_window.py:319
+msgid "Failed to create symptom file: {0}"
+msgstr "未能创建症状文件: {0}"
+
+#: src/health_data_parser/gui/models.py:89
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Date"
+msgstr "日期"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Test"
+msgstr "测试"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Value"
+msgstr "值"
+
+#: src/health_data_parser/gui/models.py:89
+#: src/health_data_parser/reporting/pdf/report.py:387
+msgid "Range"
+msgstr "范围"
+
+#: src/health_data_parser/gui/models.py:89
+msgid "Status"
+msgstr "状态"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Vital"
+msgstr "关键"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Unit"
+msgstr "单位"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Most Recent"
+msgstr "最新"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Min"
+msgstr "分"
+
+#: src/health_data_parser/gui/models.py:95
+#: src/health_data_parser/reporting/pdf/report.py:232
+msgid "Max"
+msgstr "马克斯"
+
+#: src/health_data_parser/gui/models.py:96
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Average"
+msgstr "平均"
+
+#: src/health_data_parser/gui/models.py:96
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "Count"
+msgstr "计数"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Name"
+msgstr "名称"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Start Date"
+msgstr "开始日期"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "End Date"
+msgstr "结束日期"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Medications"
+msgstr "药物"
+
+#: src/health_data_parser/gui/models.py:158
+msgid "Stimulants"
+msgstr "兴奋剂"
+
+#: src/health_data_parser/gui/models.py:159
+msgid "Comment"
+msgstr "评论"
+
+#: src/health_data_parser/gui/models.py:159
+msgid "Severity"
+msgstr "严重性"
+
+#: src/health_data_parser/gui/run_panel.py:25
+msgid "Skip long values"
+msgstr "跳过长值"
+
+#: src/health_data_parser/gui/run_panel.py:26
+msgid "Add all vital sign readings to the JSON"
+msgstr "将所有生命体征读数添加到 JSON"
+
+#: src/health_data_parser/gui/run_panel.py:27
+msgid "Skip abnormal results that are in range"
+msgstr "跳过范围内的异常结果"
+
+#: src/health_data_parser/gui/run_panel.py:28
+msgid "Highlight abnormal results in the report"
+msgstr "在报告中突出异常结果"
+
+#: src/health_data_parser/gui/run_panel.py:29
+msgid "Only clinical records (skip export.xml)"
+msgstr "仅临床记录（跳过 export.xml）"
+
+#: src/health_data_parser/gui/run_panel.py:30
+msgid "Report on the custom data files only"
+msgstr "仅报告自定义数据文件"
+
+#: src/health_data_parser/gui/run_panel.py:31
+msgid "Verbose logging"
+msgstr "详细日志"
+
+#: src/health_data_parser/gui/run_panel.py:38
+msgid "Height unit:"
+msgstr "高度单位："
+
+#: src/health_data_parser/gui/run_panel.py:39
+msgid "Centimeters (cm)"
+msgstr "厘米 (cm)"
+
+#: src/health_data_parser/gui/run_panel.py:39
+msgid "Meters (m)"
+msgstr "米 (m)"
+
+#: src/health_data_parser/gui/run_panel.py:40
+msgid "Feet (ft)"
+msgstr "英尺 (ft)"
+
+#: src/health_data_parser/gui/run_panel.py:40
+msgid "Inches (in)"
+msgstr "英寸 (in)"
+
+#: src/health_data_parser/gui/run_panel.py:41
+msgid "Weight unit:"
+msgstr "重量单位:"
+
+#: src/health_data_parser/gui/run_panel.py:42
+msgid "Grams (g)"
+msgstr "克 (g)"
+
+#: src/health_data_parser/gui/run_panel.py:42
+msgid "Kilograms (kg)"
+msgstr "千克 (kg)"
+
+#: src/health_data_parser/gui/run_panel.py:43
+msgid "Pounds (lb)"
+msgstr "磅 (lb)"
+
+#: src/health_data_parser/gui/run_panel.py:44
+msgid "Temperature unit:"
+msgstr "温度单位:"
+
+#: src/health_data_parser/gui/run_panel.py:45
+msgid "Celsius (°C)"
+msgstr "摄氏 (°C)"
+
+#: src/health_data_parser/gui/run_panel.py:45
+msgid "Fahrenheit (°F)"
+msgstr "华氏 (°F)"
+
+#: src/health_data_parser/gui/run_panel.py:58
+msgid "Apple Health Export Directory"
+msgstr "Apple Health 导出目录"
+
+#: src/health_data_parser/gui/run_panel.py:59
+msgid "Output Directory"
+msgstr "输出目录"
+
+#: src/health_data_parser/gui/run_panel.py:60
+msgid "The export directory"
+msgstr "导出目录"
+
+#: src/health_data_parser/gui/run_panel.py:61
+msgid "Symptom Data"
+msgstr "症状数据"
+
+#: src/health_data_parser/gui/run_panel.py:62
+msgid "Food Data"
+msgstr "食品数据"
+
+#: src/health_data_parser/gui/run_panel.py:63
+msgid "Extra Observations"
+msgstr "额外观察"
+
+#: src/health_data_parser/gui/run_panel.py:64
+msgid "Manage..."
+msgstr "管理..."
+
+#: src/health_data_parser/gui/run_panel.py:69
+msgid "Any"
+msgstr "任何"
+
+#: src/health_data_parser/gui/run_panel.py:76
+msgid "Set"
+msgstr "设定"
+
+#: src/health_data_parser/gui/run_panel.py:93
+msgid "Input Files"
+msgstr "输入文件"
+
+#: src/health_data_parser/gui/run_panel.py:95
+msgid "Apple Health export:"
+msgstr "Apple Health 导出："
+
+#: src/health_data_parser/gui/run_panel.py:96
+msgid "Output directory:"
+msgstr "输出目录："
+
+#: src/health_data_parser/gui/run_panel.py:100
+msgid "Symptom data:"
+msgstr "症状数据:"
+
+#: src/health_data_parser/gui/run_panel.py:101
+msgid "Food data:"
+msgstr "食品数据:"
+
+#: src/health_data_parser/gui/run_panel.py:102
+msgid "Extra observations:"
+msgstr "附加观察："
+
+#: src/health_data_parser/gui/run_panel.py:104
+msgid "Options"
+msgstr "选项"
+
+#: src/health_data_parser/gui/run_panel.py:106
+msgid "Start year:"
+msgstr "开始年份:"
+
+#: src/health_data_parser/gui/run_panel.py:107
+msgid "Skip dates:"
+msgstr "跳过日期："
+
+#: src/health_data_parser/gui/run_panel.py:108
+msgid "In-range abnormal boundary:"
+msgstr "范围内异常边界:"
+
+#: src/health_data_parser/gui/run_panel.py:109
+msgid "Birth date:"
+msgstr "出生日期："
+
+#: src/health_data_parser/gui/symptoms.py:25
+msgid "Edit Symptom"
+msgstr "编辑症状"
+
+#: src/health_data_parser/gui/symptoms.py:25
+msgid "Add Symptom"
+msgstr "添加症状"
+
+#: src/health_data_parser/gui/symptoms.py:31
+#: src/health_data_parser/gui/symptoms.py:33
+msgid "Comma-separated"
+msgstr "逗号分隔"
+
+#: src/health_data_parser/gui/symptoms.py:43
+msgid "Name:"
+msgstr "姓名："
+
+#: src/health_data_parser/gui/symptoms.py:44
+msgid "Start date:"
+msgstr "开始日期："
+
+#: src/health_data_parser/gui/symptoms.py:45
+msgid "End date:"
+msgstr "结束日期:"
+
+#: src/health_data_parser/gui/symptoms.py:46
+msgid "Medications:"
+msgstr "药物:"
+
+#: src/health_data_parser/gui/symptoms.py:47
+msgid "Stimulants:"
+msgstr "兴奋剂:"
+
+#: src/health_data_parser/gui/symptoms.py:48
+msgid "Comment:"
+msgstr "评论："
+
+#: src/health_data_parser/gui/symptoms.py:49
+msgid "Severity (1-10):"
+msgstr "严重程度 (1-10):"
+
+#: src/health_data_parser/gui/symptoms.py:73 tests/gui/test_symptoms.py:29
+msgid "Name is required."
+msgstr "名称是必填项。"
+
+#: src/health_data_parser/gui/symptoms.py:77 tests/gui/test_symptoms.py:41
+msgid "The end date is before the start date."
+msgstr "结束日期早于开始日期。"
+
+#: src/health_data_parser/gui/symptoms.py:99
+#: src/health_data_parser/gui/symptoms.py:310
+msgid "Import Symptoms"
+msgstr "导入症状"
+
+#: src/health_data_parser/gui/symptoms.py:102
+msgid "Import mode:"
+msgstr "导入模式："
+
+#: src/health_data_parser/gui/symptoms.py:104
+msgid "Append to the current symptoms"
+msgstr "追加到当前症状"
+
+#: src/health_data_parser/gui/symptoms.py:105
+msgid "Replace the current symptoms"
+msgstr "替换当前症状"
+
+#: src/health_data_parser/gui/symptoms.py:106
+msgid "Merge: update symptoms with the same name and dates, add the rest"
+msgstr "合并：更新同名同日期的症状，添加其余部分"
+
+#: src/health_data_parser/gui/symptoms.py:159
+msgid "Open..."
+msgstr "打开..."
+
+#: src/health_data_parser/gui/symptoms.py:160
+msgid "Save"
+msgstr "保存"
+
+#: src/health_data_parser/gui/symptoms.py:161
+msgid "Import..."
+msgstr "导入..."
+
+#: src/health_data_parser/gui/symptoms.py:162
+msgid "Export..."
+msgstr "导出..."
+
+#: src/health_data_parser/gui/symptoms.py:163
+msgid "Add..."
+msgstr "添加..."
+
+#: src/health_data_parser/gui/symptoms.py:164
+msgid "Edit..."
+msgstr "编辑..."
+
+#: src/health_data_parser/gui/symptoms.py:165
+msgid "Delete"
+msgstr "删除"
+
+#: src/health_data_parser/gui/symptoms.py:166
+msgid "Undo Delete"
+msgstr "撤销删除"
+
+#: src/health_data_parser/gui/symptoms.py:174
+msgid "Search names, medications, stimulants and comments"
+msgstr "搜索姓名、药物、兴奋剂和评论"
+
+#: src/health_data_parser/gui/symptoms.py:177
+msgid "Show resolved"
+msgstr "显示已解决"
+
+#: src/health_data_parser/gui/symptoms.py:179
+msgid "Between"
+msgstr "之间"
+
+#: src/health_data_parser/gui/symptoms.py:192
+msgid "and"
+msgstr "和"
+
+#: src/health_data_parser/gui/symptoms.py:236
+msgid "Unsaved Symptoms"
+msgstr "未保存的症状"
+
+#: src/health_data_parser/gui/symptoms.py:236
+msgid "Save the changes to the symptoms first?"
+msgstr "先保存对症状的更改吗？"
+
+#: src/health_data_parser/gui/symptoms.py:259
+msgid "Failed to read \"{0}\": {1}"
+msgstr "读取 \"{0}\" 失败: {1}"
+
+#: src/health_data_parser/gui/symptoms.py:264
+#: src/health_data_parser/gui/symptoms.py:324
+msgid "Invalid Rows"
+msgstr "无效行"
+
+#: src/health_data_parser/gui/symptoms.py:264
+msgid "{0} rows could not be read and were left out."
+msgstr "未能读取 {0} 行，已被忽略。"
+
+#: src/health_data_parser/gui/symptoms.py:277
+msgid "Open Symptoms"
+msgstr "打开症状"
+
+#: src/health_data_parser/gui/symptoms.py:285
+msgid "Save Symptoms"
+msgstr "保存症状"
+
+#: src/health_data_parser/gui/symptoms.py:293
+msgid "Failed to save symptoms: {0}"
+msgstr "保存症状失败：{0}"
+
+#: src/health_data_parser/gui/symptoms.py:319
+msgid "Failed to import CSV: {0}"
+msgstr "导入 CSV 失败: {0}"
+
+#: src/health_data_parser/gui/symptoms.py:325
+msgid "Found {0} invalid rows. Continue importing valid rows?"
+msgstr "发现 {0} 条无效行。继续导入有效行吗？"
+
+#: src/health_data_parser/gui/symptoms.py:335
+msgid "Updated {0} symptoms and added {1}."
+msgstr "已更新{0}个症状并添加了{1}。"
+
+#: src/health_data_parser/gui/symptoms.py:337
+msgid "Replaced the symptoms with {0} imported symptoms."
+msgstr "已将症状替换为{0}个导入的症状。"
+
+#: src/health_data_parser/gui/symptoms.py:339
+msgid "Added {0} symptoms."
+msgstr "已添加{0}个症状。"
+
+#: src/health_data_parser/gui/symptoms.py:340
+msgid "Import Complete"
+msgstr "导入完成"
+
+#: src/health_data_parser/gui/symptoms.py:343
+msgid "Export Symptoms"
+msgstr "导出症状"
+
+#: src/health_data_parser/gui/symptoms.py:349
+msgid "Failed to export CSV: {0}"
+msgstr "CSV 导出失败: {0}"
+
+#: src/health_data_parser/gui/symptoms.py:351
+msgid "Export Complete"
+msgstr "导出完成"
+
+#: src/health_data_parser/gui/symptoms.py:352
+msgid "Exported {0} symptoms."
+msgstr "已导出 {0} 个症状。"
+
+#: src/health_data_parser/gui/symptoms.py:409
+msgid "(no file)"
+msgstr "（无文件）"
+
+#: src/health_data_parser/gui/symptoms.py:410
+msgid "{0} (unsaved changes)"
+msgstr "{0} (未保存的更改)"
+
+#: src/health_data_parser/gui/widgets.py:15
+msgid "CSV files (*.csv);;All files (*)"
+msgstr "CSV 文件 (*.csv);;所有文件 (*)"
+
+#: src/health_data_parser/gui/widgets.py:54
+msgid "Browse..."
+msgstr "浏览..."
+
+#: src/health_data_parser/gui/widgets.py:136
+msgid "Add"
+msgstr "添加"
+
+#: src/health_data_parser/gui/widgets.py:137
+msgid "Remove"
+msgstr "移除"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Not set"
+msgstr "未设置"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Month"
+msgstr "月"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Day"
+msgstr "天"
+
+#: src/health_data_parser/gui/widgets.py:182
+msgid "Other text"
+msgstr "其他文本"
+
+#: src/health_data_parser/gui/widgets.py:185
+msgid "e.g. Chronic"
+msgstr "例如：慢性"
+
+#: src/health_data_parser/gui/worker.py:48 tests/gui/test_main_window.py:109
+msgid "Unexpected error: {0}"
+msgstr "意外错误: {0}"
+
+#: src/health_data_parser/ingest/apple_xml.py:39
+#: tests/ingest/test_apple_xml.py:168
+msgid "An exception occurred in parsing XML export files: {0}"
+msgstr "解析 XML 导出文件时发生异常：{0}"
+
+#: src/health_data_parser/ingest/custom_observations.py:20
+#: tests/ingest/test_custom_observations.py:89
+msgid "Missing custom observation results CSV file."
+msgstr "缺少自定义观察结果 CSV 文件。"
+
+#: src/health_data_parser/ingest/custom_observations.py:25
+#: tests/cli/test_cli.py:130 tests/ingest/test_custom_observations.py:36
+msgid "Custom observation results CSV file \"{0}\" is invalid."
+msgstr "自定义观测结果 CSV 文件“{0}”无效。"
+
+#: src/health_data_parser/ingest/symptoms_csv.py:30
+#: tests/ingest/test_symptoms_csv.py:31
+msgid "Invalid CSV format. Expected columns: {0}"
+msgstr "CSV 格式无效。预期列：{0}"
+
+#: src/health_data_parser/model/food.py:130
+#: src/health_data_parser/model/food.py:140 tests/model/test_custom_data.py:52
+msgid "{0} ({1} records)"
+msgstr "{0} ({1} 条记录)"
+
+#: src/health_data_parser/model/reference_range.py:25
+#: src/health_data_parser/reporting/pdf/report.py:345
+#: tests/analysis/test_summary.py:113 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:128
+msgid "LOW OUT OF RANGE"
+msgstr "低于范围"
+
+#: src/health_data_parser/model/reference_range.py:26
+#: tests/analysis/test_summary.py:111 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:123 tests/test_pipeline.py:128
+#: tests/test_pipeline.py:171
+msgid "Low in range"
+msgstr "范围低"
+
+#: src/health_data_parser/model/reference_range.py:27
+#: tests/test_pipeline.py:128
+msgid "Non-negative result"
+msgstr "非负结果"
+
+#: src/health_data_parser/model/reference_range.py:28
+#: tests/test_pipeline.py:129
+msgid "High in range"
+msgstr "范围高"
+
+#: src/health_data_parser/model/reference_range.py:29
+#: src/health_data_parser/reporting/pdf/report.py:345
+#: tests/analysis/test_summary.py:110 tests/analysis/test_summary.py:146
+#: tests/test_pipeline.py:121 tests/test_pipeline.py:129
+#: tests/test_pipeline.py:170
+msgid "HIGH OUT OF RANGE"
+msgstr "高 超出范围"
+
+#: src/health_data_parser/model/vitals.py:17
+msgid "Height"
+msgstr "高度"
+
+#: src/health_data_parser/model/vitals.py:18
+msgid "Weight"
+msgstr "重量"
+
+#: src/health_data_parser/model/vitals.py:19
+msgid "BMI"
+msgstr "BMI"
+
+#: src/health_data_parser/model/vitals.py:20
+msgid "Temperature"
+msgstr "温度"
+
+#: src/health_data_parser/model/vitals.py:21
+msgid "Pulse"
+msgstr "脉搏"
+
+#: src/health_data_parser/model/vitals.py:22
+msgid "Respiration"
+msgstr "呼吸"
+
+#: src/health_data_parser/model/vitals.py:23
+msgid "Blood Pressure"
+msgstr "血压"
+
+#: src/health_data_parser/model/vitals.py:24
+msgid "BP Systolic"
+msgstr "收缩压"
+
+#: src/health_data_parser/model/vitals.py:25
+msgid "BP Diastolic"
+msgstr "血压舒张压"
+
+#: src/health_data_parser/model/vitals.py:26
+msgid "Heart rate variability"
+msgstr "心率变异性"
+
+#: src/health_data_parser/model/vitals.py:27
+msgid "SpO2"
+msgstr "SpO2"
+
+#: src/health_data_parser/model/vitals.py:28
+#: src/health_data_parser/reporting/charts/vitals.py:225
+msgid "Apple stand minutes"
+msgstr "Apple 展位纪要"
+
+#: src/health_data_parser/model/vitals.py:29
+msgid "Steps"
+msgstr "步骤"
+
+#: src/health_data_parser/reporting/outputs.py:35
+msgid "Laboratory Abnormal Results from Apple Health Data by Code"
+msgstr "按代码分类的 Apple Health 数据实验室异常结果"
+
+#: src/health_data_parser/reporting/outputs.py:40 tests/test_pipeline.py:119
+msgid "Abnormal results found for code {0}:"
+msgstr "发现代码{0}的异常结果："
+
+#: src/health_data_parser/reporting/outputs.py:44 tests/test_pipeline.py:120
+#: tests/test_pipeline.py:122
+msgid "{0}: {1} - observed {2} - range {3}"
+msgstr "{0}: {1} - 观察到 {2} - 范围 {3}"
+
+#: src/health_data_parser/reporting/outputs.py:48
+msgid "{0}: {1} - observed {2}"
+msgstr "{0}: {1} - 观察到 {2}"
+
+#: src/health_data_parser/reporting/outputs.py:72
+msgid "Laboratory Abnormal Results by Interpretation from Apple Health Data"
+msgstr "Apple Health 数据中的实验室异常结果（按解释）"
+
+#: src/health_data_parser/reporting/outputs.py:95
+msgid "Laboratory Abnormal Results from Apple Health Data"
+msgstr "Apple Health 数据中的实验室异常结果"
+
+#: src/health_data_parser/reporting/outputs.py:119
+msgid "Laboratory Observations from Apple Health Data"
+msgstr "来自 Apple Health 数据的实验室观察"
+
+#: src/health_data_parser/reporting/outputs.py:122 tests/test_pipeline.py:147
+#: tests/test_pipeline.py:148
+msgid "{0} range"
+msgstr "{0}范围"
+
+#: src/health_data_parser/reporting/outputs.py:123 tests/test_pipeline.py:147
+#: tests/test_pipeline.py:148
+msgid "{0} result"
+msgstr "{0} 结果"
+
+#: src/health_data_parser/reporting/outputs.py:145
+msgid "An error occurred in writing observations data to CSV."
+msgstr "写入观察数据到 CSV 时发生错误。"
+
+#: src/health_data_parser/reporting/outputs.py:159
+msgid "An error occurred in writing observations data to JSON: {0}"
+msgstr "写入观察数据到JSON时发生错误: {0}"
+
+#: src/health_data_parser/reporting/outputs.py:171
+msgid "An error occurred in writing observations data to PDF report: {0}"
+msgstr "将观测数据写入 PDF 报告时发生错误：{0}"
+
+#: src/health_data_parser/reporting/charts/symptoms.py:138
+msgid "PRIMARY CAUSE / STIMULANT"
+msgstr "主要原因 / 刺激剂"
+
+#: src/health_data_parser/reporting/charts/symptoms.py:141
+msgid "MEDICATION / TREATMENT"
+msgstr "药物 / 治疗"
+
+#: src/health_data_parser/reporting/charts/vitals.py:194
+msgid "Average heart rates over 24 hours (+/– one standard deviation)"
+msgstr "24小时平均心率（± 一个标准差）"
+
+#: src/health_data_parser/reporting/charts/vitals.py:195
+#: src/health_data_parser/reporting/charts/vitals.py:223
+msgid "BPM"
+msgstr "BPM"
+
+#: src/health_data_parser/reporting/charts/vitals.py:196
+#: src/health_data_parser/reporting/charts/vitals.py:198
+#: src/health_data_parser/reporting/charts/vitals.py:200
+msgid "Time (minutes)"
+msgstr "时间（分钟）"
+
+#: src/health_data_parser/reporting/charts/vitals.py:197
+msgid "Average motion context"
+msgstr "平均运动上下文"
+
+#: src/health_data_parser/reporting/charts/vitals.py:199
+msgid "Counts of pulse spike"
+msgstr "脉冲尖峰计数"
+
+#: src/health_data_parser/reporting/charts/vitals.py:222
+msgid "Average heart rates, steps and stand minutes by day"
+msgstr "每日平均心率、步数和站立分钟"
+
+#: src/health_data_parser/reporting/charts/vitals.py:224
+msgid "Apple steps"
+msgstr "Apple 步骤"
+
+#: src/health_data_parser/reporting/charts/vitals.py:226
+msgid "BPM / stand min"
+msgstr "BPM / 待机分钟"
+
+#: src/health_data_parser/reporting/charts/vitals.py:227
+msgid "Days"
+msgstr "天"
+
+#: src/health_data_parser/reporting/pdf/report.py:162
+#: tests/reporting/test_pdf_report_sections.py:135
+msgid "No abnormal results were found in Apple Health data export."
+msgstr "在 Apple Health 数据导出中未发现异常结果。"
+
+#: src/health_data_parser/reporting/pdf/report.py:173
+#: src/health_data_parser/reporting/pdf/report.py:202
+msgid "UNKNOWN"
+msgstr "未知"
+
+#: src/health_data_parser/reporting/pdf/report.py:174
+msgid "Subject: {0} | Report created: {1}"
+msgstr "主题: {0} | 报告已创建: {1}"
+
+#: src/health_data_parser/reporting/pdf/report.py:184
+msgid "Health Records Report"
+msgstr "健康记录报告"
+
+#: src/health_data_parser/reporting/pdf/report.py:194
+#: src/health_data_parser/reporting/pdf/report.py:202
+msgid "Subject"
+msgstr "主题"
+
+#: src/health_data_parser/reporting/pdf/report.py:196
+msgid "DOB"
+msgstr "出生日期"
+
+#: src/health_data_parser/reporting/pdf/report.py:198
+msgid "Age"
+msgstr "年龄"
+
+#: src/health_data_parser/reporting/pdf/report.py:200
+msgid "Sex"
+msgstr "性"
+
+#: src/health_data_parser/reporting/pdf/report.py:204
+msgid "Lab records count"
+msgstr "实验室记录数"
+
+#: src/health_data_parser/reporting/pdf/report.py:206
+msgid "Earliest record"
+msgstr "最早的记录"
+
+#: src/health_data_parser/reporting/pdf/report.py:208
+msgid "Most recent record"
+msgstr "最新记录"
+
+#: src/health_data_parser/reporting/pdf/report.py:210
+msgid "Report assembled"
+msgstr "报告已组装"
+
+#: src/health_data_parser/reporting/pdf/report.py:225
+msgid "Summary of Vitals"
+msgstr "体征摘要"
+
+#: src/health_data_parser/reporting/pdf/report.py:233
+msgid "StDev"
+msgstr "标准差"
+
+#: src/health_data_parser/reporting/pdf/report.py:258
+msgid "WARNING: Abnormal results were found."
+msgstr "警告：发现异常结果。"
+
+#: src/health_data_parser/reporting/pdf/report.py:262
+msgid "Lab codes with abnormal results"
+msgstr "实验室代码异常结果"
+
+#: src/health_data_parser/reporting/pdf/report.py:264
+msgid "Total abnormal observations"
+msgstr "异常观测总数"
+
+#: src/health_data_parser/reporting/pdf/report.py:270
+msgid ""
+"NOTE: Reference ranges for tests are not static. The range displayed in all "
+"tables represents the most recent range available. A result classified as "
+"abnormal by an old range may be acceptable within current ranges."
+msgstr "注意：检测的参考范围并非固定不变。所有表格中显示的范围为最新可用范围。依据旧范围被判定为异常的结果，在当前范围内可能是可接受的。"
+
+#: src/health_data_parser/reporting/pdf/report.py:279
+msgid ""
+"Abnormal results may include results within ranges at +/-{0} ends of the "
+"relevant range. These are labeled as lower severity with the labels \"High "
+"in range\" and \"Low in range\" or tags \"++\" and \"--\". Tags \"+++\" and "
+"\"---\" indicate high and low out of range. Tag \"+\" indicates a positive "
+"result."
+msgstr ""
+"异常结果可能包括在相关范围的 +/-{0} 端点内的数值。这些以较低严重程度标记为 “High in range” 和 “Low in range” "
+"或标签 “++” 和 “--”。标签 “+++” 和 “---” 表示超出范围的高、低数值。标签 “+” 表示阳性结果。"
+
+#: src/health_data_parser/reporting/pdf/report.py:285
+msgid ""
+"All listed abnormal results are out of the relevant range. Tags \"+++\" and "
+"\"---\" indicate high and low out of range. Tag \"+\" indicates a positive "
+"result."
+msgstr "所有列出的异常结果均超出相关范围。标签“+++”和“---”分别表示高于和低于范围。标签“+”表示阳性结果。"
+
+#: src/health_data_parser/reporting/pdf/report.py:295
+msgid "Sections included in this report"
+msgstr "本报告中包含的章节"
+
+#: src/health_data_parser/reporting/pdf/report.py:301
+msgid "Symptoms Report"
+msgstr "症状报告"
+
+#: src/health_data_parser/reporting/pdf/report.py:303
+#: src/health_data_parser/reporting/pdf/report.py:338
+msgid "Abnormal Results By Code Summary"
+msgstr "按代码异常结果摘要"
+
+#: src/health_data_parser/reporting/pdf/report.py:304
+msgid "Abnormal Results By Code Detail"
+msgstr "按代码异常结果详情"
+
+#: src/health_data_parser/reporting/pdf/report.py:306
+#: src/health_data_parser/reporting/pdf/report.py:374
+#: tests/reporting/test_pdf_report_sections.py:101
+#: tests/reporting/test_pdf_report_sections.py:115
+#: tests/reporting/test_pdf_report_sections.py:136
+#: tests/utils/test_translations.py:79 tests/utils/test_translations.py:88
+msgid "All Lab Observations"
+msgstr "所有实验室观察"
+
+#: src/health_data_parser/reporting/pdf/report.py:308
+#: src/health_data_parser/reporting/pdf/report.py:471
+#: src/health_data_parser/reporting/pdf/report.py:513
+msgid "Heart Rate Data Analysis"
+msgstr "心率数据分析"
+
+#: src/health_data_parser/reporting/pdf/report.py:310
+#: src/health_data_parser/reporting/pdf/report.py:543
+msgid "Food Data Analysis"
+msgstr "食品数据分析"
+
+#: src/health_data_parser/reporting/pdf/report.py:315
+msgid "Symptoms Report - Including Historical"
+msgstr "症状报告 - 包含历史"
+
+#: src/health_data_parser/reporting/pdf/report.py:317
+msgid "Symptoms Report - Unresolved"
+msgstr "症状报告 - 未解决"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+#: src/health_data_parser/reporting/pdf/report.py:345
+msgid "RESULT CODE"
+msgstr "结果代码"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "L OUT"
+msgstr "退出"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "L IN"
+msgstr "L 在"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+#: src/health_data_parser/reporting/pdf/report.py:345
+msgid "OBSERVED"
+msgstr "已观察"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "H IN"
+msgstr "H 在"
+
+#: src/health_data_parser/reporting/pdf/report.py:343
+msgid "H OUT"
+msgstr "H 输出"
+
+#: src/health_data_parser/reporting/pdf/report.py:367
+msgid "Abnormal Results By Code"
+msgstr "按代码的异常结果"
+
+#: src/health_data_parser/reporting/pdf/report.py:387
+msgid "Observation Code"
+msgstr "观测代码"
+
+#: src/health_data_parser/reporting/pdf/report.py:443
+#: tests/reporting/test_pdf_report_sections.py:115
+msgid "{0} (continued)"
+msgstr "{0}（续）"
+
+#: src/health_data_parser/reporting/pdf/report.py:477
+msgid "Total readings:"
+msgstr "总阅读数："
+
+#: src/health_data_parser/reporting/pdf/report.py:479
+msgid "Pulse average:"
+msgstr "脉搏平均："
+
+#: src/health_data_parser/reporting/pdf/report.py:481
+msgid "Pulse standard deviation:"
+msgstr "脉冲标准差:"
+
+#: src/health_data_parser/reporting/pdf/report.py:487
+#: tests/reporting/test_pdf_report_sections.py:52
+#: tests/reporting/test_pdf_report_sections.py:57
+msgid "Percent in motion:"
+msgstr "运动中的百分比："
+
+#: src/health_data_parser/reporting/pdf/report.py:489
+msgid "Average in motion:"
+msgstr "运动中的平均："
+
+#: src/health_data_parser/reporting/pdf/report.py:491
+msgid "Average resting:"
+msgstr "平均休息："
+
+#: src/health_data_parser/reporting/pdf/report.py:500
+#: src/health_data_parser/reporting/pdf/report.py:529
+#: src/health_data_parser/reporting/pdf/report.py:569
+msgid "NOTES"
+msgstr "备注"
+
+#: src/health_data_parser/reporting/pdf/report.py:503
+msgid ""
+"\"Motion\" data found in Apple wearable observations. All pulse observations"
+" in clinical records data are assumed to be obtained in a non-motion state. "
+"The reliability of motion data may be questionable."
+msgstr ""
+"在 Apple 可穿戴设备观察中发现了“Motion”数据。临床记录数据中的所有脉搏观察都被视为在非运动状态下获取。运动数据的可靠性可能值得怀疑。"
+
+#: src/health_data_parser/reporting/pdf/report.py:507
+msgid ""
+"\"Pulse spikes\" are instances where there is an increase of pulse by at "
+"least 40 BPM during 5 or fewer minutes."
+msgstr "\"脉冲峰值\"是指在5分钟或更短时间内脉搏至少增加40 BPM的情况。"
+
+#: src/health_data_parser/reporting/pdf/report.py:517
+msgid "Dates recorded:"
+msgstr "记录的日期："
+
+#: src/health_data_parser/reporting/pdf/report.py:519
+msgid "Earliest date:"
+msgstr "最早的日期："
+
+#: src/health_data_parser/reporting/pdf/report.py:521
+msgid "Most recent date:"
+msgstr "最新日期："
+
+#: src/health_data_parser/reporting/pdf/report.py:532
+msgid ""
+"\"Steps\" and \"Stand minutes\" data found in Apple wearable observations. "
+"Stand minutes are usually only counted when in motion, so true stand minutes"
+" will be higher, while true step count may vary in either direction from "
+"recorded values."
+msgstr ""
+"在 Apple 可穿戴设备的观察中发现了 \"Steps\" 和 \"Stand minutes\" 数据。Stand minutes "
+"通常仅在活动时计数，因此实际站立分钟会更高，而实际步数可能相对于记录值上下浮动。"
+
+#: src/health_data_parser/reporting/pdf/report.py:547
+msgid "Total food records:"
+msgstr "食品记录总数："
+
+#: src/health_data_parser/reporting/pdf/report.py:549
+msgid "Earliest food record:"
+msgstr "最早的食物记录："
+
+#: src/health_data_parser/reporting/pdf/report.py:551
+msgid "Most recent food record:"
+msgstr "最近的食物记录："
+
+#: src/health_data_parser/reporting/pdf/report.py:553
+msgid "Total meals recorded:"
+msgstr "记录的餐点总数："
+
+#: src/health_data_parser/reporting/pdf/report.py:555
+msgid "Total dates recorded:"
+msgstr "记录的总日期数："
+
+#: src/health_data_parser/reporting/pdf/report.py:557
+msgid "Average meals per day:"
+msgstr "平均每日餐数:"
+
+#: src/health_data_parser/reporting/pdf/report.py:562
+msgid "Most common foods recorded"
+msgstr "记录的最常见食物"
+
+#: src/health_data_parser/reporting/pdf/report.py:573
+msgid "Certain diets are contraindicated by the foods found. These include:"
+msgstr "某些饮食因所发现的食物而禁用，包括以下："
+
+#: src/health_data_parser/reporting/pdf/report.py:576
+msgid "DANGER:"
+msgstr "危险："
+
+#: src/health_data_parser/reporting/pdf/report.py:579
+msgid "WARNING:"
+msgstr "警告:"
+
+#: tests/gui/test_models.py:45
+msgid "High"
+msgstr "高"
+
+#: tests/utils/test_translations.py:73
+msgid "Some text that has no translation"
+msgstr "没有翻译的文字"
